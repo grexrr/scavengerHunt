@@ -17,9 +17,9 @@ destination_node = ox.nearest_nodes(graph, destination[1], destination[0])
 route = ox.shortest_path(graph, origin_node, destination_node)
 
 # plot the route
-fig, ax = ox.plot_graph_route(graph, 
+fig, ax = ox.plot_graph_route(graph,
                              route,
-                             node_size=0,
+                             node_size=0, 
                              edge_color='#777777',
                              route_color='red',
                              route_linewidth=2,

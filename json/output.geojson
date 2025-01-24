@@ -1,0 +1,173 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.4343234,
+                    51.8777178
+                ]
+            },
+            "properties": {
+                "addr:city": "Douglas",
+                "addr:street": "East Village",
+                "name": "East Village",
+                "tourism": "hotel",
+                "wheelchair": "yes"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.4903073,
+                    51.8947384
+                ]
+            },
+            "properties": {
+                "addr:city": "Cork",
+                "addr:housename": "University College Cork",
+                "addr:postcode": "T12 V1WH",
+                "addr:street": "Western Road",
+                "alt_name": "Lewis Glucksman Gallery",
+                "contact:facebook": "TheGlucksman",
+                "contact:instagram": "theglucksman",
+                "contact:twitter": "glucksman",
+                "email": "info@glucksman.org",
+                "fee": "no",
+                "internet_access": "wlan",
+                "museum": "art",
+                "name": "Glucksman Gallery",
+                "opening_hours": "Tu-Su 11:00-17:00",
+                "outdoor_seating": "no",
+                "phone": "+353 214901844",
+                "tourism": "museum",
+                "website": "https://www.glucksman.org",
+                "wikidata": "Q6536591",
+                "wikipedia": "en:Lewis Glucksman Gallery"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.4681465,
+                    51.9015847
+                ]
+            },
+            "properties": {
+                "addr:city": "Cork",
+                "addr:housenumber": "48",
+                "addr:postcode": "T23 F6EK",
+                "addr:street": "MacCurtain Street",
+                "name": "Issac's",
+                "phone": "+353 21 450 0011",
+                "tourism": "hotel",
+                "website": "https://hotelisaacscork.com",
+                "wikidata": "Q111650600"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.4709898,
+                    51.9019211
+                ]
+            },
+            "properties": {
+                "tourism": "hotel"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.470062,
+                    51.897186
+                ]
+            },
+            "properties": {
+                "addr:city": "Cork",
+                "addr:country": "IE",
+                "addr:county": "Cork",
+                "addr:postcode": "T12 A2YT",
+                "addr:street": "South Mall",
+                "breakfast": "yes",
+                "email": "reservations@imperialhotelcork.ie",
+                "internet_access": "wlan",
+                "internet_access:fee": "no",
+                "name": "Imperial Hotel",
+                "operator": "Flynn Hotels",
+                "phone": "+353 21 427 4040",
+                "rooms": "125",
+                "smoking": "no",
+                "stars": "4",
+                "tourism": "hotel",
+                "website": "https://www.imperialhotelcork.com",
+                "wheelchair": "yes",
+                "wikidata": "Q111411773"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.4747383,
+                    51.902754
+                ]
+            },
+            "properties": {
+                "addr:city": "Cork",
+                "addr:housename": "Maldron Hotel Shandon Cork City",
+                "addr:postcode": "T23 A9TF",
+                "addr:street": "John Redmond Street",
+                "brand": "Maldron Hotels",
+                "email": "info.cork@maldronhotels.com",
+                "internet_access": "yes",
+                "name": "Maldron Hotel Shandon Cork City",
+                "operator": "Dalata",
+                "payment:american_express": "yes",
+                "payment:credit_cards": "yes",
+                "payment:debit_cards": "yes",
+                "payment:maestro": "yes",
+                "payment:mastercard": "yes",
+                "payment:visa": "yes",
+                "smoking": "no",
+                "stars": "4",
+                "tourism": "hotel",
+                "website": "https://www.maldronhotelshandoncorkcity.com",
+                "wheelchair": "yes"
+            }
+        },
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -8.475779,
+                    51.9045658
+                ]
+            },
+            "properties": {
+                "contact:email": "folklorearchive@gmail.com",
+                "contact:phone": "+353 (021) 4228195",
+                "contact:twitter": "corkfolklore",
+                "description": "Cork Folklore project details on website. Also cafe and exhibition based on history of North cathedral;local history archive hub",
+                "fee": "no",
+                "museum": "local",
+                "name": "Cork Folklore Project",
+                "reservation": "required",
+                "tourism": "museum",
+                "website": "https://corkfolklore.org/"
+            }
+        }
+    ]
+}

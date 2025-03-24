@@ -1,48 +1,69 @@
 package com.scavengerhunt.game;
 
-import java.util.HashSet;
-import java.util.Set;
-
+/**
+ * Manages the state of a player in the scavenger hunt game.
+ */
 public class PlayerStateManager {
     private Landmark currentTarget;
-    private Set<String> solvedLandmarkIds;
-    private double playerLatitude;
-    private double playerLongitude;
-    private double playerAngle;
+    private Player player;
+ 
+    // Getter and Setter
 
-    public PlayerStateManager() {
-        this.solvedLandmarkIds = new HashSet<>();
+    public void setPlayer(Player player){
+        this.player = player;
     }
 
-    public void setCurrentTarget(Landmark landmark) {
+    public void updateCurrentTarget(Landmark landmark) {
         this.currentTarget = landmark;
     }
 
-    //set current target to solve
-    public Landmark getCurrentTarget(){
+    public Landmark getCurrentTarget() {
         return currentTarget;
     }
 
-    //mark the landmark is solved
-    public void markLandmarkSolved(Landmark landmark){
-        solvedLandmarkIds.add(landmark.getId());
+    public Player getPlayer(){
+        return player;
     }
 
-    public boolean isLandmarkSolved(Landmark landmark){
-        return solvedLandmarkIds.contains(landmark.getId());
+    //Core Function
+
+    public PlayerStateManager(Player player, Landmark landmark) {
+        this.currentTarget = landmark;
+        this.player = player;
+    }
+
+    public void updatePlayerPosition(double latitude, double longitude, double angle) {
+        this.player.setLatitude(latitude);
+        this.player.setLongitude(longitude);
+        this.player.setAngle(angle);
+    }
+
+    public void markLandmarkSolved(Landmark landmark) {
+        player.markLandmarkSolved(landmark);
     }
 
 
-    public void updatePlayerPosition(double latitude, double longitude){
-        this.playerLatitude = latitude;
-        this.playerLongitude = longitude;
+    public boolean isLandmarkSolved(Landmark landmark) {
+        return player.getSolvedLandmarkIds().contains(landmark.getId());
+    }
+    
+
+    public boolean isGameFinished() {
+        return player.isGameFinished();
     }
 
-    public void updatePlayerAngle(double angle) {
-        this.playerAngle = angle;
+    public void finishGame() {
+        player.setGameFinished(true);
     }
 
-    public double getPlayerLatitude() { return playerLatitude; }
-    public double getPlayerLongitude() { return playerLongitude; }
-    public double getPlayerAngle() { return playerAngle; }
+    public void resetGame() {
+        player.reset();
+        currentTarget = null;
+    }
+
+    public void resetGameTo(double lat, double lng, double angle) {
+        player.resetTo(lat, lng, angle);
+        currentTarget = null;
+    }
+
 }

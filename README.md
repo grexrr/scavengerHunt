@@ -52,3 +52,14 @@ scavenger_hunt/                        # Project root directory (Java main progr
 ```
 
 This module demonstrates full-stack coordination between a Java desktop application and a lightweight Python server using RESTful APIs, with a strong focus on geospatial interaction and puzzle-solving mechanics.
+
+
+### Dev Log
+
+#### Mar.24 2025
+
+- Project Bootstrapped using Spring Boot 3.4.4 (Maven + Java 17)
+- Initialized base package: com.scavengerhunt
+- Added game module:
+    - **Landmark:** model for POIs, with id, name, riddle, location, isSolved status
+    - **PlayerStateManager:** tracks player’s position, orientation, current target, solved history

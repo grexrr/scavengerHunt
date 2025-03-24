@@ -50,3 +50,5 @@ scavenger_hunt/                        # Project root directory (Java main progr
     ├── utils.py                       # Shared utility functions (e.g. prompt templates)
     └── config.py                      # Python-side configuration, such as API keys
 ```
+
+This module demonstrates full-stack coordination between a Java desktop application and a lightweight Python server using RESTful APIs, with a strong focus on geospatial interaction and puzzle-solving mechanics.

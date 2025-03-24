@@ -19,7 +19,8 @@ scavenger_hunt/                        # Project root directory (Java main progr
 │   ├── Landmark.java                  # Landmark entity (location, name, riddle, etc.)
 │   ├── LandmarkManager.java           # Loads/saves/switches landmarks (including random target selection)
 │   ├── RiddleManager.java             # Riddle management (loaded locally or from Python)
-│   └── AnswerEvaluator.java           # Checks if player correctly identifies the landmark (angle + distance + interaction)
+│   ├── AnswerEvaluator.java           # Checks if player correctly identifies the landmark (angle + distance + interaction)
+│   └── PlayerStateManager.java        # Tracks current player state: solved landmarks, current target, position history, etc.
 │
 ├── interaction/                       # Player input and interaction
 │   ├── InputController.java           # Keyboard and mouse listener (movement, button operations, etc.)

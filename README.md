@@ -93,6 +93,10 @@ This phase focused on **validating module communication, state transitions, and 
 6. The next target is chosen based on proximity
 7. If no further landmarks remain, the game ends and the state is saved
 
+##### Issues & Solution:
+The module-oriented development approach has led to structural confusion issues. We have decided to adopt a **Domain-Driven Design** (DDD) + Use Case First development methodology for the next phase of work to see if it can alleviate these problems.
+
+
 #### Next Step: MVP UI Integration
 
 Having validated the core gameplay logic in a console-based simulation, the next step is to begin **UI-layer integration**, where player inputs and spatial movement will drive visual feedback and real-time interactions.

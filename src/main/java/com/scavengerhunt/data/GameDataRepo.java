@@ -19,8 +19,8 @@ public class GameDataRepo {
     public List<Landmark> loadLandmarks() {
         List<Landmark> landmarks = new ArrayList<>();
         // Example data: Glucksman and Honan Chapel
-        landmarks.add(new Landmark("1", "Glucksman Gallery", "Where art hides behind glass and stone", 51.8932, -8.4942, false));
-        landmarks.add(new Landmark("2", "Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8937, -8.4935, false));
+        landmarks.add(new Landmark("1", "Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073, false));
+        landmarks.add(new Landmark("2", "Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395, false));
         return landmarks;
     }
 

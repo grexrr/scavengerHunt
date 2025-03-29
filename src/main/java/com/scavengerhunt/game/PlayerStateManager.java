@@ -40,6 +40,7 @@ public class PlayerStateManager {
 
     public void markLandmarkSolved(Landmark landmark) {
         player.markLandmarkSolved(landmark);
+        landmark.markSolved(); 
     }
 
 
@@ -53,7 +54,7 @@ public class PlayerStateManager {
     }
 
     public void finishGame() {
-        player.setGameFinished(true);
+        player.setGameFinished();
     }
 
     public void resetGame() {

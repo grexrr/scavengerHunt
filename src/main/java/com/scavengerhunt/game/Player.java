@@ -82,8 +82,8 @@ public class Player {
         return isGameFinish;
     }
 
-    public void setGameFinished(boolean gameFinished) {
-        this.isGameFinish = gameFinished;
+    public void setGameFinished() {
+        this.isGameFinish = true;
     }
 
     public void reset() {

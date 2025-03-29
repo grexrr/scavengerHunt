@@ -2,7 +2,6 @@ package com.scavengerhunt.game;
 
 import java.util.HashSet;
 import java.util.Set;
-
 /**
  * Represents a player entity in the game.
  * Contains basic information including position and orientation.
@@ -18,8 +17,8 @@ public class Player {
     private String playerId;
     private String nickname;
 
-    private Set<String> solvedLandmarkIds = new HashSet<>();
-    private Boolean isGameFinish = false;
+    private Set<Integer> solvedLandmarkIds = new HashSet<>();
+    // private Boolean isGameFinish = false;
 
     /**
      * Creates a new Player at the specified position and orientation
@@ -59,45 +58,15 @@ public class Player {
     public void setAngle(double angle) {
         this.angle = angle;
     }
-    
-    /**
-     * Solved Landmarks managing
-     */
-    public void markLandmarkSolved(Landmark landmark) {
-        solvedLandmarkIds.add(landmark.getId());
-    }
 
-    public boolean hasSolved(Landmark landmark) {
-        return solvedLandmarkIds.contains(landmark.getId());
-    }
-
-    public Set<String> getSolvedLandmarkIds() {
+    public Set<Integer> getSolvedLandmarkIDs(){
         return solvedLandmarkIds;
     }
 
-    /**
-    * Game Status Manager
-    */
-    public boolean isGameFinished() {
-        return isGameFinish;
+    public void updatePlayerSolvedLandmark(Landmark landmark){
+        getSolvedLandmarkIDs().add(landmark.getId());
     }
 
-    public void setGameFinished() {
-        this.isGameFinish = true;
-    }
-
-    public void reset() {
-        this.isGameFinish = false;
-        this.solvedLandmarkIds.clear();
-    }
-    
-    public void resetTo(double latitude, double longitude, double angle) {
-        this.latitude = latitude;
-        this.longitude = longitude;
-        this.angle = angle;
-        this.isGameFinish = false;
-        this.solvedLandmarkIds.clear();
-    }
 
     /**
      * Other Info

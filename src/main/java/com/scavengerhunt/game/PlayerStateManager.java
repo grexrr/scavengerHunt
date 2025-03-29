@@ -4,33 +4,19 @@ package com.scavengerhunt.game;
  * Manages the state of a player in the scavenger hunt game.
  */
 public class PlayerStateManager {
-    private Landmark currentTarget;
+    // private Landmark currentTarget;
     private Player player;
+    private boolean isGameFinish = false;
  
-    // Getter and Setter
-
-    public void setPlayer(Player player){
+    public PlayerStateManager(Player player, boolean isGameFinish) {
+        // this.currentTarget = landmark;
         this.player = player;
+        this.isGameFinish = isGameFinish;
     }
 
-    public void updateCurrentTarget(Landmark landmark) {
-        this.currentTarget = landmark;
-    }
-
-    public Landmark getCurrentTarget() {
-        return currentTarget;
-    }
-
-    public Player getPlayer(){
-        return player;
-    }
-
-    //Core Function
-
-    public PlayerStateManager(Player player, Landmark landmark) {
-        this.currentTarget = landmark;
-        this.player = player;
-    }
+    /** 
+     * Core Functions
+     */
 
     public void updatePlayerPosition(double latitude, double longitude, double angle) {
         this.player.setLatitude(latitude);
@@ -38,33 +24,19 @@ public class PlayerStateManager {
         this.player.setAngle(angle);
     }
 
-    public void markLandmarkSolved(Landmark landmark) {
-        player.markLandmarkSolved(landmark);
-        landmark.markSolved(); 
+    public void resetPlayerTo(double lat, double lng, double angle) {
+        player.setLatitude(lat);
+        player.setLongitude(lng);
+        player.setAngle(angle);
     }
 
+    // Getter and Setter
 
-    public boolean isLandmarkSolved(Landmark landmark) {
-        return player.getSolvedLandmarkIds().contains(landmark.getId());
-    }
-    
 
-    public boolean isGameFinished() {
-        return player.isGameFinished();
-    }
+    public Player getPlayer(){return player;}
 
-    public void finishGame() {
-        player.setGameFinished();
-    }
+    public void setGameFinished(){this.isGameFinish = true;}
 
-    public void resetGame() {
-        player.reset();
-        currentTarget = null;
-    }
-
-    public void resetGameTo(double lat, double lng, double angle) {
-        player.resetTo(lat, lng, angle);
-        currentTarget = null;
-    }
+    public boolean isGameFinished(){return isGameFinish;}
 
 }

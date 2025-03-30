@@ -183,7 +183,7 @@ Having validated the core gameplay logic in a console-based simulation, the next
 
 ---
 
-### 🌀 Reflection
+##### Reflection
 
 Although the game logic layer is solid, the UI brings substantial added complexity. Key challenges include:
 

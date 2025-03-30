@@ -8,19 +8,21 @@ public class GameSession {
     private PuzzleController controller;
     private LandmarkRepo landmarkRepo;
     
+    public GameSession(){}
+    
     public GameSession(PlayerStateManager playerState, PuzzleController controller, LandmarkRepo landmarkRepo) {
         this.playerState = playerState;
         this.controller = controller;
         this.landmarkRepo = landmarkRepo;
     }
 
-    public void loadPlayer(Player player){
+    public void loadPlayerState(Player player){
         this.playerState = new PlayerStateManager(player, false);
         this.controller = null;
         System.out.println("[INFO] Player Recentered.");
     }
 
-    public void startNewRound(double radiusMeters){
+    public void applySearchArea(double radiusMeters){
         this.controller = new PuzzleController(playerState.getPlayer(), this.landmarkRepo);
         this.controller.initTargetPool(radiusMeters);
         controller.startNewRound();

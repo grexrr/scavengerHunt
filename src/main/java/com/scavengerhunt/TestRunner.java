@@ -1,61 +1,57 @@
+// game.initGame(51.8954396, -8.4890143, 0); //init player, 
+
 package com.scavengerhunt;
 
 import com.scavengerhunt.data.GameDataRepo;
+import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.Landmark;
 import com.scavengerhunt.game.LandmarkRepo;
 import com.scavengerhunt.game.Player;
-import com.scavengerhunt.game.PuzzleController;
+import com.scavengerhunt.game.PlayerStateManager;
+
 
 public class TestRunner {
 
     public static void main(String[] args) {
-        System.out.println("== Scavenger Hunt Test ==");
-        
-        // 1. Init Repos
-        // game.initGame(51.8954396, -8.4890143, 0); //init player, 
-        Player player = new Player(51.8954396, -8.4890143, 0);
-        player.setPlayerId("player001");
-        player.setNickname("TestUser");
+        System.out.println("== Scavenger Hunt Test via GameSession ==");
 
-        LandmarkRepo landmarkRepo = new LandmarkRepo();
+        // Step 1: Load landmarks via GameDataRepo and LandmarkRepo
         GameDataRepo dataRepo = new GameDataRepo();
-        landmarkRepo.loadLandmarks(dataRepo); // Load landmarks for this round
+        LandmarkRepo landmarkRepo = new LandmarkRepo(dataRepo);
+        landmarkRepo.loadLandmarks();
 
-        // 2. Create controller
-        PuzzleController controller = new PuzzleController(player, landmarkRepo);
+        // Step 2: Create a player and GameSession
+        Player player = new Player(51.895506, -8.488848, 0); // UCC Main Gate
+        player.setPlayerId("p001");
+        PlayerStateManager stateManager = new PlayerStateManager(player, false);
 
-        // 3. Start a new round
-        controller.startNewRound();
-        System.out.println("[INFO] New game round started.");
+        GameSession session = new GameSession(stateManager, null, landmarkRepo);
 
-        // 4. Get a target (testing getNextTarget flow)
-        Landmark nextTarget = controller.getNextTarget();
-        System.out.println("Next target: " + nextTarget.getName());
+        // Step 3: Start a new round with 500m radius
+        session.startNewRound(500);
 
-        // 5. Simulate "player solves this landmark"
-        landmarkRepo.markSolved(nextTarget);
-        player.updatePlayerSolvedLandmark(nextTarget);
-        System.out.println("[INFO] Solved landmark: " + nextTarget.getName());
+        // Step 4: Get current target
+        Landmark target = session.getCurrentTarget();
+        System.out.println("[TARGET] " + target.getName());
 
-        // 6. Check if the game is finished (currently only two landmarks so solving one doesn't end the game)
-        boolean finished = controller.isGameFinish();
-        System.out.println("Is game finished? " + finished);
+        // Step 5: Simulate solving puzzles until game is finished
+        while (!session.isFinished()) {
+            boolean correct = session.checkAnswerCorrect();
+            if (correct) {
+                Landmark next = session.submitAndNext();
+                if (next != null) {
+                    System.out.println("[NEXT] " + next.getName());
+                } else {
+                    System.out.println("[COMPLETE] All riddles solved.");
+                }
+            } else {
+                System.out.println("[ERROR] Incorrect answer (not implemented in MVP)");
+                break;
+            }
+        }
 
-        // 7. Simulate solving another landmark
-        Landmark nextTarget2 = controller.getNextTarget();
-        System.out.println("Next target: " + nextTarget2.getName());
-
-        landmarkRepo.markSolved(nextTarget2);
-        player.updatePlayerSolvedLandmark(nextTarget2);
-        System.out.println("[INFO] Solved landmark: " + nextTarget2.getName());
-
-        // 8. Check again if the game is finished
-        finished = controller.isGameFinish();
-        System.out.println("Is game finished? " + finished);
-
-        // 9. Simulate uploading progress
-        // dataRepo.savePlayerProgress(controller.getPlayerStateManager());
-
+        // Final solved landmark IDs
+        System.out.println("[SOLVED IDS] " + session.getSolvedLandmarkIds());
         System.out.println("== Test Complete ==");
     }
 }

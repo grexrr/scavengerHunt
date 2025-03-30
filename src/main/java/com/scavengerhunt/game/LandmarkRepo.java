@@ -14,57 +14,29 @@ import com.scavengerhunt.utils.GeoUtils;
  */
 public class LandmarkRepo {
 
-    // All landmarks loaded for the current round
-    private List<Landmark> localLandmarks = new ArrayList<>();
+    private List<Landmark> allLocalLandmarks = new ArrayList<>(); 
+    private GameDataRepo gameDataRepo;
 
-    // Filtered views
-    private List<Landmark> unsolvedLandmarks;
-    private List<Landmark> solvedLandmarks = new ArrayList<>();
-
-    public void loadLandmarks(GameDataRepo repo) {
-        this.localLandmarks = repo.loadLandmarks();
-        this.unsolvedLandmarks = new ArrayList<>(localLandmarks);
-        this.solvedLandmarks.clear();
+    public LandmarkRepo() {
+        this.allLocalLandmarks = new ArrayList<>();
     }
 
-    public void markSolved(Landmark landmark) {
-        if (unsolvedLandmarks.contains(landmark)) {
-            unsolvedLandmarks.remove(landmark);
-            solvedLandmarks.add(landmark);
-        }
-    }
-
-    public Landmark selectNearestToPlayer(PlayerStateManager playerState) {
-        double lat = playerState.getPlayer().getLatitude();
-        double lng = playerState.getPlayer().getLongitude();
-        return selectNearestTo(lat, lng);
+    public LandmarkRepo(GameDataRepo dataRepo) {
+        this.allLocalLandmarks = new ArrayList<>();
+        this.gameDataRepo = dataRepo;
     }
     
-    
-    private Landmark selectNearestTo(double refLat, double refLng) {
-        return unsolvedLandmarks.stream()
-            .min((l1, l2) -> {
-                double d1 = GeoUtils.distanceInMeters(refLat, refLng, l1.getLatitude(), l1.getLongitude());
-                double d2 = GeoUtils.distanceInMeters(refLat, refLng, l2.getLatitude(), l2.getLongitude());
-                return Double.compare(d1, d2);
-            })
-            .orElse(null);
+    public void loadLandmarks() {
+        this.allLocalLandmarks = this.gameDataRepo.loadLandmarks(); 
+    }
+   
+    public List<Landmark> getAllLandmarks() {
+        return this.allLocalLandmarks;
     }
 
-    public List<Landmark> getUnsolvedLandmarks() {
-        return this.unsolvedLandmarks;
-    }
-
-    public Landmark getLastSolved() {
-        if (solvedLandmarks.isEmpty()) return null;
-        return solvedLandmarks.get(solvedLandmarks.size() - 1);
-    }
-
-    public Landmark selectNextLandmark(Landmark lastSolvedLandmark) {
-        return selectNearestTo(lastSolvedLandmark.getLatitude(), lastSolvedLandmark.getLongitude());
-    }
-    
-    public List<Landmark> getSolvedLandmarks(){
-        return this.solvedLandmarks;
-    }
+    public List<Landmark> getAllLandmarksWithinRadius(double lat, double lng, double radiusMeters) {
+        return this.allLocalLandmarks.stream()
+            .filter(lm -> GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude()) <= radiusMeters)
+            .toList();
+    } 
 }

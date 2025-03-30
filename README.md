@@ -114,21 +114,81 @@ Having validated the core gameplay logic in a console-based simulation, the next
 - Sync UI feedback with existing game state logic (PlayerStateManager & LandmarkManager)
 
 
-#### Mar. 29 2025
+#### Mar. 29, 2025
 
-###### Updated Design Notes
+##### Updated Design Notes
 
-- Separated pure data layer (`LandmarkRepo`) from stateful game logic (`PuzzleController`)
-- New `MapUIStateManager` added to synchronize game state with frontend visual layer
-- New `GameSession` class wraps player and puzzle state for higher-level control from UI
-- PuzzleController remains single round’s manager: provides `submitAnswer()`, `getCurrentTarget()`, and `isFinished()`   
-- UI only talks to `GameSession` / `GameUIController` and lets logic flow naturally from backend
+- Separated the pure data layer (`LandmarkRepo`) from the stateful game logic (`PuzzleController`)
+- Introduced `MapUIStateManager` to sync internal state with frontend rendering
+- Added `GameSession` as the bridge between logic and UI, encapsulating player and puzzle states
+- Kept `PuzzleController` focused on single-round management: provides methods such as `submitAnswer()`, `getCurrentTarget()`, and `isFinished()`
+- The UI layer communicates exclusively with `GameSession` or `GameUIController`
 
-##### Frontend Strategy (New)
+##### Frontend Strategy (Revised)
 
-- MVP map uses Leaflet in an HTML page rendered by JavaFX WebView or browser window
-- Player inputs interact with Java backend via key/mouse or touch events
-- Later phases can transition to:
-    - PWA (Progressive Web App) for direct mobile compatibility
-    - Embedded WebView in native Android / iOS app (e.g. via Flutter / React Native / Cordova)
-    - Rewriting frontend in native mobile SDKs if needed (final phase only)
+- The MVP map is rendered using Leaflet inside an HTML page, embedded through JavaFX WebView or opened in a browser window
+- User interaction is handled through key/mouse/touch input passed to the backend
+- Future extension paths:
+  - Progressive Web App (PWA) for mobile browser compatibility
+  - Embedding the WebView into a native Android/iOS app using frameworks such as Flutter, React Native, or Cordova
+  - Full native mobile frontend rewrite for later phases (as needed)
+
+##### Progress Recap
+
+###### PuzzleController & LandmarkRepo Refinement
+- Responsibilities clarified:
+  - `PuzzleController` maintains round-specific state, such as the target pool and progress tracking
+  - `LandmarkRepo` acts as a data provider with geospatial filtering, no longer maintains round state
+- Achieved strict use-case alignment by avoiding logic duplication and state coupling
+
+###### Session Layer Implementation
+- `GameSession` introduced to orchestrate state between player, puzzle logic, and data
+- Ensures a clean API surface for the frontend
+- Facilitates long-term modularity and scalability
+
+###### UI Prototype Integration
+- `UIController` implemented as the first-layer interface between the frontend and logic
+- Tested a terminal-based MVP flow:
+  - Initializes a player
+  - Applies a search radius to create the puzzle pool
+  - Handles answer submission and target progression
+  - Detects game completion cleanly
+
+
+##### Insights from MVP Debugging
+
+- `GameDataRepo` should evolve into a unified backend communication hub:
+  - Manages not only landmark/riddle retrieval, but also future player data syncing
+  - Will eventually integrate with a Python REST API backend
+
+- Layer separation (Repo ↔ Controller ↔ Session ↔ UI) proved valuable for testability and logic clarity
+
+##### Next Focus Areas
+
+###### 1. Simulated Player Movement
+- Add tools to manually or programmatically update player position
+- Dynamically affect game state and puzzle logic
+- Used to validate spatial correctness and navigation feedback
+
+###### 2. Distance-Based Puzzle Validation
+- Implement `evaluateCurrentTarget()` with geolocation checks
+- Later enhance to include directional angle (facing logic)
+- Might involve an `AnswerEvaluator` utility or similar abstraction
+
+###### 3. Strengthen Frontend Visualization
+- Decide and initiate the map rendering layer:
+  - JavaFX + embedded Leaflet HTML
+  - Or fully browser-based progressive web frontend
+- Immediate goal: visualize player and landmarks on a map
+
+---
+
+### 🌀 Reflection
+
+Although the game logic layer is solid, the UI brings substantial added complexity. Key challenges include:
+
+- Interactive graphics (maps, players, arrows)
+- User input handling (mouse and keyboard)
+- Synchronizing state across logic and UI layers
+
+However, once the map visualization is functional, additional game features will become significantly easier to build.

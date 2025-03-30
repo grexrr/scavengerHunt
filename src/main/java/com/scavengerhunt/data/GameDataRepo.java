@@ -26,6 +26,10 @@ public class GameDataRepo {
         return landmarks;
     }
 
+    public void loadPlayer(){
+
+    }
+
     /**
      * Save player's solved landmark IDs (MVP: print to console).
      */

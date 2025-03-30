@@ -2,6 +2,7 @@ package com.scavengerhunt.game;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.scavengerhunt.data.GameDataRepo;
 import com.scavengerhunt.utils.GeoUtils;
@@ -24,6 +25,7 @@ public class LandmarkRepo {
     public LandmarkRepo(GameDataRepo dataRepo) {
         this.allLocalLandmarks = new ArrayList<>();
         this.gameDataRepo = dataRepo;
+        this.loadLandmarks();;
     }
     
     public void loadLandmarks() {
@@ -35,8 +37,15 @@ public class LandmarkRepo {
     }
 
     public List<Landmark> getAllLandmarksWithinRadius(double lat, double lng, double radiusMeters) {
+        System.out.println("[DEBUG] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
+        for (Landmark lm : allLocalLandmarks) {
+            double dist = GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude());
+            System.out.println("[DEBUG] " + lm.getName() + " distance = " + dist + "m");
+        }
+    
         return this.allLocalLandmarks.stream()
             .filter(lm -> GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude()) <= radiusMeters)
-            .toList();
-    } 
+            .collect(Collectors.toList());
+    }
+    
 }

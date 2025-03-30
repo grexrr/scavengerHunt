@@ -14,7 +14,7 @@ public class Player {
     private double longitude;
     private double angle;
 
-    private String playerId;
+    private int playerId;
     private String nickname;
 
     private Set<Integer> solvedLandmarkIds = new HashSet<>();
@@ -71,20 +71,19 @@ public class Player {
     /**
      * Other Info
      */
-    public String getPlayerId() {
+    public int getPlayerId() {
         return playerId;
     }
 
-    public void setPlayerId(String playerId) {
+    public void setPlayerId(int playerId) {
         this.playerId = playerId;
     }
 
-    public String getNickname() {
+    public String getPlayerNickname() {
         return nickname;
     }
 
-    public void setNickname(String nickname) {
+    public void setPlayerNickname(String nickname) {
         this.nickname = nickname;
-    }
-    
+    }    
 }

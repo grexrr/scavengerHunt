@@ -212,7 +212,6 @@ However, once the map visualization is functional, additional game features will
   - Connected endpoint to `UIController.initGame(...)`, confirming Spring Boot logs display proper coordinates upon frontend interaction
   - Verified full chain: map click → fetch → POST JSON → session initialized
 
----
 
 ##### Static Resource Structure
 
@@ -230,7 +229,6 @@ resources/
 |--------|---------|---------|----------|--------|
 | Click map | Leaflet | `{lat, lng, angle}` | `POST /api/game/init` | Game session initialized |
 
----
 
 ##### Design Notes
 

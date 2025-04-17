@@ -192,3 +192,51 @@ Although the game logic layer is solid, the UI brings substantial added complexi
 - Synchronizing state across logic and UI layers
 
 However, once the map visualization is functional, additional game features will become significantly easier to build.
+
+---
+
+#### Apr. 17 2025
+
+**Goal: Establish frontend-backend interaction using Leaflet-based map interface, replacing the prior CLI `TestRunner`. Focused on player initialization via map click and modular JavaScript structure.**
+
+
+- Created `index.html` to host a full-screen Leaflet map, simulating player location input by clicking
+- Designed and separated client logic into JS modules:
+  - `player_click_init.js`: first-click event listener for player init, calling `/api/game/init`
+  - `main.js`: application entrypoint, loads the map and mounts init handler
+- Adopted **global function style** for frontend scripts for simple browser-based testing, avoiding ES module complexity
+
+- Backend:
+  - Added `GameRestController` with `@RestController` + `/api/game` prefix
+  - Implemented `POST /api/game/init` endpoint with `PlayerInitRequest` DTO
+  - Connected endpoint to `UIController.initGame(...)`, confirming Spring Boot logs display proper coordinates upon frontend interaction
+  - Verified full chain: map click → fetch → POST JSON → session initialized
+
+---
+
+##### Static Resource Structure
+
+```
+resources/
+└── static/
+    ├── index.html
+    ├── main.js
+    └── player_click_init.js
+```
+
+##### Data Flow Verified
+
+| Action | Trigger | Payload | Endpoint | Result |
+|--------|---------|---------|----------|--------|
+| Click map | Leaflet | `{lat, lng, angle}` | `POST /api/game/init` | Game session initialized |
+
+---
+
+##### Design Notes
+
+- Global-scope JS functions selected over ES Modules for MVP simplicity
+- State flag `gameInitialized` is used to guard single-init behavior
+- Plan to decouple `UIController` from direct instantiation in `GameRestController` and move to injected singleton later
+
+---
+

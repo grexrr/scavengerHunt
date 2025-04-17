@@ -2,6 +2,9 @@ package com.scavengerhunt.game;
 
 import java.util.Set;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class GameSession {
     
     private PlayerStateManager playerState;
@@ -9,6 +12,10 @@ public class GameSession {
     private LandmarkRepo landmarkRepo;
     
     public GameSession(){}
+    
+    public GameSession(LandmarkRepo repo) {
+        this.landmarkRepo = repo;
+    }
     
     public GameSession(PlayerStateManager playerState, PuzzleController controller, LandmarkRepo landmarkRepo) {
         this.playerState = playerState;
@@ -62,5 +69,7 @@ public class GameSession {
         return playerState.getPlayer().getSolvedLandmarkIDs();
     }
 
-
+    public PlayerStateManager getPlayerState() {
+        return this.playerState;
+    }
 }

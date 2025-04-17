@@ -1,5 +1,7 @@
 package com.scavengerhunt.ui;
 
+import org.springframework.stereotype.Component;
+
 import com.scavengerhunt.data.GameDataRepo;
 import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.Landmark;
@@ -8,6 +10,7 @@ import com.scavengerhunt.game.Player;
 import com.scavengerhunt.game.PlayerStateManager;
 import com.scavengerhunt.game.PuzzleController;
 
+@Component
 public class UIController {
     
     private GameSession session;

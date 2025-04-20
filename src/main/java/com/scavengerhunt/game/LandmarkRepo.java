@@ -43,9 +43,16 @@ public class LandmarkRepo {
             System.out.println("[DEBUG] " + lm.getName() + " distance = " + dist + "m");
         }
     
-        return this.allLocalLandmarks.stream()
+        List<Landmark> filtered = this.allLocalLandmarks.stream()
             .filter(lm -> GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude()) <= radiusMeters)
             .collect(Collectors.toList());
+
+        System.out.println("[DEBUG] Selected landmarks in range:");
+        for (Landmark lm : filtered) {
+            System.out.println("  - " + lm.getName());
+        }
+
+        return filtered;
     }
     
 }

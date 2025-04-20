@@ -12,11 +12,16 @@ import com.scavengerhunt.ui.UIController;
 @RequestMapping("/api/game")
 public class GameRestController {
 
-    private final UIController uiController = new UIController();
+    private final UIController uiController;
+
+    public GameRestController(UIController uiController) {
+        this.uiController = uiController;
+    }
 
     @PostMapping("/init")
     public ResponseEntity<String> initGame(@RequestBody PlayerInitRequest request) {
         System.out.println("[DEBUG] initGame() called");
+        
         System.out.println("[DEBUG] Coordination Received: " + request.getLatitude() + ", " + request.getLongitude());
 
         uiController.initGame(
@@ -26,6 +31,21 @@ public class GameRestController {
             );
         return ResponseEntity.ok("Game Initialized");
     }
+
+    @PostMapping("/start-round")
+    public ResponseEntity<String> startRound(@RequestBody StartRoundRequest request) {
+        System.out.println("[DEBUG] startRound called: " + request.getLatitude() + ", radius: " + request.getRadius());
+
+        // 更新位置
+        uiController.getSession().getPlayerState().updatePlayerPosition(
+            request.getLatitude(), request.getLongitude(), request.getAngle()
+        );
+
+        // 启动谜题
+        uiController.getSession().applySearchArea(request.getRadius());
+        return ResponseEntity.ok("Round started.");
+    }
+    
 
     // DTO
     public static class PlayerInitRequest {
@@ -41,6 +61,25 @@ public class GameRestController {
 
         public double getAngle() { return angle; }
         public void setAngle(double angle) { this.angle = angle; }
+    }
+
+    public static class StartRoundRequest {
+        private double latitude;
+        private double longitude;
+        private double angle;
+        private int radius;
+    
+        public double getLatitude() { return latitude; }
+        public void setLatitude(double latitude) { this.latitude = latitude; }
+    
+        public double getLongitude() { return longitude; }
+        public void setLongitude(double longitude) { this.longitude = longitude; }
+    
+        public double getAngle() { return angle; }
+        public void setAngle(double angle) { this.angle = angle; }
+    
+        public int getRadius() { return radius; }
+        public void setRadius(int radius) { this.radius = radius; }
     }
 }
 

@@ -223,13 +223,6 @@ resources/
     └── player_click_init.js
 ```
 
-##### Data Flow Verified
-
-| Action | Trigger | Payload | Endpoint | Result |
-|--------|---------|---------|----------|--------|
-| Click map | Leaflet | `{lat, lng, angle}` | `POST /api/game/init` | Game session initialized |
-
-
 ##### Design Notes
 
 - Global-scope JS functions selected over ES Modules for MVP simplicity

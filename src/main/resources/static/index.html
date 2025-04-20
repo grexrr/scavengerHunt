@@ -23,9 +23,17 @@
 </head>
 <body>
   <div id="map"></div>
+  
   <div class="info-box">
     Click map to move player (simulating movement).<br/>
     <div id="coord"></div>
+    <div id="radius-ui" style="display: none; margin-top: 8px;">
+      <label for="radius-slider">Search Radius (meters): </label>
+      <input type="range" id="radius-slider" min="50" max="300" value="100" />
+      <span id="radius-value">100</span> m
+      <br />
+      <button id="start-round-btn">Start Round</button>
+    </div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

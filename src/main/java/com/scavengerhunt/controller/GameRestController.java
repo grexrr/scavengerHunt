@@ -1,12 +1,15 @@
 package com.scavengerhunt.controller;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.scavengerhunt.game.Landmark;
 import com.scavengerhunt.ui.UIController;
+
 
 @RestController
 @RequestMapping("/api/game")
@@ -36,14 +39,24 @@ public class GameRestController {
     public ResponseEntity<String> startRound(@RequestBody StartRoundRequest request) {
         System.out.println("[DEBUG] startRound called: " + request.getLatitude() + ", radius: " + request.getRadius());
 
-        // 更新位置
+        // update player coord
         uiController.getSession().getPlayerState().updatePlayerPosition(
             request.getLatitude(), request.getLongitude(), request.getAngle()
         );
 
-        // 启动谜题
+        // init riddle
         uiController.getSession().applySearchArea(request.getRadius());
         return ResponseEntity.ok("Round started.");
+    }
+    
+    @GetMapping("/target")
+    public ResponseEntity<?> getCurrentTarget() {
+        Landmark target = uiController.getSession().getCurrentTarget();
+        if (target == null) {
+            return ResponseEntity.status(404).body("No target selected.");
+        }
+    
+        return ResponseEntity.ok(new TargetDTO(target));
     }
     
 
@@ -80,6 +93,25 @@ public class GameRestController {
     
         public int getRadius() { return radius; }
         public void setRadius(int radius) { this.radius = radius; }
+    }
+
+    public static class TargetDTO {
+        private String name;
+        private String riddle;
+        private double latitude;
+        private double longitude;
+    
+        public TargetDTO(Landmark lm) {
+            this.name = lm.getName();
+            this.riddle = lm.getRiddle();
+            this.latitude = lm.getLatitude();
+            this.longitude = lm.getLongitude();
+        }
+    
+        public String getName() { return name; }
+        public String getRiddle() { return riddle; }
+        public double getLatitude() { return latitude; }
+        public double getLongitude() { return longitude; }
     }
 }
 

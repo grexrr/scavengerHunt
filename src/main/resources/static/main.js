@@ -21,31 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Display Player & Radius
-  function updatePlayerPositionOnMap(lat, lng) {
-    const radius = parseInt(radiusSlider.value);
-
-    if (!playerMarker) {
-      playerMarker = L.marker([lat, lng], { title: 'Player' }).addTo(map);
-    } else {
-      playerMarker.setLatLng([lat, lng]);
-    }
-
-    if (!searchRadiusCircle) {
-      searchRadiusCircle = L.circle([lat, lng], {
-        radius: radius,
-        color: 'blue',
-        fillColor: '#cce5ff',
-        fillOpacity: 0.3
-      }).addTo(map);
-    } else {
-      searchRadiusCircle.setLatLng([lat, lng]);
-      searchRadiusCircle.setRadius(radius);
-    }
-
-    document.getElementById('coord').innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-  }
-
   // Click to init player
   attachInitHandler(map, (lat, lng) => {
     gameInitialized = true;
@@ -84,9 +59,56 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(msg => {
       console.log('[FrontEnd] Round Started:', msg);
       alert("New round started.");
+      return fetch('http://localhost:8080/api/game/target');
+    })
+    .then(res => {
+      if( !res.ok ) {
+        throw new Error('Target not available');
+      }
+      return res.json();
+    })
+    .then(data => {
+      console.log('[FrontEnd] Current target:', data);
+      const targetDiv = document.getElementById('target-info');
+      targetDiv.innerHTML = `
+        <b>${data.name}</b><br/>
+        Riddle: ${data.riddle}<br/>
+        Lat: ${data.latitude.toFixed(6)}, Lng: ${data.longitude.toFixed(6)}
+      `;
+
+      L.marker([data.latitude, data.longitude], {
+        title: 'Target: ' + data.name
+      }).addTo(map);
+
     })
     .catch(err => {
       console.error('[FrontEnd] Round Start Failed:', err);
-    });
+    });    
   });
+
+
+  // Display Player & Radius
+  function updatePlayerPositionOnMap(lat, lng) {
+    const radius = parseInt(radiusSlider.value);
+
+    if (!playerMarker) {
+      playerMarker = L.marker([lat, lng], { title: 'Player' }).addTo(map);
+    } else {
+      playerMarker.setLatLng([lat, lng]);
+    }
+
+    if (!searchRadiusCircle) {
+      searchRadiusCircle = L.circle([lat, lng], {
+        radius: radius,
+        color: 'blue',
+        fillColor: '#cce5ff',
+        fillOpacity: 0.3
+      }).addTo(map);
+    } else {
+      searchRadiusCircle.setLatLng([lat, lng]);
+      searchRadiusCircle.setRadius(radius);
+    }
+
+    document.getElementById('coord').innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+  }
 });

@@ -231,3 +231,45 @@ resources/
 
 ---
 
+#### Apr. 20 2025
+
+**Goal: Implement dynamic search radius interaction using Leaflet; allow player to visually select a search area before starting a riddle round.**
+
+- Enhanced `main.js` with interactive radius selection logic:
+  - Player can freely click to move their location on the map at any time
+  - A blue circular overlay (`L.circle`) reflects the current search radius
+  - A slider (`#radius-slider`) dynamically adjusts the radius in real time
+  - Player’s coordinates and radius are updated together when initiating a round
+
+- Added `start-round` control panel to the UI:
+  - HTML includes a hidden div (`#radius-ui`) with a slider and a "Start Round" button
+  - Once player is initialized, the control panel is displayed
+  - Clicking "Start Round" sends the player’s current location and selected radius to the backend
+
+- Backend:
+  - Updated `GameRestController` to accept `POST /api/game/start-round` with `StartRoundRequest` DTO
+  - Request includes latitude, longitude, angle, and radius
+  - The backend updates player position (`updatePlayerPosition`) before applying radius filter (`applySearchArea`)
+  - Log statements print filtered landmarks and the selected target for verification
+
+##### JavaScript Logic Summary
+
+```
+main.js
+├── updatePlayerPositionOnMap(lat, lng)
+│   ├── Updates marker
+│   ├── Updates circle
+│   └── Displays coordinates
+├── attachInitHandler(map, callback)
+│   └── Handles initial and subsequent clicks
+└── startButton.addEventListener(...)
+    └── Sends payload to /start-round
+```
+
+##### Design Notes
+
+- Circle visualization is kept in sync with both player movement and slider value
+- Start-round endpoint is responsible for setting both position and search area
+- UIController is now managed by Spring (`@Component`) and injected via constructor, ensuring session state is preserved between requests
+
+---

@@ -28,7 +28,7 @@ public class UIController {
         Player player = new Player(latitude, longitude, angle);
         player.setPlayerNickname("default-player");
 
-        this.gameData = new GameDataRepo();
+        setGameData();
         
         LandmarkRepo landmarkManager = new LandmarkRepo(getGameData());
         
@@ -47,13 +47,16 @@ public class UIController {
         System.out.println("[UI] Current Target: " + currentTarget.getName()); // mvp testing
     }
 
-    public void submitAnswer(){
+    public Landmark submitAnswer(){
+
         Landmark next = session.submitAndNext();
         if (next == null) {
             System.out.println("[UI] All riddles solved!");
         } else {
             System.out.println("[UI] Next Target: " + next.getName());
         }
+        return next;
+        
     }
     
     /**
@@ -70,5 +73,9 @@ public class UIController {
 
     private GameDataRepo getGameData() {
         return gameData;
+    }
+
+    private void setGameData() {
+        this.gameData = new GameDataRepo();
     }
 }

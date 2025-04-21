@@ -7,10 +7,18 @@ document.addEventListener('DOMContentLoaded', () => {
   let gameInitialized = false;
   let playerMarker = null;
   let searchRadiusCircle = null;
+  let currentTargetLatLng = null;
 
   const radiusSlider = document.getElementById('radius-slider');
   const radiusValueDisplay = document.getElementById('radius-value');
   const startButton = document.getElementById('start-round-btn');
+  
+  // targetIcon
+  const redIcon = L.icon({
+    iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+    iconSize: [25, 41], 
+    iconAnchor: [12, 41],
+  });
 
   // Radius Slider
   radiusSlider.addEventListener('input', () => {
@@ -19,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchRadiusCircle && playerMarker) {
       searchRadiusCircle.setRadius(radius);
     }
+  });
+
+  // Submit Button
+  const submitButton = document.getElementById('submit-answer-btn');
+  submitButton.addEventListener('click', () => {
+    submitAnswer();
   });
 
   // Click to init player
@@ -63,11 +77,17 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then(res => {
       if( !res.ok ) {
-        throw new Error('Target not available');
+        throw new Error('Target not available');  
       }
       return res.json();
     })
     .then(data => {
+      
+      if (searchRadiusCircle) {
+        map.removeLayer(searchRadiusCircle);
+        searchRadiusCircle = null;
+      }
+
       console.log('[FrontEnd] Current target:', data);
       const targetDiv = document.getElementById('target-info');
       targetDiv.innerHTML = `
@@ -76,10 +96,12 @@ document.addEventListener('DOMContentLoaded', () => {
         Lat: ${data.latitude.toFixed(6)}, Lng: ${data.longitude.toFixed(6)}
       `;
 
+      currentTargetLatLng = L.latLng(data.latitude, data.longitude);
+      // future switch
       L.marker([data.latitude, data.longitude], {
+        icon: redIcon,
         title: 'Target: ' + data.name
       }).addTo(map);
-
     })
     .catch(err => {
       console.error('[FrontEnd] Round Start Failed:', err);
@@ -110,5 +132,96 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('coord').innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
+    checkProximityToTarget(lat, lng);
+
+    const angle = 0;
+    fetch('http://localhost:8080/api/game/update-position', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude: lat, longitude: lng, angle: angle })
+    })
+    .then(res => res.text())
+    .then(msg => {
+      console.log('[FrontEnd] Player position synced:', msg);
+    })
+    .catch(err => {
+      console.error('[FrontEnd] Player position sync failed:', err);
+    });
   }
+
+  window.updatePlayerPositionOnMap = updatePlayerPositionOnMap;
+
+
+  function checkProximityToTarget(lat, lng) {
+    if (!currentTargetLatLng) return;
+
+    const playerLatLng = L.latLng(lat, lng);
+    const distance = playerLatLng.distanceTo(currentTargetLatLng); // unit: m
+
+    console.log('[FrontEnd] Distance to target:', distance.toFixed(2), 'm');
+
+    if (distance < 50) {
+      if (!window.answerPromptShown) {
+        window.answerPromptShown = true;
+        submitButton.style.display = 'inline-block'; 
+      }
+    } else {
+      window.answerPromptShown = false;
+      submitButton.style.display = 'none'; 
+    }
+  }
+
+
+  function submitAnswer() {
+    fetch('http://localhost:8080/api/game/submit-answer', {
+      method: 'POST'
+    })
+    .then(res => res.text())
+    .then(msg => {
+      console.log('[FrontEnd] Answer submitted:', msg);
+  
+      if (msg.includes("All riddles solved")) {
+        alert(" You've completed all the puzzles!");
+        document.getElementById('submit-answer-btn').style.display = 'none';
+        document.getElementById('target-info').innerHTML = "(Game finished!)";
+        location.reload();
+        return;
+      }
+  
+      // fetch next target
+      return fetch('http://localhost:8080/api/game/target');
+    })
+    .then(res => {
+      if (!res || !res.ok) return;
+  
+      return res.json();
+    })
+    .then(data => {
+      if (!data) return;
+  
+      console.log('[FrontEnd] New target:', data);
+  
+      // 更新 info box
+      const targetDiv = document.getElementById('target-info');
+      targetDiv.innerHTML = `
+        <b>${data.name}</b><br/>
+        Riddle: ${data.riddle}<br/>
+        Lat: ${data.latitude.toFixed(6)}, Lng: ${data.longitude.toFixed(6)}
+      `;
+  
+      // update target marker
+      currentTargetLatLng = L.latLng(data.latitude, data.longitude);
+      L.marker([data.latitude, data.longitude], {
+        icon: redIcon,
+        title: 'Target: ' + data.name
+      }).addTo(map);
+  
+      window.answerPromptShown = false;
+    })
+    .catch(err => {
+      console.error('[FrontEnd] Submit failed:', err);
+    });
+  }
+  
 });
+

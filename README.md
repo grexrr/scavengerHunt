@@ -251,6 +251,13 @@ resources/
   - Request includes latitude, longitude, angle, and radius
   - The backend updates player position (`updatePlayerPosition`) before applying radius filter (`applySearchArea`)
   - Log statements print filtered landmarks and the selected target for verification
+  - Added new endpoint `GET /api/game/target` to return current target landmark
+
+- Target display (front-end):
+  - After starting a round, frontend fetches `/api/game/target` to retrieve current target info
+  - Target name, riddle, and coordinates are shown in the UI info box
+  - A new marker is placed on the map to indicate the target location
+  - Logic ensures `/target` is only fetched after round is successfully started (avoids 404)
 
 ##### JavaScript Logic Summary
 
@@ -262,14 +269,74 @@ main.js
 │   └── Displays coordinates
 ├── attachInitHandler(map, callback)
 │   └── Handles initial and subsequent clicks
-└── startButton.addEventListener(...)
-    └── Sends payload to /start-round
+├── startButton.addEventListener(...)
+│   ├── Sends payload to /start-round
+│   └── Then fetches /api/game/target and updates target UI
 ```
 
 ##### Design Notes
 
 - Circle visualization is kept in sync with both player movement and slider value
 - Start-round endpoint is responsible for setting both position and search area
+- Target is only fetched after the round starts, ensuring up-to-date information
 - UIController is now managed by Spring (`@Component`) and injected via constructor, ensuring session state is preserved between requests
 
+
 ---
+
+#### Apr. 21 2025
+
+**Goal: Implement full puzzle loop logic with proximity detection and answer submission; remove UIController and consolidate session logic.**
+
+- Refactored backend controller:
+  - `UIController` fully removed; all logic merged into `GameRestController`
+  - `GameRestController` now manages `GameSession` and `GameDataRepo` directly
+  - All endpoints operate on internally stored `session` object
+
+- Added `/api/game/submit-answer` endpoint:
+  - Handles current puzzle submission
+  - Returns `"All riddles solved!"` if no next target
+  - Otherwise, server logs and returns `"Next target: {name}"`
+
+- Enhanced proximity interaction on the frontend:
+  - Removed confirm popup for proximity
+  - Added a persistent `Submit Answer` button next to “Start Round”
+  - Button is hidden by default and only shown when the player is within 50m of the current target
+  - If the player moves out of range, the button disappears again
+
+- Target transition after answer:
+  - Submitting an answer automatically fetches the next target
+  - Target marker and UI update without reloading the page
+  - If all riddles are completed, a finished message is shown and interaction is disabled
+
+- Minor enhancements:
+  - `searchRadiusCircle` is removed after starting the round and will not reappear on subsequent player moves
+  - Target marker is now correctly removed and redrawn on each puzzle switch
+  - Target proximity is re-evaluated every time the player moves
+
+##### JavaScript Logic Summary
+
+```
+main.js
+├── updatePlayerPositionOnMap(lat, lng)
+│   ├── Moves marker
+│   ├── Adjusts circle if it exists
+│   ├── Syncs coordinates with backend
+│   └── Triggers proximity check to current target
+├── checkProximityToTarget(lat, lng)
+│   ├── Shows submit button if within 50m of target
+│   └── Hides button if player moves away
+├── submitAnswer()
+│   ├── Sends POST to /submit-answer
+│   ├── On success, fetches next target and updates UI
+│   └── If all riddles solved, disables interaction and shows final message
+```
+
+##### Design Notes
+
+- `searchRadiusCircle` is now strictly a pre-round visual aid and removed after round starts
+- `targetMarker` is stored and replaced cleanly across puzzle transitions
+- State variables like `currentTargetLatLng` and `window.answerPromptShown` ensure UI logic consistency
+- Entire puzzle loop (init → move → start → solve → next) is now complete and seamless
+
+--- 

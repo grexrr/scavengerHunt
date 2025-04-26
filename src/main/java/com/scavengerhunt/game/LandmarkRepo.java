@@ -15,7 +15,7 @@ import com.scavengerhunt.utils.GeoUtils;
  */
 public class LandmarkRepo {
 
-    private List<Landmark> allLocalLandmarks = new ArrayList<>(); 
+    private List<Landmark> allLocalLandmarks; 
     private GameDataRepo gameDataRepo;
 
     public LandmarkRepo() {
@@ -25,7 +25,7 @@ public class LandmarkRepo {
     public LandmarkRepo(GameDataRepo dataRepo) {
         this.allLocalLandmarks = new ArrayList<>();
         this.gameDataRepo = dataRepo;
-        this.loadLandmarks();;
+        this.loadLandmarks();
     }
     
     public void loadLandmarks() {

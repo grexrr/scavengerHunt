@@ -22,7 +22,16 @@ public class GameDataRepo {
         // Example data: Glucksman and Honan Chapel
         landmarks.add(new Landmark(1, "Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073));
         landmarks.add(new Landmark(2, "Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395));
+        landmarks.add(new Landmark(3, "Boole Library", "Numbers and knowledge, my namesake knew", 51.892795899999996,-8.491407089727364));
+        return landmarks;
+    }
 
+    public List<Landmark> loadLandmarks(int num) {
+        List<Landmark> landmarks = new ArrayList<>();
+        // Example data: Glucksman and Honan Chapel
+        landmarks.add(new Landmark(1, "Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073));
+        landmarks.add(new Landmark(2, "Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395));
+        landmarks.add(new Landmark(3, "Boole Library", "Numbers and knowledge, my namesake knew", 51.892795899999996,-8.491407089727364));
         return landmarks;
     }
 

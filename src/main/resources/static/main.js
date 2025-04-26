@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
+  //coordinate reference system
 
   let gameInitialized = false;
   let playerMarker = null;
@@ -52,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const { lat, lng } = playerMarker.getLatLng();
+    const {lat, lng} = playerMarker.getLatLng();
     const angle = 0;
 
     const payload = {
@@ -201,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
       console.log('[FrontEnd] New target:', data);
   
-      // 更新 info box
+      // update info box
       const targetDiv = document.getElementById('target-info');
       targetDiv.innerHTML = `
         <b>${data.name}</b><br/>

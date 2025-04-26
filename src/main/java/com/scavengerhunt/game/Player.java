@@ -9,7 +9,6 @@ import java.util.Set;
  */
 public class Player {
 
-
     private double latitude;
     private double longitude;
     private double angle;

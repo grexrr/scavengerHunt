@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.scavengerhunt.data.GameDataRepo;
 import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.Landmark;
-import com.scavengerhunt.game.LandmarkRepo;
+import com.scavengerhunt.game.LandmarkManager;
 import com.scavengerhunt.game.Player;
 import com.scavengerhunt.game.PlayerStateManager;
 import com.scavengerhunt.game.PuzzleController;
@@ -21,7 +21,7 @@ import com.scavengerhunt.game.PuzzleController;
 @RequestMapping("/api/game")
 public class GameRestController {
 
-    private GameSession session;
+    public GameSession session;
     private final GameDataRepo gameDataRepo = new GameDataRepo();
 
     @PostMapping("/init")
@@ -33,7 +33,7 @@ public class GameRestController {
         
         System.out.println("[DEBUG] Coordination Received: " + request.getLatitude() + ", " + request.getLongitude());
         
-        LandmarkRepo landmarkManager = new LandmarkRepo(gameDataRepo);
+        LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo);
         PlayerStateManager playerState = new PlayerStateManager(player, false);
         PuzzleController controller = new PuzzleController(player, landmarkManager);
         

@@ -13,11 +13,10 @@ public class Player {
     private double longitude;
     private double angle;
 
-    private int playerId;
+    private String playerId;
     private String nickname;
 
     private Set<Integer> solvedLandmarkIds = new HashSet<>();
-    // private Boolean isGameFinish = false;
 
     /**
      * Creates a new Player at the specified position and orientation
@@ -25,6 +24,7 @@ public class Player {
      * @param longitude The initial longitude position  
      * @param angle The initial facing angle in degrees
      */
+    
     public Player(double latitude, double longitude, double angle) {
         this.latitude = latitude;
         this.longitude = longitude;
@@ -70,11 +70,11 @@ public class Player {
     /**
      * Other Info
      */
-    public int getPlayerId() {
+    public String getPlayerId() {
         return playerId;
     }
 
-    public void setPlayerId(int playerId) {
+    public void setPlayerId(String playerId) {
         this.playerId = playerId;
     }
 

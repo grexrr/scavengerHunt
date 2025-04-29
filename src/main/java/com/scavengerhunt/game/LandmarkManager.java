@@ -13,28 +13,22 @@ import com.scavengerhunt.utils.GeoUtils;
  * - Maintain solved/unsolved status
  * - Provide helpers to select next suitable target
  */
-public class LandmarkRepo {
+public class LandmarkManager {
 
     private List<Landmark> allLocalLandmarks; 
     private GameDataRepo gameDataRepo;
 
-    public LandmarkRepo() {
+    public LandmarkManager() {
         this.allLocalLandmarks = new ArrayList<>();
     }
 
-    public LandmarkRepo(GameDataRepo dataRepo) {
+    public LandmarkManager(GameDataRepo dataRepo) {
         this.allLocalLandmarks = new ArrayList<>();
         this.gameDataRepo = dataRepo;
-        this.loadLandmarks();
-    }
-    
-    public void loadLandmarks() {
         this.allLocalLandmarks = this.gameDataRepo.loadLandmarks(); 
     }
-   
-    public List<Landmark> getAllLandmarks() {
-        return this.allLocalLandmarks;
-    }
+
+    //TODO: Feed-in allLocalLandmarks within Radius
 
     public List<Landmark> getAllLandmarksWithinRadius(double lat, double lng, double radiusMeters) {
         System.out.println("[DEBUG] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
@@ -54,5 +48,8 @@ public class LandmarkRepo {
 
         return filtered;
     }
-    
+
+    public List<Landmark> getAllLandmarks() {
+        return this.allLocalLandmarks;
+    }    
 }

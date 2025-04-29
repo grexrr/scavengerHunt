@@ -340,3 +340,51 @@ main.js
 - Entire puzzle loop (init → move → start → solve → next) is now complete and seamless
 
 --- 
+
+#### Apr. 29 2025
+
+**Goal: Build a complete player authentication system with MongoDB integration; prepare frontend for modular refactor.**
+
+---
+
+- **Refactored backend authentication system:**
+  - Implemented `AuthController` with endpoints `/register`, `/login`, `/logout`
+  - `register` generates a unique `playerId` (UUID) and stores it in MongoDB
+  - `login` validates `username/password` and returns the corresponding `playerId`
+  - `logout` placeholder implemented (future extensibility)
+  - Created `User` entity:
+    - Annotated with `@Document("users")`
+    - Used `playerId` as the Mongo `_id`
+  - Created `UserRepository` extending `MongoRepository<User, String>`:
+    - Added method `findByUsername(String username)`
+
+- **MongoDB setup completed:**
+  - Integrated Spring Boot MongoDB connection via `application.properties`
+  - Successfully registered and stored users into the MongoDB `scavengerhunt` database
+  - Verified database contents through Docker Mongo shell
+
+- **Frontend authentication flow established:**
+  - Added `register()`, `login()`, and `logout()` functions in `main.js`
+  - Successfully stored `playerId` in `localStorage` upon login
+  - Dynamic UI update:
+    - If logged in, hide Register/Login, show Logout
+    - If logged out, show Register/Login, hide Logout
+  - After successful registration, automatic login flow implemented
+
+- **Frontend HTML structure adjustments:**
+  - Created a dedicated `auth-controls` section for Register/Login/Logout buttons
+  - `DOMContentLoaded` now binds all button actions
+  - Preserved Leaflet.js map initialization
+
+---
+
+##### Design Notes
+
+- `User` entity now cleanly mapped to MongoDB, using `playerId` as the document `_id`
+- Frontend authentication state is driven entirely by localStorage
+- Registration flow directly transitions into login without user re-entry
+- Codebase now cleanly separates **data model (User)**, **data access (UserRepository)**, and **API layer (AuthController)**
+- MongoDB acts as the single source of truth for player authentication data
+- Frontend ready for modularization in the next phase (separating map control, auth control, game control)
+
+---

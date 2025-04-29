@@ -26,7 +26,7 @@ public class GameDataRepo {
         return landmarks;
     }
 
-    public List<Landmark> loadLandmarks(int num) {
+    public List<Landmark> loadLandmarks(double radiusMeter) {
         List<Landmark> landmarks = new ArrayList<>();
         // Example data: Glucksman and Honan Chapel
         landmarks.add(new Landmark(1, "Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073));

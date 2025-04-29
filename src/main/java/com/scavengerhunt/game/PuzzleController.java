@@ -10,12 +10,14 @@ import com.scavengerhunt.utils.GeoUtils;
 public class PuzzleController {
 
     private PlayerStateManager playerState;
-    private LandmarkRepo landmarkManager;
+    private LandmarkManager landmarkManager;
     private Landmark currentTarget;
     private List<Landmark> currentTargetPool = new ArrayList<>(); 
     private List<Landmark> solvedLandmarks = new ArrayList<>(); 
 
-    public PuzzleController(Player player, LandmarkRepo manager){
+    public PuzzleController(){}
+    
+    public PuzzleController(Player player, LandmarkManager manager){
         this.playerState = new PlayerStateManager(player, false);
         this.landmarkManager = manager;
     }

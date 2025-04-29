@@ -22,7 +22,7 @@ public class PlayerTest {
         player.setLatitude(52.0);
         player.setLongitude(-9.0);
         player.setAngle(45.0);
-        player.setPlayerId(123);
+        player.setPlayerId("123");
         player.setPlayerNickname("TestPlayer");
 
         assertEquals(52.0, player.getLatitude());

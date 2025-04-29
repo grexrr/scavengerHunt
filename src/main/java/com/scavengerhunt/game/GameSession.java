@@ -2,35 +2,31 @@ package com.scavengerhunt.game;
 
 import java.util.Set;
 
-import org.springframework.stereotype.Component;
-
-@Component
 public class GameSession {
     
     private PlayerStateManager playerState;
     private PuzzleController controller;
-    private LandmarkRepo landmarkRepo;
+    private LandmarkManager landmarkManager;
     
     public GameSession(){}
-    
-    public GameSession(LandmarkRepo repo) {
-        this.landmarkRepo = repo;
-    }
-    
-    public GameSession(PlayerStateManager playerState, PuzzleController controller, LandmarkRepo landmarkRepo) {
+
+    public GameSession(PlayerStateManager playerState, PuzzleController controller, LandmarkManager landmarkManager) {
         this.playerState = playerState;
         this.controller = controller;
-        this.landmarkRepo = landmarkRepo;
+        this.landmarkManager = landmarkManager;
     }
 
     public void loadPlayerState(Player player){
         this.playerState = new PlayerStateManager(player, false);
         this.controller = null;
+        //TODO 
         System.out.println("[INFO] Player Recentered.");
     }
 
+    public void startNewRound(){}
+
     public void applySearchArea(double radiusMeters){
-        this.controller = new PuzzleController(playerState.getPlayer(), this.landmarkRepo);
+        this.controller = new PuzzleController(playerState.getPlayer(), this.landmarkManager);
         this.controller.initTargetPool(radiusMeters);
         controller.startNewRound();
         System.out.println("[INFO] New game round started.");

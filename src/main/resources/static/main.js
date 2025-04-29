@@ -1,261 +1,104 @@
-let gameInitialized = false;
-let playerMarker = null;
-let searchRadiusCircle = null;
-let currentTargetLatLng = null;
+const backend = "http://localhost:8080";
+const map = L.map('map').setView([51.8940, -8.4902], 17);
 
-const radiusSlider = document.getElementById('radius-slider');
-const radiusValueDisplay = document.getElementById('radius-value');
-const startButton = document.getElementById('start-round-btn');
-const targetDiv = document.getElementById('target-info');
+const loginBtn = document.getElementById('login-btn');
+const registerBtn = document.getElementById('register-btn');
+const logoutBtn = document.getElementById('logout-btn');
 
-// targetIcon
-const redIcon = L.icon({
-  iconUrl: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-  iconSize: [25, 41], 
-  iconAnchor: [12, 41],
-});
+//functions
+function setPlayerCurrentPosition(){}
 
+function updateAuthUI() {
+  const playerId = localStorage.getItem('playerId');
+  const loginBtn = document.getElementById('login-btn');
+  const logoutBtn = document.getElementById('logout-btn');
+  const registerBtn = document.getElementById('register-btn'); 
 
+  if (playerId) {
+    loginBtn.style.display = 'none';
+    registerBtn.style.display = 'none';   
+    logoutBtn.style.display = 'inline-block';
+  } else {
+    loginBtn.style.display = 'inline-block';
+    registerBtn.style.display = 'inline-block'; 
+    logoutBtn.style.display = 'none';
+  }
+}
+
+function login(username, password) {
+  fetch(backend + '/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Invalid username or password.');
+    return res.text();
+  })
+  .then(playerId => {
+    //localStorage for MVP
+    localStorage.setItem('playerId', playerId);
+    updateAuthUI();
+    alert('Login successful!');
+  })
+  .catch(err => {
+    console.error('Login failed:', err);
+    alert('Login failed.');
+  });
+}
+
+function register(username, password) {
+  fetch(backend + '/api/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({username, password})
+  })
+  .then(res => {
+    if (res.status === 409) {
+      alert('Username already exists.');
+      throw new Error('Username already exists.');
+    }
+    return res.text();
+  })
+  .then(msg => {
+    console.log('Register successful: ', msg);
+    login(username, password)
+  })
+  .catch(err => {
+    console.error('Register failed: ', err);
+    alert('Register failed')
+  })
+}
+
+function logout(){
+  localStorage.removeItem('playerId');
+  updateAuthUI();
+  alert('Logged out.');
+  location.reload();
+}
 
 
 document.addEventListener('DOMContentLoaded', () => {
-  const map = L.map('map').setView([51.8940, -8.4902], 17);   //cork
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
-  //coordinate reference system
 
+  updateAuthUI();
 
-  // Radius Slider
-  radiusSlider.addEventListener('input', () => {
-    const radius = parseInt(radiusSlider.value);
-    radiusValueDisplay.textContent = radius;
-    if (searchRadiusCircle && playerMarker) {
-      searchRadiusCircle.setRadius(radius);
-    }
+  registerBtn.addEventListener('click', () => {
+    const username = prompt('Enter username:');
+    const password = prompt('Enter password:');
+    register(username, password);
   });
 
-  // Submit Button
-  const submitButton = document.getElementById('submit-answer-btn');
-  submitButton.addEventListener('click', () => {
-    submitAnswer();
+  loginBtn.addEventListener('click', () => {
+    const username = prompt('Enter username:');
+    const password = prompt('Enter password:');
+    login(username, password);
   });
 
-  // Click to init player
-  attachInitHandler(map, (lat, lng) => {
-    gameInitialized = true;
-    console.log(`[FrontEnd] Player initialized at (${lat}, ${lng})`);
-    document.getElementById('radius-ui').style.display = 'block';
-    updatePlayerPositionOnMap(lat, lng);
+  logoutBtn.addEventListener('click', () => {
+    logout();
   });
 
-  // startRound Request
-  startButton.addEventListener('click', () => {
-    const radius = parseInt(radiusSlider.value);
-
-    if (!playerMarker) {
-      alert("Player not set.");
-      return;
-    }
-
-    const { lat, lng } = playerMarker.getLatLng();
-    const angle = 0;
-
-    const payload = {
-      latitude: lat,
-      longitude: lng,
-      angle: angle,
-      radius: radius
-    };
-
-    console.log('[FrontEnd] Sending start round:', payload);
-
-    fetch(`http://localhost:8080/api/game/start-round`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.text())
-    .then(msg => {
-      console.log('[FrontEnd] Round Started:', msg);
-      alert("New round started.");
-      return fetch('http://localhost:8080/api/game/target');
-    })
-    .then(res => {
-      if( !res.ok ) {
-        throw new Error('Target not available');  
-      }
-      return res.json();
-    })
-    .then(data => {
-      
-      if (searchRadiusCircle) {
-        map.removeLayer(searchRadiusCircle);
-        searchRadiusCircle = null;
-      }
-
-      console.log('[FrontEnd] Current target:', data);
-      const targetDiv = document.getElementById('target-info');
-      targetDiv.innerHTML = `
-        <b>${data.name}</b><br/>
-        Riddle: ${data.riddle}<br/>
-        Lat: ${data.latitude.toFixed(6)}, Lng: ${data.longitude.toFixed(6)}
-      `;
-
-      currentTargetLatLng = L.latLng(data.latitude, data.longitude);
-      // future switch
-      L.marker([data.latitude, data.longitude], {
-        icon: redIcon,
-        title: 'Target: ' + data.name
-      }).addTo(map);
-    })
-    .catch(err => {
-      console.error('[FrontEnd] Round Start Failed:', err);
-    });    
-  });
-
-  window.updatePlayerPositionOnMap = updatePlayerPositionOnMap;
-
-
-  // Display Player & Radius
-  function updatePlayerPositionOnMap(lat, lng) {
-    const radius = parseInt(radiusSlider.value);
-
-    if (!playerMarker) {
-      playerMarker = L.marker([lat, lng], { title: 'Player' }).addTo(map);
-    } else {
-      playerMarker.setLatLng([lat, lng]);
-    }
-
-    if (!searchRadiusCircle) {
-      searchRadiusCircle = L.circle([lat, lng], {
-        radius: radius,
-        color: 'blue',
-        fillColor: '#cce5ff',
-        fillOpacity: 0.3
-      }).addTo(map);
-    } else {
-      searchRadiusCircle.setLatLng([lat, lng]);
-      searchRadiusCircle.setRadius(radius);
-    }
-
-    document.getElementById('coord').innerText = `Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`;
-    checkProximityToTarget(lat, lng);
-
-    const angle = 0;
-    fetch('http://localhost:8080/api/game/update-position', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ latitude: lat, longitude: lng, angle: angle })
-    })
-    .then(res => res.text())
-    .then(msg => {
-      console.log('[FrontEnd] Player position synced:', msg);
-    })
-    .catch(err => {
-      console.error('[FrontEnd] Player position sync failed:', err);
-    });
-  }
-
-  function checkProximityToTarget(lat, lng) {
-    if (!currentTargetLatLng) return;
-
-    const playerLatLng = L.latLng(lat, lng);
-    const distance = playerLatLng.distanceTo(currentTargetLatLng); // unit: m
-
-    console.log('[FrontEnd] Distance to target:', distance.toFixed(2), 'm');
-
-    if (distance < 50) {
-      if (!window.answerPromptShown) {
-        window.answerPromptShown = true;
-        submitButton.style.display = 'inline-block'; 
-      }
-    } else {
-      window.answerPromptShown = false;
-      submitButton.style.display = 'none'; 
-    }
-  }
-
-
-  function submitAnswer() {
-    fetch('http://localhost:8080/api/game/submit-answer', {
-      method: 'POST'
-    })
-    .then(res => res.text())
-    .then(msg => {
-      console.log('[FrontEnd] Answer submitted:', msg);
-  
-      if (msg.includes("All riddles solved")) {
-        alert(" You've completed all the puzzles!");
-        document.getElementById('submit-answer-btn').style.display = 'none';
-        document.getElementById('target-info').innerHTML = "(Game finished!)";
-        location.reload();
-        return;
-      }
-  
-      // fetch next target
-      return fetch('http://localhost:8080/api/game/target');
-    })
-    .then(res => {
-      if (!res || !res.ok) return;
-  
-      return res.json();
-    })
-    .then(data => {
-      if (!data) return;
-  
-      console.log('[FrontEnd] New target:', data);
-  
-      // update info box
-      
-      targetDiv.innerHTML = `
-        <b>${data.name}</b><br/>
-        Riddle: ${data.riddle}<br/>
-        Lat: ${data.latitude.toFixed(6)}, Lng: ${data.longitude.toFixed(6)}
-      `;
-  
-      // update target marker
-      currentTargetLatLng = L.latLng(data.latitude, data.longitude);
-      L.marker([data.latitude, data.longitude], {
-        icon: redIcon,
-        title: 'Target: ' + data.name
-      }).addTo(map);
-  
-      window.answerPromptShown = false;
-    })
-    .catch(err => {
-      console.error('[FrontEnd] Submit failed:', err);
-    });
-  }
-
-  function attachInitHandler(map, onInitialized) {
-    map.on('click', function (e) {
-      const { lat, lng } = e.latlng;
-      const angle = 0;
-  
-      if (!window.gameInitialized) {
-        // first init
-        fetch('http://localhost:8080/api/game/init', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude: lat, longitude: lng, angle: angle })
-        })
-        .then(res => res.text())
-        .then(msg => {
-          console.log('[FrontEnd] Initialized Success:', msg);
-          window.gameInitialized = true;
-  
-          document.getElementById('radius-ui').style.display = 'block';
-          if (onInitialized) onInitialized(lat, lng);
-        })
-        .catch(err => {
-          console.error('[FrontEnd] Initialized Fail:', err);
-        });
-      } else {
-        // update init
-        updatePlayerPositionOnMap(lat, lng);
-      }
-    });
-  }
-});
-
+})

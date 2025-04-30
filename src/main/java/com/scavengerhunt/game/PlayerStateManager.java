@@ -1,5 +1,7 @@
 package com.scavengerhunt.game;
 
+import com.scavengerhunt.model.Player;
+
 /**
  * Manages the state of a player in the scavenger hunt game.
  */

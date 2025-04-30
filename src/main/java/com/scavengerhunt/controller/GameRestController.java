@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.scavengerhunt.dto.PlayerPositionRequest;
+import com.scavengerhunt.dto.StartRoundRequest;
 import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.LandmarkManager;
 import com.scavengerhunt.game.PlayerStateManager;
@@ -41,8 +42,18 @@ public class GameRestController {
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
-        return ResponseEntity.ok("Player Position Updated.");
+        return ResponseEntity.ok("[Backend] Player Position Updated.");
     }
+
+    @PostMapping("/start-round")
+    public ResponseEntity<String> startNewRound(@RequestBody StartRoundRequest request) {
+        GameSession session = sessionMap.get(request.getPlayerId());
+        if (session == null) return ResponseEntity.status(404).body("[Backend] Session Not Found.");
+        
+        session.startNewRound(request.getRadiusMeters());
+        return ResponseEntity.ok("[Backend] New round started.");
+    }
+    
     
 
     @PostMapping("/submit-answer") // update user solved landmarks

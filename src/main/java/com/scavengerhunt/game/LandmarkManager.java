@@ -30,17 +30,17 @@ public class LandmarkManager {
     }
 
     public List<Landmark> getLocalLandmarksWithinRadius(double lat, double lng, double radiusMeters) {
-        System.out.println("[DEBUG] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
+        System.out.println("[LandmarkManager] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
         for (Landmark lm : allLocalLandmarks) {
             double dist = GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude());
-            System.out.println("[DEBUG] " + lm.getName() + " distance = " + dist + "m");
+            System.out.println("[LandmarkManager] " + lm.getName() + " distance = " + dist + "m");
         }
     
         List<Landmark> filtered = this.allLocalLandmarks.stream()
             .filter(lm -> GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude()) <= radiusMeters)
             .collect(Collectors.toList());
 
-        System.out.println("[DEBUG] Selected landmarks in range:");
+        System.out.println("[LandmarkManager] Selected landmarks in range:");
         for (Landmark lm : filtered) {
             System.out.println("  - " + lm.getName());
         }

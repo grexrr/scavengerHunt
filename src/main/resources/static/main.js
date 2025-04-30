@@ -1,12 +1,17 @@
 let playerMarker = null;
+let roundStarted = false;
 
-const backend = "http://localhost:8080";
+const localhost = "http://localhost:8080";
 const map = L.map('map').setView([51.8940, -8.4902], 17);
 
 const loginBtn = document.getElementById('login-btn');
 const registerBtn = document.getElementById('register-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const startBtn = document.getElementById('start-round-btn');
+const radiusSlider = document.getElementById('radius-slider');
+
 const playerId = localStorage.getItem('playerId');
+
 
 //functions
 
@@ -19,7 +24,6 @@ function ensurePlayerId() {
   }
   return playerId;
 }
-
 
 function updateAuthUI() {
   if (playerId) {
@@ -34,7 +38,7 @@ function updateAuthUI() {
 }
 
 function login(username, password) {
-  fetch(backend + '/api/auth/login', {
+  fetch(localhost + '/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password })
@@ -56,7 +60,7 @@ function login(username, password) {
 }
 
 function register(username, password) {
-  fetch(backend + '/api/auth/register', {
+  fetch(localhost + '/api/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({username, password})
@@ -87,7 +91,7 @@ function logout(){
 
 function updatePlayerPosition(lat, lng, angle){
   const playerId = localStorage.getItem('playerId');
-  fetch(backend + "/api/game/update-position", {
+  fetch(localhost + "/api/game/update-position", {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
@@ -108,10 +112,45 @@ function updatePlayerPosition(lat, lng, angle){
   })
 }
 
+function searchRadius(radiusMeter){
+  const playerId = localStorage.getItem('playerId');
+
+  if (!playerMarker) {
+    alert("Player not initialized on map.");
+    return;
+  }
+
+  const lat = playerMarker.getLatLng().lat;
+  const lng = playerMarker.getLatLng().lng;
+
+  fetch(localhost + '/api/game/start-round', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      playerId: playerId,
+      latitude: lat,
+      longitude: lng,
+      radiusMeters: radiusMeter  
+    })
+  }) 
+  .then(res => res.text())
+  .then(msg => {
+    console.log('[Frontend] Round started: ', msg);
+    roundStarted = true;
+    alert('New Round Started');
+  })
+  .catch(err => {
+    console.log('[Frontend] Round started Failure: ', err);
+  });
+  
+}
+
 //main
 
 document.addEventListener('DOMContentLoaded', () => {
   const playerId = ensurePlayerId();
+
+  document.getElementById('radius-ui').style.display = 'none';
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
@@ -140,8 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const lng = e.latlng.lng;
     const angle = 0; 
     updatePlayerPosition(lat, lng, angle);
+
+    if (!roundStarted && localStorage.getItem('playerId')) {
+      document.getElementById('radius-ui').style.display = 'block';
+    }
   });
 
+  startBtn.addEventListener('click', () => {
+    const radius = parseFloat(radiusSlider.value);
+    searchRadius(radius);
+
+    document.getElementById('radius-ui').style.display = 'none';
+  })
 })
 
 

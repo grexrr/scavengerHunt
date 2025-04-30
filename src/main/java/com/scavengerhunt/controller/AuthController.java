@@ -27,7 +27,7 @@ public class AuthController {
         }
         User newUser = new User(request.getUsername(), request.getPassword());
         userRepo.save(newUser);
-        return ResponseEntity.ok("Register success!");
+        return ResponseEntity.ok("[Backend] Register success!");
     }
 
 
@@ -36,7 +36,7 @@ public class AuthController {
         return userRepo.findByUsername(request.getUsername())
         .filter(user -> user.getPassword().equals(request.getPassword()))
         .map(user -> ResponseEntity.ok(user.getPlayerId()))
-        .orElse(ResponseEntity.status(401).body("Invalid username or password."));
+        .orElse(ResponseEntity.status(401).body("[Backend] Invalid username or password."));
     }
 
 

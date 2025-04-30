@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 
 public class PlayerTest {
@@ -32,12 +31,6 @@ public class PlayerTest {
         assertEquals(45.0, player.getAngle());
         assertEquals(123, player.getPlayerId());
         assertEquals("TestPlayer", player.getPlayerNickname());
-    }
-
-    @Test
-    void testSolvedLandmarks() {
-        Player player = new Player(0, 0, 0);
-        Landmark landmark = new Landmark(1, "Test Landmark", "Test Riddle", 0, 0);
     }
     
 }

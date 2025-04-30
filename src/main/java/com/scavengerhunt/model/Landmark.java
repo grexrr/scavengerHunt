@@ -11,7 +11,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class Landmark {
     
     @Id
-    private int id; 
+    private String id; 
     
     private String name;
     private String riddle;
@@ -32,11 +32,10 @@ public class Landmark {
 
     public Landmark(){}
 
-    public Landmark(int id, String name, String riddle, double latitude, double longitude) {
-        if (id <= 0 || name == null || name.isEmpty()) {
+    public Landmark(String name, String riddle, double latitude, double longitude) {
+        if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("id and name cannot be null or empty");
         }
-        this.id = id;
         this.name = name;
         this.riddle = riddle;
         this.latitude = latitude;
@@ -47,11 +46,11 @@ public class Landmark {
      * Getters & Setters
      */
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 

@@ -11,7 +11,6 @@ public class GameSession {
     
     private PlayerStateManager playerState;
     private LandmarkManager landmarkManager;
-    // private PuzzleController controller;
     
     private Landmark currentTarget;
     private List<Landmark> currentTargetPool = new ArrayList<>(); 
@@ -29,17 +28,16 @@ public class GameSession {
      * Core Function
      */
 
-    public void startNewRound(double radiusMeters) {
-        this.playerState.resetPlayerTo(
-            this.playerState.getPlayer().getLatitude(), 
-            this.playerState.getPlayer().getLongitude(), 
-            this.playerState.getPlayer().getAngle()
-        );
+    public void updatePlayerPosition(double lat, double lng, double angle){
+        this.playerState.updatePlayerPosition(lat, lng, angle);
+        System.out.println("[Session] Updated position: " + lat + ", " + lng + " @ " + angle);
+    }
 
+    public void startNewRound(double radiusMeters) {
         double lat = this.playerState.getPlayer().getLatitude();
         double lng = this.playerState.getPlayer().getLongitude();
-        this.currentTargetPool = landmarkManager.getLocalLandmarksWithinRadius(lat, lng, radiusMeters);
 
+        this.currentTargetPool = landmarkManager.getLocalLandmarksWithinRadius(lat, lng, radiusMeters);
         this.currentTarget = null;
         this.solvedLandmarks.clear();
 
@@ -84,9 +82,6 @@ public class GameSession {
         return getUnsolvedLandmarks().isEmpty();
     }
 
-    // public Set<Integer> getSolvedLandmarkIds() {
-    //     return playerState.getPlayer().getSolvedLandmarkIDs();
-    // }
 
     public PlayerStateManager getPlayerState() {
         return this.playerState;
@@ -102,11 +97,6 @@ public class GameSession {
             .collect(Collectors.toList());
     }
 
-    // private Landmark getLastSolved() {
-    //     if (this.solvedLandmarks.isEmpty()) return null;
-    //     return this.solvedLandmarks.get(solvedLandmarks.size() - 1);
-    // }
-
     private Landmark selectNearestTo(double refLat, double refLng) {
         return getUnsolvedLandmarks().stream()
             .min((l1, l2) -> {
@@ -121,7 +111,6 @@ public class GameSession {
         // Future integration: answer evaluator + epistemic 
         return true;  // default true for mvp
     }
-
 }
 
 

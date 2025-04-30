@@ -1,7 +1,5 @@
-package com.scavengerhunt.game;
+package com.scavengerhunt.model;
 
-import java.util.HashSet;
-import java.util.Set;
 /**
  * Represents a player entity in the game.
  * Contains basic information including position and orientation.
@@ -15,8 +13,6 @@ public class Player {
 
     private String playerId;
     private String nickname;
-
-    private Set<Integer> solvedLandmarkIds = new HashSet<>();
 
     /**
      * Creates a new Player at the specified position and orientation
@@ -57,15 +53,6 @@ public class Player {
     public void setAngle(double angle) {
         this.angle = angle;
     }
-
-    public Set<Integer> getSolvedLandmarkIDs(){
-        return solvedLandmarkIds;
-    }
-
-    public void updatePlayerSolvedLandmark(Landmark landmark){
-        getSolvedLandmarkIDs().add(landmark.getId());
-    }
-
 
     /**
      * Other Info

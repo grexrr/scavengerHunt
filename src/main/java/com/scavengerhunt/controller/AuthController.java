@@ -1,7 +1,5 @@
 package com.scavengerhunt.controller;
 
-import java.util.UUID;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,9 +25,7 @@ public class AuthController {
         if (userRepo.findByUsername(request.getUsername()).isPresent()) {
             return ResponseEntity.status(409).body("Username already exists.");
         }
-
-        String playerId = UUID.randomUUID().toString();
-        User newUser = new User(request.getUsername(), request.getPassword(), playerId);
+        User newUser = new User(request.getUsername(), request.getPassword());
         userRepo.save(newUser);
         return ResponseEntity.ok("Register success!");
     }

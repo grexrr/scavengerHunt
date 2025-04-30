@@ -41,7 +41,7 @@ public class GameSession {
         this.currentTarget = null;
         this.solvedLandmarks.clear();
 
-        System.out.println("[INFO] New game round started.");
+        System.out.println("[Session] New game round started.");
     }
 
 
@@ -56,7 +56,6 @@ public class GameSession {
         if (this.currentTarget == null) return false;
 
         if (checkAnswerCorrect(this.currentTarget)) {
-            // playerState.getPlayer().updatePlayerSolvedLandmark(currentTarget);
             this.solvedLandmarks.add(currentTarget);
 
             if (isGameFinished()) {

@@ -29,8 +29,6 @@ public class LandmarkManager {
         this.allLocalLandmarks = this.gameDataRepo.loadLandmarks(); 
     }
 
-    //TODO: Feed-in allLocalLandmarks within Radius
-
     public List<Landmark> getLocalLandmarksWithinRadius(double lat, double lng, double radiusMeters) {
         System.out.println("[DEBUG] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
         for (Landmark lm : allLocalLandmarks) {

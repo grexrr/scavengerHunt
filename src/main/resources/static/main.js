@@ -1,19 +1,27 @@
+let playerMarker = null;
+
 const backend = "http://localhost:8080";
 const map = L.map('map').setView([51.8940, -8.4902], 17);
 
 const loginBtn = document.getElementById('login-btn');
 const registerBtn = document.getElementById('register-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const playerId = localStorage.getItem('playerId');
 
 //functions
-function setPlayerCurrentPosition(){}
+
+function ensurePlayerId() {
+  let playerId = localStorage.getItem('playerId');
+  if (!playerId) {
+    playerId = 'guest-' + crypto.randomUUID(); 
+    localStorage.setItem('playerId', playerId);
+    console.log('[Init] Generated guest playerId:', playerId);
+  }
+  return playerId;
+}
+
 
 function updateAuthUI() {
-  const playerId = localStorage.getItem('playerId');
-  const loginBtn = document.getElementById('login-btn');
-  const logoutBtn = document.getElementById('logout-btn');
-  const registerBtn = document.getElementById('register-btn'); 
-
   if (playerId) {
     loginBtn.style.display = 'none';
     registerBtn.style.display = 'none';   
@@ -77,8 +85,34 @@ function logout(){
   location.reload();
 }
 
+function updatePlayerPosition(lat, lng, angle){
+  const playerId = localStorage.getItem('playerId');
+  fetch(backend + "/api/game/update-position", {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      playerId: playerId,
+      latitude: lat,
+      longitude: lng,
+      angle: angle
+    })
+  })
+  .then(res => res.text())
+  .then(msg => {
+    console.log("[FrontEnd] Position updated", msg);
+    if (!playerMarker) {
+      playerMarker = L.marker([lat, lng], { title: 'Player' }).addTo(map);
+    } else {
+      playerMarker.setLatLng([lat, lng])  
+    }
+  })
+}
+
+//main
 
 document.addEventListener('DOMContentLoaded', () => {
+  const playerId = ensurePlayerId();
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
@@ -99,6 +133,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   logoutBtn.addEventListener('click', () => {
     logout();
+  });
+
+  map.on('click', function (e) {
+    const lat = e.latlng.lat;
+    const lng = e.latlng.lng;
+    const angle = 0; 
+    updatePlayerPosition(lat, lng, angle);
   });
 
 })

@@ -31,8 +31,8 @@ public class GameSessionTest {
         Mockito.when(mockPlayerState.getPlayer()).thenReturn(mockPlayer);
 
 
-        Landmark landmark1 = new Landmark(1, "Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073);
-        Landmark landmark2 = new Landmark(2, "Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395);
+        Landmark landmark1 = new Landmark("Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073);
+        Landmark landmark2 = new Landmark("Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395);
         List<Landmark> landmarks = Arrays.asList(landmark1, landmark2);
         Mockito.when(mockLandmarkManager.getLocalLandmarksWithinRadius(51.0, -8.5, 2000))
                .thenReturn(landmarks);
@@ -45,7 +45,7 @@ public class GameSessionTest {
         gameSession.startNewRound(2000);
 
         // Verify player state reset
-        Mockito.verify(mockPlayerState).resetPlayerTo(51.0, -8.5, 90.0);
+        Mockito.verify(mockPlayerState).updatePlayerPosition(51.0, -8.5, 90.0);
 
         // Verify current target pool is set correctly
         assertEquals(2, gameSession.getUnsolvedLandmarks().size());

@@ -26,12 +26,6 @@ public class PlayerStateManager {
         this.player.setAngle(angle);
     }
 
-    public void resetPlayerTo(double lat, double lng, double angle) {
-        player.setLatitude(lat);
-        player.setLongitude(lng);
-        player.setAngle(angle);
-    }
-
     // Getter and Setter
 
 

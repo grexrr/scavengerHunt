@@ -16,11 +16,20 @@ public class User {
     private String password;
     private List<Integer> solvedLandmarkIds = new ArrayList<>();
 
+    private Boolean admin = false;
+
     public User(){}
     
     public User(String username, String password) {
         this.username = username;
         this.password = password;
+        setPlayerId();
+    }
+
+    public User(String username, String password, Boolean isAdmin) {
+        this.username = username;
+        this.password = password;
+        setAdmin(isAdmin);
         setPlayerId();
     }
 
@@ -50,5 +59,13 @@ public class User {
 
     public void setSolvedLandmarkIds(List<Integer> solvedLandmarkIds) {
         this.solvedLandmarkIds = solvedLandmarkIds;
+    }
+
+    public Boolean getAdmin() {
+        return admin;
+    }
+
+    public void setAdmin(Boolean admin) {
+        this.admin = admin;
     }
 }

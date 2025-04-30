@@ -1,6 +1,5 @@
 package com.scavengerhunt.repository;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
@@ -15,29 +14,17 @@ public class GameDataRepository {
      */
 
     private final LandmarkRepository landmarkRepo;
-    
- 
-    public GameDataRepository(LandmarkRepository landmarkRepo) {
+    private final UserRepository userRepo;
+
+    public GameDataRepository(LandmarkRepository landmarkRepo, UserRepository userRepo) {
         this.landmarkRepo = landmarkRepo;
+        this.userRepo = userRepo;
     }
 
     //Expand to JSON in the future
 
     public List<Landmark> loadLandmarks() {
         return landmarkRepo.findAll();
-    }
-
-    public List<Landmark> loadLandmarks(double radiusMeter) {
-        List<Landmark> landmarks = new ArrayList<>();
-        // Example data: Glucksman and Honan Chapel
-        landmarks.add(new Landmark(1, "Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073));
-        landmarks.add(new Landmark(2, "Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395));
-        landmarks.add(new Landmark(3, "Boole Library", "Numbers and knowledge, my namesake knew", 51.892795899999996,-8.491407089727364));
-        return landmarks;
-    }
-
-    public void loadPlayer(){
-
     }
 
     /**

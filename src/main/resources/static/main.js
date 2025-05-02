@@ -1,5 +1,6 @@
 let playerMarker = null;
 let searchCircle = null;
+let userId = null;
 
 let roundStarted = false;
 let playerLat = null;
@@ -17,32 +18,40 @@ const startBtn = document.getElementById('start-round-btn');
 const radiusSlider = document.getElementById('radius-slider');
 let currentRadius = parseFloat(radiusSlider.value);
 
-const playerId = localStorage.getItem('playerId');
+// const userId = localStorage.getItem('userId');
 
 
 //functions
+function getUserId() {
+  return localStorage.getItem('userId');
+}
 
 function ensurePlayerId() {
-  let playerId = localStorage.getItem('playerId');
-  if (!playerId) {
-    playerId = 'guest-' + crypto.randomUUID(); 
-    localStorage.setItem('playerId', playerId);
-    console.log('[Init] Generated guest playerId:', playerId);
+  let userId = getUserId();
+  if (!userId) {
+    userId = 'guest-' + crypto.randomUUID(); 
+    localStorage.setItem('userId', userId);
+    console.log('[Init] Generated guest userId:', userId);
   }
-  return playerId;
+  return userId;
 }
 
 function updateAuthUI() {
-  if (playerId) {
+  if (getUserId() && !getUserId().startsWith('guest')) {
     loginBtn.style.display = 'none';
     registerBtn.style.display = 'none';   
     logoutBtn.style.display = 'inline-block';
+
+    startBtn.disabled = false;
   } else {
     loginBtn.style.display = 'inline-block';
     registerBtn.style.display = 'inline-block'; 
     logoutBtn.style.display = 'none';
+
+    startBtn.disabled = true;
   }
 }
+
 
 function login(username, password) {
   fetch(localhost + '/api/auth/login', {
@@ -54,11 +63,12 @@ function login(username, password) {
     if (!res.ok) throw new Error('Invalid username or password.');
     return res.text();
   })
-  .then(playerId => {
+  .then(userId => {
     //localStorage for MVP
-    localStorage.setItem('playerId', playerId);
+    localStorage.setItem('userId', userId);
     updateAuthUI();
     alert('Login successful!');
+    location.reload();
   })
   .catch(err => {
     console.error('Login failed:', err);
@@ -90,19 +100,19 @@ function register(username, password) {
 }
 
 function logout(){
-  localStorage.removeItem('playerId');
+  localStorage.removeItem('userId');
   updateAuthUI();
   alert('Logged out.');
   location.reload();
 }
 
 function updatePlayerPosition(lat, lng, angle){
-  const playerId = localStorage.getItem('playerId');
+  let userId = getUserId();
   fetch(localhost + "/api/game/update-position", {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-      playerId: playerId,
+      userId: userId,
       latitude: lat,
       longitude: lng,
       angle: angle
@@ -120,7 +130,7 @@ function updatePlayerPosition(lat, lng, angle){
 }
 
 function searchRadius(radiusMeter){
-  const playerId = localStorage.getItem('playerId');
+  let userId = getUserId();
 
   if (!playerMarker) {
     alert("Player not initialized on map.");
@@ -131,7 +141,7 @@ function searchRadius(radiusMeter){
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      playerId: playerId,
+      userId: userId,
       latitude: playerLat,
       longitude: playerLng,
       radiusMeters: radiusMeter  
@@ -148,10 +158,31 @@ function searchRadius(radiusMeter){
   });
 }
 
+function selectedNextTarget(){
+  let userId = getUserId();
+
+  fetch(localhost + "/api/game/next-target?userId=" + userId)
+  .then(res => {
+    if(!res.ok){
+      throw new Error("No target available.")
+    }
+    return res.json();
+  })
+  .then(target => {
+    console.log("[Frontend] Current target: ", target);
+    document.getElementById('target-info').innerText = target.name + "\n" + target.riddle;
+  })
+  .catch(err => {
+    console.log("[Frontend] No target found:", err);
+    document.getElementById('target-info').innerText = "(No target yet)";
+});
+}
+
+
 //main
 
 document.addEventListener('DOMContentLoaded', () => {
-  const playerId = ensurePlayerId();
+  const userId = ensurePlayerId();
   
   document.getElementById('radius-ui').style.display = 'none';
 
@@ -183,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     playerAngle = 0; 
     updatePlayerPosition(playerLat, playerLng, playerAngle);
 
-    if (!roundStarted && localStorage.getItem('playerId')) {
+    if (!roundStarted && getUserId() && !getUserId().startsWith('guest')) {
       document.getElementById('radius-ui').style.display = 'block';
       if (!searchCircle) {
         searchCircle = L.circle([playerLat, playerLng], {
@@ -197,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   });
-
+  
   radiusSlider.addEventListener('input', () => {
     currentRadius = parseFloat(radiusSlider.value);
 
@@ -223,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     document.getElementById('radius-ui').style.display = 'none';
     roundStarted = true;
+    selectedNextTarget();
   })
 })
 

@@ -16,12 +16,12 @@ public class GameSession {
     private List<Landmark> currentTargetPool = new ArrayList<>(); 
     private List<Landmark> solvedLandmarks = new ArrayList<>(); 
 
-    
-    public GameSession(){}
+    private String userId;
 
-    public GameSession(PlayerStateManager playerState, LandmarkManager landmarkManager) {
+    public GameSession(PlayerStateManager playerState, LandmarkManager landmarkManager, String userId) {
         this.playerState = playerState;
         this.landmarkManager = landmarkManager;
+        this.userId = userId;
     }
 
     /** 
@@ -70,7 +70,14 @@ public class GameSession {
     public Landmark selectNextTarget() {
         if (!isGameFinished()) {
             Landmark last = this.currentTarget;
-            this.currentTarget = selectNearestTo(last.getLatitude(), last.getLongitude());
+            if (last == null){
+                double playerLat = playerState.getPlayer().getLatitude();
+                double playerLng = playerState.getPlayer().getLongitude();
+                
+                this.currentTarget = selectNearestTo(playerLat, playerLng);
+            } else {
+                this.currentTarget = selectNearestTo(last.getLatitude(), last.getLongitude());
+            }
         } else {
             this.currentTarget = null;
         }
@@ -109,6 +116,11 @@ public class GameSession {
     public boolean checkAnswerCorrect(Landmark landmark) {
         // Future integration: answer evaluator + epistemic 
         return true;  // default true for mvp
+    }
+
+
+    public String getUserId() {
+        return userId;
     }
 }
 

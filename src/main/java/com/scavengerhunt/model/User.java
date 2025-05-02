@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "users")
 public class User {
     @Id
-    private String playerId;
+    private String userId;
 
     private String username;
     private String password;
@@ -47,10 +47,10 @@ public class User {
         this.password = password;
     }
     public String getPlayerId() {
-        return playerId;
+        return userId;
     }
     public void setPlayerId() {
-        this.playerId = UUID.randomUUID().toString();
+        this.userId = UUID.randomUUID().toString();
     }
 
     public List<Integer> getSolvedLandmarkIds() {

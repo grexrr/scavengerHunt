@@ -1,5 +1,10 @@
 let playerMarker = null;
+let searchCircle = null;
+
 let roundStarted = false;
+let playerLat = null;
+let playerLng = null;
+let playerAngle = null;
 
 const localhost = "http://localhost:8080";
 const map = L.map('map').setView([51.8940, -8.4902], 17);
@@ -8,7 +13,9 @@ const loginBtn = document.getElementById('login-btn');
 const registerBtn = document.getElementById('register-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const startBtn = document.getElementById('start-round-btn');
+
 const radiusSlider = document.getElementById('radius-slider');
+let currentRadius = parseFloat(radiusSlider.value);
 
 const playerId = localStorage.getItem('playerId');
 
@@ -120,16 +127,13 @@ function searchRadius(radiusMeter){
     return;
   }
 
-  const lat = playerMarker.getLatLng().lat;
-  const lng = playerMarker.getLatLng().lng;
-
   fetch(localhost + '/api/game/start-round', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       playerId: playerId,
-      latitude: lat,
-      longitude: lng,
+      latitude: playerLat,
+      longitude: playerLng,
       radiusMeters: radiusMeter  
     })
   }) 
@@ -142,14 +146,13 @@ function searchRadius(radiusMeter){
   .catch(err => {
     console.log('[Frontend] Round started Failure: ', err);
   });
-  
 }
 
 //main
 
 document.addEventListener('DOMContentLoaded', () => {
   const playerId = ensurePlayerId();
-
+  
   document.getElementById('radius-ui').style.display = 'none';
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -175,21 +178,51 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   map.on('click', function (e) {
-    const lat = e.latlng.lat;
-    const lng = e.latlng.lng;
-    const angle = 0; 
-    updatePlayerPosition(lat, lng, angle);
+    playerLat = e.latlng.lat;
+    playerLng = e.latlng.lng;
+    playerAngle = 0; 
+    updatePlayerPosition(playerLat, playerLng, playerAngle);
 
     if (!roundStarted && localStorage.getItem('playerId')) {
       document.getElementById('radius-ui').style.display = 'block';
+      if (!searchCircle) {
+        searchCircle = L.circle([playerLat, playerLng], {
+          radius: currentRadius,
+          color: 'blue',
+          fillColor: '#cce5ff',
+          fillOpacity: 0.3
+        }).addTo(map);
+      } else {
+        searchCircle.setLatLng([playerLat, playerLng]);
+      }
     }
   });
 
-  startBtn.addEventListener('click', () => {
-    const radius = parseFloat(radiusSlider.value);
-    searchRadius(radius);
+  radiusSlider.addEventListener('input', () => {
+    currentRadius = parseFloat(radiusSlider.value);
 
+    if (!searchCircle) {
+      searchCircle = L.circle([playerLat, playerLng], {
+        radius: currentRadius,
+        color: 'blue',
+        fillColor: '#cce5ff',
+        fillOpacity: 0.3
+      }).addTo(map);
+    } else {
+      searchCircle.setLatLng([playerLat, playerLng]);
+      searchCircle.setRadius(currentRadius);
+    }
+  })
+
+  startBtn.addEventListener('click', () => {
+    
+    searchRadius(currentRadius);
+    if (searchCircle) {
+      map.removeLayer(searchCircle);
+      searchCircle = null;
+    }
     document.getElementById('radius-ui').style.display = 'none';
+    roundStarted = true;
   })
 })
 

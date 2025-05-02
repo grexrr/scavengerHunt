@@ -27,6 +27,10 @@ public class GameDataRepository {
         return landmarkRepo.findAll();
     }
 
+    public UserRepository getUserRepo(){
+        return this.userRepo;
+    }
+
     /**
      * Save player's solved landmark IDs (MVP: print to console).
      */

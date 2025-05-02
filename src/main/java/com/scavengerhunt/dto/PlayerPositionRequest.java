@@ -4,13 +4,13 @@ public class PlayerPositionRequest {
     private double latitude;
     private double longitude;
     private double angle;
-    private String playerId;
+    private String userId;
     
-    public String getPlayerId() {
-        return playerId;
+    public String getUserId() {
+        return userId;
     }
-    public void setPlayerId(String playerId) {
-        this.playerId = playerId;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
     public double getLatitude() {
         return latitude;

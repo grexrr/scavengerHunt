@@ -1,18 +1,18 @@
 package com.scavengerhunt.dto;
 
 public class StartRoundRequest {
-    private String playerId;
+    private String userId;
     private double latitude;
     private double longitude;
     private double radiusMeters;
 
 
-    public String getPlayerId() {
-        return playerId;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setPlayerId(String playerId) {
-        this.playerId = playerId;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
     
     public double getLatitude() {

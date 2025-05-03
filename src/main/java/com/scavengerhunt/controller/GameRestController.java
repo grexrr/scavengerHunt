@@ -60,6 +60,7 @@ public class GameRestController {
             return ResponseEntity.status(403).body("[Backend] Must be logged in to start round.");
         }
 
+        session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
         session.startNewRound(request.getRadiusMeters());
 
         Landmark target = session.getCurrentTarget();

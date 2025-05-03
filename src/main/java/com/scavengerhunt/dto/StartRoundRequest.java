@@ -4,6 +4,14 @@ public class StartRoundRequest {
     private String userId;
     private double latitude;
     private double longitude;
+    private double angle;
+    public double getAngle() {
+        return angle;
+    }
+
+    public void setAngle(double angle) {
+        this.angle = angle;
+    }
     private double radiusMeters;
 
 

@@ -129,7 +129,6 @@ function updatePlayerPosition(lat, lng, angle){
   });
 }
 
-
 function searchRadius(radiusMeter){
   let userId = getUserId();
 
@@ -255,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
       alert("Please click on the map to set your position first.");
       return;
     }
+
     updatePlayerPosition(playerLat, playerLng, playerAngle)
       .then(() => {
           searchRadius(currentRadius);
@@ -262,8 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch(err => {
           console.error('Failed to update position before starting round', err);
       });
-});
-
+    });
 })
 
 

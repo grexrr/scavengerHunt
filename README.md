@@ -439,3 +439,59 @@ main.js
 - Current foundation is now ready for implementation of `/start-round`, `/get-target`, `/submit-answer` puzzle flow
 
 ---
+
+#### Apr. 30 2025
+
+**Goal: Integrate MongoDB-based landmark storage and session-based game state management; unify all data access through `GameDataRepository` and prepare backend for round logic (start/submit/target).**
+
+
+* **Backend MongoDB integration for landmark system:**
+
+  * Created `Landmark` model with `@Document("landmarks")`, supporting `name`, `riddle`, `latitude`, `longitude`
+  * Replaced hardcoded landmark list with MongoDB as persistent source
+  * Defined `LandmarkRepository` extending `MongoRepository<Landmark, String>`
+  * Added `AdminController` with endpoints:
+
+    * `/insert-landmarks`: Insert predefined landmarks
+    * `/clear-landmarks`: Wipe landmark collection
+    * `/insert-users`: Insert test admin user
+
+* **Game data architecture refactor:**
+
+  * Introduced `GameDataRepository` as the **unified backend access layer** for both `UserRepository` and `LandmarkRepository`
+  * `GameDataRepository` now handles:
+
+    * Loading all landmarks (used by `LandmarkManager`)
+    * (Planned extension) Filtering landmarks by region or radius
+    * Loading and updating user solved landmark lists
+  * `GameRestController` now delegates all DB interactions through `GameDataRepository`
+
+* **Game session management:**
+
+  * `GameSession` manages player-specific state:
+
+    * Player location
+    * Solved landmark tracking
+    * Current target and local landmark pool
+  * `sessionMap<String, GameSession>` tracks per-player sessions in `GameRestController`
+  * Implemented `update-position` endpoint:
+
+    * Supports **both logged-in and guest users**
+    * Automatically creates new `GameSession` if one does not exist
+
+* **Frontend logic refinement:**
+
+  * Introduced `ensurePlayerId()` to support guest play with auto-generated UUID stored in `localStorage`
+  * `updatePlayerPosition()` sends `playerId`, `lat`, `lng`, and `angle` to backend
+  * Added `playerMarker` logic to update Leaflet map marker only after receiving response
+  * Modularized logic to better support upcoming `/start-round` and `/submit-answer` endpoints
+
+---
+
+##### Design Notes
+
+* Fully separated `LandmarkManager` (game logic) and `GameDataRepository` (data access layer)
+* `GameRestController` serves as a stateful per-player dispatcher, isolating sessions and preventing shared data misuse
+* Frontend supports anonymous play while using the same backend API structure as authenticated users
+* MongoDB now serves as the single source of truth for both authentication and gameplay records
+* The system foundation is ready for the full puzzle flow implementation (`/start-round`, `/get-target`, `/submit-answer`)

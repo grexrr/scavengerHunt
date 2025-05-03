@@ -20,10 +20,6 @@ import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
 
-
-
-
-
 @RestController
 @RequestMapping("/api/game")
 public class GameRestController {
@@ -56,8 +52,7 @@ public class GameRestController {
     }
 
     @PostMapping("/start-round")
-    public ResponseEntity<String> startNewRound(@RequestBody StartRoundRequest request) {
-
+    public ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
         GameSession session = sessionMap.get(request.getUserId());
         if (session == null) return ResponseEntity.status(404).body("[Backend] Session Not Found.");
 
@@ -66,8 +61,19 @@ public class GameRestController {
         }
 
         session.startNewRound(request.getRadiusMeters());
-        return ResponseEntity.ok("[Backend] New round started.");
+
+        Landmark target = session.getCurrentTarget();
+        if (target == null) return ResponseEntity.status(404).body("[Backend] No target available.");
+
+        Map<String, Object> targetInfo = new HashMap<>();
+        targetInfo.put("name", target.getName());
+        targetInfo.put("riddle", target.getRiddle());
+        targetInfo.put("latitude", target.getLatitude());
+        targetInfo.put("longitude", target.getLongitude());
+
+        return ResponseEntity.ok(targetInfo);
     }
+
 
     @GetMapping("/next-target")
     public ResponseEntity<?> getNextTarget(@RequestParam String userId) {

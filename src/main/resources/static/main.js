@@ -108,7 +108,7 @@ function logout(){
 
 function updatePlayerPosition(lat, lng, angle){
   let userId = getUserId();
-  fetch(localhost + "/api/game/update-position", {
+  return fetch(localhost + "/api/game/update-position", {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
@@ -126,8 +126,9 @@ function updatePlayerPosition(lat, lng, angle){
     } else {
       playerMarker.setLatLng([lat, lng])  
     }
-  })
+  });
 }
+
 
 function searchRadius(radiusMeter){
   let userId = getUserId();
@@ -135,6 +136,10 @@ function searchRadius(radiusMeter){
   if (!playerMarker) {
     alert("Player not initialized on map.");
     return;
+  } else {
+    const latlng = playerMarker.getLatLng();
+    playerLat = latlng.lat;
+    playerLng = latlng.lng;
   }
 
   fetch(localhost + '/api/game/start-round', {
@@ -246,16 +251,19 @@ document.addEventListener('DOMContentLoaded', () => {
   })
 
   startBtn.addEventListener('click', () => {
-    
-    searchRadius(currentRadius);
-    if (searchCircle) {
-      map.removeLayer(searchCircle);
-      searchCircle = null;
+    if (playerLat == null || playerLng == null) {
+      alert("Please click on the map to set your position first.");
+      return;
     }
-    document.getElementById('radius-ui').style.display = 'none';
-    roundStarted = true;
-    selectedNextTarget();
-  })
+    updatePlayerPosition(playerLat, playerLng, playerAngle)
+      .then(() => {
+          searchRadius(currentRadius);
+      })
+      .catch(err => {
+          console.error('Failed to update position before starting round', err);
+      });
+});
+
 })
 
 

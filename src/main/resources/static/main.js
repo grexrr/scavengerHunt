@@ -1,27 +1,31 @@
-let playerMarker = null;
-let searchCircle = null;
+// ========== Global Variables ==========
+let dragStart = null;  // Stores the starting point of mouse drag
+let playerMarker = null;  // The player's arrow marker on the map
+const icon = L.icon({     // Custom icon for player marker
+  iconUrl: 'arrow.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16]
+});
+
+let searchCircle = null;  // Circle representing search radius
 let userId = null;
-
 let roundStarted = false;
-let playerLat = null;
-let playerLng = null;
-let playerAngle = null;
+let playerLat = null;     // Player latitude
+let playerLng = null;     // Player longitude
+let playerAngle = null;   // Player facing angle
 
-const localhost = "http://localhost:8080";
-const map = L.map('map').setView([51.8940, -8.4902], 17);
+const localhost = "http://localhost:8080"; // Backend base URL
+const map = L.map('map').setView([51.8940, -8.4902], 17);  // Initialize map centered at UCC
 
+// ========== DOM Elements ==========
 const loginBtn = document.getElementById('login-btn');
 const registerBtn = document.getElementById('register-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const startBtn = document.getElementById('start-round-btn');
-
 const radiusSlider = document.getElementById('radius-slider');
-let currentRadius = parseFloat(radiusSlider.value);
+let currentRadius = parseFloat(radiusSlider.value);  // Current value of slider
 
-// const userId = localStorage.getItem('userId');
-
-
-//functions
+// ========== Authentication ==========
 function getUserId() {
   return localStorage.getItem('userId');
 }
@@ -41,17 +45,14 @@ function updateAuthUI() {
     loginBtn.style.display = 'none';
     registerBtn.style.display = 'none';   
     logoutBtn.style.display = 'inline-block';
-
     startBtn.disabled = false;
   } else {
     loginBtn.style.display = 'inline-block';
     registerBtn.style.display = 'inline-block'; 
     logoutBtn.style.display = 'none';
-
     startBtn.disabled = true;
   }
 }
-
 
 function login(username, password) {
   fetch(localhost + '/api/auth/login', {
@@ -64,7 +65,6 @@ function login(username, password) {
     return res.text();
   })
   .then(userId => {
-    //localStorage for MVP
     localStorage.setItem('userId', userId);
     updateAuthUI();
     alert('Login successful!');
@@ -106,29 +106,31 @@ function logout(){
   location.reload();
 }
 
-function updatePlayerPosition(lat, lng, angle){
-  let userId = getUserId();
+// ========== API Call: Update Position ==========
+function updatePlayerPosition(lat, lng, angle) {
+  const userId = getUserId();
   return fetch(localhost + "/api/game/update-position", {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      userId: userId,
-      latitude: lat,
-      longitude: lng,
-      angle: angle
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId, latitude: lat, longitude: lng, angle })
   })
   .then(res => res.text())
   .then(msg => {
-    console.log("[FrontEnd] Position updated", msg);
-    if (!playerMarker) {
-      playerMarker = L.marker([lat, lng], { title: 'Player' }).addTo(map);
-    } else {
-      playerMarker.setLatLng([lat, lng])  
-    }
+    console.log("[Frontend] Position updated", msg);
   });
 }
 
+// ========== Math: Angle Calculation ==========
+function calculateAngle(start, end) {
+  const dy = end.lat - start.lat;
+  const dx = end.lng - start.lng;
+  const theta = Math.atan2(dx, dy);
+  let angle = theta * (180 / Math.PI);
+  if (angle < 0) angle += 360;
+  return angle;
+}
+
+// ========== API Call: Start Round ==========
 function searchRadius(radiusMeter){
   let userId = getUserId();
 
@@ -162,6 +164,7 @@ function searchRadius(radiusMeter){
   });
 }
 
+// ========== API Call: Get Target ==========
 function selectedNextTarget(){
   let userId = getUserId();
 
@@ -179,15 +182,12 @@ function selectedNextTarget(){
   .catch(err => {
     console.log("[Frontend] No target found:", err);
     document.getElementById('target-info').innerText = "(No target yet)";
-});
+  });
 }
 
-
-//main
-
+// ========== Main Entry ==========
 document.addEventListener('DOMContentLoaded', () => {
   const userId = ensurePlayerId();
-  
   document.getElementById('radius-ui').style.display = 'none';
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -212,14 +212,48 @@ document.addEventListener('DOMContentLoaded', () => {
     logout();
   });
 
-  map.on('click', function (e) {
-    playerLat = e.latlng.lat;
-    playerLng = e.latlng.lng;
-    playerAngle = 0; 
-    updatePlayerPosition(playerLat, playerLng, playerAngle);
+  // ======== Map Interaction: Player Drag & Rotate ========
+  map.on('mousedown', function(e) {
+    dragStart = e.latlng;
+    map.dragging.disable();
+
+    if (!playerMarker) {
+      playerMarker = L.marker(dragStart, {
+        icon: icon,
+        rotationAngle: 0,
+        rotationOrigin: 'center center'
+      }).addTo(map);
+    } else {
+      playerMarker.setLatLng(dragStart);
+      playerMarker.setRotationAngle(0);
+    }
+  });
+
+  map.on('mousemove', function(e) {
+    if (!dragStart || !playerMarker) return;
+    const angle = calculateAngle(dragStart, e.latlng);
+    playerMarker.setRotationAngle(angle);
+  });
+
+  map.on('mouseup', function(e) {
+    if (!dragStart || !playerMarker) return;
+
+    const angle = calculateAngle(dragStart, e.latlng);
+    const lat = dragStart.lat;
+    const lng = dragStart.lng;
+
+    playerLat = lat;
+    playerLng = lng;
+    playerAngle = angle;
+
+    updatePlayerPosition(lat, lng, angle);
+
+    dragStart = null;
+    map.dragging.enable();
 
     if (!roundStarted && getUserId() && !getUserId().startsWith('guest')) {
       document.getElementById('radius-ui').style.display = 'block';
+
       if (!searchCircle) {
         searchCircle = L.circle([playerLat, playerLng], {
           radius: currentRadius,
@@ -229,10 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }).addTo(map);
       } else {
         searchCircle.setLatLng([playerLat, playerLng]);
+        searchCircle.setRadius(currentRadius);
       }
     }
   });
-  
+
+  // ======== UI Slider: Radius Control ========
   radiusSlider.addEventListener('input', () => {
     currentRadius = parseFloat(radiusSlider.value);
 
@@ -247,8 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
       searchCircle.setLatLng([playerLat, playerLng]);
       searchCircle.setRadius(currentRadius);
     }
-  })
+  });
 
+  // ======== Start Round ========
   startBtn.addEventListener('click', () => {
     if (playerLat == null || playerLng == null) {
       alert("Please click on the map to set your position first.");
@@ -257,12 +294,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updatePlayerPosition(playerLat, playerLng, playerAngle)
       .then(() => {
-          searchRadius(currentRadius);
+        searchRadius(currentRadius);
       })
       .catch(err => {
-          console.error('Failed to update position before starting round', err);
+        console.error('Failed to update position before starting round', err);
       });
-    });
-})
-
-
+  });
+});

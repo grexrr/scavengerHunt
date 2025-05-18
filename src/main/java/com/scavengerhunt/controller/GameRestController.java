@@ -76,30 +76,63 @@ public class GameRestController {
     }
 
 
-    @GetMapping("/next-target")
+    @GetMapping("/first-target")
     public ResponseEntity<?> getNextTarget(@RequestParam String userId) {
         GameSession session = sessionMap.get(userId);
         if (session == null) return ResponseEntity.status(404).body("[Backend] Session Not Found.");
-        
+    
         Landmark target = session.getCurrentTarget();
+    
+        if (target == null) {
+            target = session.selectNextTarget(); 
+        }
+    
         if (target == null) {
             return ResponseEntity.status(404).body("[Backend] No target available. Game may have finished.");
         }
-
-        Map<String, Object> targetInfo = new HashMap<>();
-        targetInfo.put("name", target.getName());
-        targetInfo.put("riddle", target.getRiddle());
-        targetInfo.put("latitude", target.getLatitude());
-        targetInfo.put("longitude", target.getLongitude());
-        
-        return ResponseEntity.ok(targetInfo);
+    
+        return ResponseEntity.ok(serializeLandmark(target));
     }
     
 
     @PostMapping("/submit-answer") // update user solved landmarks
-    public void submitAnswer() {
-       
+    public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
+        String userId = request.get("userId");
+        GameSession session = sessionMap.get(userId);
+        if (session == null) return ResponseEntity.status(404).body("Session not found");
+        
+        // ==== First Submission ====
+        if (session.getCurrentTarget() == null) {
+            Landmark first = session.selectNextTarget();
+            if (first == null) return ResponseEntity.status(404).body("No target available in this region.");
+
+            return ResponseEntity.ok(serializeLandmark(first));
+        }
+
+        // ==== Normal Submission ====
+        boolean result = session.submitCurrentAnswer();
+        if (!result){
+            return ResponseEntity.status(404).body("Answer Incorrect.");
+        }
+
+        Landmark next = session.selectNextTarget();
+        if (next == null){
+            gameDataRepo.savePlayerProgress(session.getPlayerState());
+            return ResponseEntity.ok("All riddles solved!");
+        } else {
+            return ResponseEntity.ok(serializeLandmark(next));
+        }
     }
 
+    private Map<String, Object> serializeLandmark(Landmark lm){
+        Map<String, Object> targetInfo = new HashMap<>();
+        targetInfo.put("name", lm.getName());
+        targetInfo.put("riddle", lm.getRiddle());
+        targetInfo.put("latitude", lm.getLatitude());
+        targetInfo.put("longitude", lm.getLongitude());
+        return targetInfo;
+    }
 }
+
+
 

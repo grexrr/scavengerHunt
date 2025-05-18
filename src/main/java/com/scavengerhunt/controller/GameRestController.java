@@ -3,6 +3,7 @@ package com.scavengerhunt.controller;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,9 +17,13 @@ import com.scavengerhunt.dto.StartRoundRequest;
 import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.LandmarkManager;
 import com.scavengerhunt.game.PlayerStateManager;
+import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
+import com.scavengerhunt.repository.RiddleRepository;
+
+import jakarta.annotation.PostConstruct;
 
 @RestController
 @RequestMapping("/api/game")
@@ -26,6 +31,10 @@ public class GameRestController {
 
     private Map<String, GameSession> sessionMap = new HashMap<>();
     private final GameDataRepository gameDataRepo;
+
+    @Autowired
+    private RiddleRepository riddleRepo;
+    private PuzzleManager puzzleManager;
 
     public GameRestController(GameDataRepository gameDataRepo) {
         this.gameDataRepo = gameDataRepo;
@@ -124,14 +133,21 @@ public class GameRestController {
         }
     }
 
+    @PostConstruct
+    public void init() {
+        this.puzzleManager = new PuzzleManager(riddleRepo);
+    }
+
+
     private Map<String, Object> serializeLandmark(Landmark lm){
         Map<String, Object> targetInfo = new HashMap<>();
         targetInfo.put("name", lm.getName());
-        targetInfo.put("riddle", lm.getRiddle());
+        targetInfo.put("riddle", puzzleManager.getRiddleForLandmark(lm.getId()));  
         targetInfo.put("latitude", lm.getLatitude());
         targetInfo.put("longitude", lm.getLongitude());
         return targetInfo;
     }
+    
 }
 
 

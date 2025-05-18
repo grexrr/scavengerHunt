@@ -5,55 +5,45 @@
 ### Module Overview (Updating)
 
 ```perl
-scavenger_hunt/                        # Project root directory (Java main program)
-├── App.java                           # Entry point, initializes all modules
+scavenger_hunt/                        # Project root directory (Java backend)
+├── App.java                           # Application entry point; initializes Spring Boot and core modules
 │
-├── map/                               # Map rendering and UI interaction (Leaflet-based, via WebView)
-│   ├── MapEngine.java                 # Loads HTML-based Leaflet map (via WebView or browser), initializes base layers
-│   ├── PlayerPointer.java             # Player marker + orientation arrow (updated via JS bridge)
-│   ├── AreaSelector.java              # Press 'A' + mouse to create circular search zone
-│   ├── DirectionArrow.java            # Arrow pointing to current target landmark
-│   └── MapUIStateManager.java         # (NEW) Manages visible markers/layers, syncs player/landmark state to UI
+├── controller/                        # REST API controllers exposed to frontend
+│   ├── GameRestController.java        # Main game controller: handles position updates, round start, answer submission, and target retrieval
+│   ├── AuthController.java            # Handles user registration, login, and logout
+│   └── AdminController.java           # Admin utility endpoints for bulk landmark/user insert or database cleanup
 │
-├── game/                              # Core game logic and player state
-│   ├── Player.java                    # Player data model: location, orientation, solved landmark IDs
-│   ├── PlayerStateManager.java        # Controls player movement and solved record tracking
-│   ├── Landmark.java                  # Landmark entity (ID, location, riddle, name)
-│   ├── LandmarkRepo.java              # Provides raw landmark access and spatial filtering (no state)
-│   ├── PuzzleController.java          # Controls puzzle round state: current target, puzzle flow, solved checking
-│   ├── GameSession.java               # (NEW) Top-level game wrapper that aggregates player, puzzle controller, and sync
-│   ├── RiddleManager.java             # Provides riddles to PuzzleController (from local or API)
-│   └── AnswerEvaluator.java           # Validates answer correctness (angle, distance, interaction)
+├── game/                              # Core game logic and session state
+│   ├── GameSession.java               # Manages per-user session state: player position, current target, solved landmarks
+│   ├── PlayerStateManager.java        # Updates and tracks player's location, orientation, and game status
+│   ├── LandmarkManager.java           # Loads landmarks and filters them based on radius from player
+│   ├── Player.java                    # Data model for player (latitude, longitude, angle, ID, nickname)
+│   ├── Landmark.java                  # Data model for landmarks (ID, name, riddle, coordinates)
 │
-├── interaction/                       # Handles player input and event triggers
-│   ├── InputController.java           # Keyboard or mobile input adapter; triggers puzzle/game logic
-│   ├── ButtonAHandler.java            # Triggers area selection (circle via 'A' + mouse)
-│   ├── ButtonBHandler.java            # Submits current answer (via 'B')
-│   └── FacingChecker.java             # Checks if player is facing the target landmark (angle threshold)
+├── repository/                        # MongoDB data access layer
+│   ├── LandmarkRepository.java        # Spring Data interface for accessing landmarks collection
+│   ├── UserRepository.java            # Spring Data interface for accessing users collection
+│   └── GameDataRepository.java        # Aggregates access to both UserRepository and LandmarkRepository, provides unified game data interface
 │
-├── comms/                             # Handles communication with Python backend
-│   ├── RiddleAPIClient.java           # Sends HTTP request to fetch riddles
-│   └── APIResponseParser.java         # Parses JSON responses from Python
+├── utils/                             # Utility classes
+│   └── GeoUtils.java                  # Geolocation math helpers: distance calculation, angle computation
 │
-├── utils/                             # Utility modules
-│   ├── GeoUtils.java                  # Geolocation helpers: Haversine, angle, radius checks
-│   └── TimerUtils.java                # Long-press detection, timer control
+├── frontend/                          # Static frontend resources served by Spring Boot
+│   ├── index.html                     # Main web page with Leaflet map UI
+│   └── main.js                        # Full game client logic: map interaction, auth, player control, target display
 │
-├── config/                            # Configurable constants and thresholds
-│   └── Constants.java                 # Radius/angle thresholds, API URLs, UI params, etc.
+├── assets/                            # Static data assets (shared by Java and Python)
+│   ├── riddles.json                   # Fallback riddles if API is unavailable
+│   └── landmarks.json                 # Optional pre-defined landmarks
 │
-├── assets/                            # Static assets (used both by Java + frontend map)
-│   ├── riddles.json                   # Local fallback riddles
-│   ├── landmarks.json                 # Local landmark definitions
-│   └── map.html                       # Leaflet map HTML (for WebView load)
-│
-├── requirements.txt                   # Python-side dependencies
-└── riddle_api/                        # Python backend (lightweight REST API)
-    ├── app.py                         # Flask/FastAPI entry point
-    ├── openai_client.py               # Handles GPT-based riddle generation
-    ├── local_riddle_loader.py         # Local JSON riddle manager
-    ├── utils.py                       # Text templates and formatting
-    └── config.py                      # Python config: keys, model parameters
+├── requirements.txt                   # Python backend dependencies
+└── riddle_api/                        # Python REST backend (LLM-based riddle generator)
+    ├── app.py                         # Entry point using Flask or FastAPI
+    ├── riddle_generator.py            # Uses OpenAI API to generate riddles based on landmark metadata
+    ├── landmark_generator.py          # Queries OSM (via Overpass API) and processes landmarks
+    ├── local_riddle_loader.py         # Loads riddles from local JSON
+    ├── utils.py                       # Prompt templates and format helpers
+    └── config.py                      # OpenAI keys, model settings, and flags
 
 ```
 
@@ -561,3 +551,62 @@ main.js
 * Facing angle logic entirely frontend-driven
 * No redundant state on frontend—player and target vectors are computed per interaction
 * System supports both guest and logged-in users with unified logic
+
+---
+
+#### **May. 17 2025**
+
+**Goal: Integrate puzzle generation pipeline with gameplay flow; introduce `PuzzleManager` to decouple riddle retrieval from frontend logic. Finalize backend riddle management and database structure.**
+
+* **PuzzleManager integration:**
+
+  * Introduced `PuzzleManager` Java class to decouple riddle selection logic from `GameRestController`
+  * Provided method `getRiddleForLandmark(String landmarkId)` that:
+
+    * Queries MongoDB `riddles` collection using `RiddleRepository`
+    * Returns the first available `"mysterious"` style riddle for the given landmark
+    * Falls back to a default message if no riddle is found
+  * Enabled injection of `PuzzleManager` via `@PostConstruct` in `GameRestController`
+
+* **Riddle model and database setup:**
+
+  * Defined `Riddle.java` to match MongoDB schema:
+
+    * `landmarkId`, `style`, `source`, `content`, `metadata`
+  * Created `RiddleRepository` interface extending `MongoRepository`
+  * Populated MongoDB `riddles` collection via Python script `riddle_generator.py`, using GPT-based generation with multi-style support
+  * Ensured one-to-many mapping between landmarks and riddles
+
+* **Frontend riddle support:**
+
+  * No changes required in frontend JavaScript or HTML
+  * `/first-target` and `/submit-answer` endpoints now return `target.riddle` automatically via backend merging logic
+  * Frontend displays updated riddle content in the UI without requiring structural changes
+
+* **Backend session update:**
+
+  * `GameRestController`:
+
+    * Augmented target response map to include puzzle text via `PuzzleManager`
+    * Ensured puzzle delivery is consistent across target initialization and submission steps
+
+* **Development workflow enhancements:**
+
+  * `riddle_generator.py` refactored to support:
+
+    * MongoDB-based landmark loading
+    * Chainable calls: `.load().generate().saveToDB().saveToFile()`
+    * GPT-4-based riddle generation with style control
+  * Aligned Python data structure with Java entity schema for seamless interoperability
+
+##### Notes
+
+* All riddles now served dynamically from database; `Landmark.riddle` field deprecated
+* Puzzle retrieval logic fully modular via `PuzzleManager`, enabling future support for:
+
+  * Style preference
+  * Difficulty adaptation
+  * User personalization
+* Frontend logic remains clean and API-driven, with riddle display abstracted from data source
+
+---

@@ -37,7 +37,6 @@ public class GameDataRepository {
     public void savePlayerProgress(PlayerStateManager playerState) {
         System.out.println("== Saving Player Progress ==");
         System.out.println("Player ID: " + playerState.getPlayer().getPlayerId());
-        // System.out.println("Solved Landmarks: " + playerState.getPlayer().getSolvedLandmarkIDs());
         System.out.println("Game Finished: " + playerState.isGameFinished());
     }
 }

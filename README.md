@@ -495,3 +495,69 @@ main.js
 * Frontend supports anonymous play while using the same backend API structure as authenticated users
 * MongoDB now serves as the single source of truth for both authentication and gameplay records
 * The system foundation is ready for the full puzzle flow implementation (`/start-round`, `/get-target`, `/submit-answer`)
+
+---
+
+#### May. 7 2025
+
+**Goal: Finalize round-based gameplay flow with full puzzle lifecycle: player location/angle updates, target selection, answer submission, and end-of-round detection. Added directional arrow logic and angle-based validation.**
+
+* **Leaflet-based player direction logic:**
+
+  * Integrated `leaflet.rotatedMarker` to support player orientation rendering
+  * Player drag interaction now sets both position and facing angle:
+
+    * `mousedown` stores drag start
+    * `mousemove` continuously rotates marker based on drag vector
+    * `mouseup` finalizes location and angle, then posts to `/update-position`
+  * Implemented `calculateAngle(start, end)` for consistent rotation (0° = North, clockwise)
+
+* **Frontend angle + proximity check:**
+
+  * `checkProximityAndDirection()` compares player facing to target angle
+  * Shows `Submit Answer` button only when:
+
+    * Distance to target < 50m
+    * Angle difference ≤ 30°
+  * UI updates in real-time on drag or rotation
+
+* **Endpoint behavior cleanup:**
+
+  * `/start-round`: initializes session and filters local landmark pool; does **not** select a target
+  * `/first-target`: selects and returns first unsolved target if `currentTarget == null`
+  * `/submit-answer`:
+
+    * If `currentTarget` is null, triggers first target selection
+    * On valid submission, advances to next target
+    * Returns `"All riddles solved!"` string when no targets remain
+
+* **Frontend flow updates:**
+
+  * Removed usage of deprecated `/next-target` endpoint
+  * After starting round, frontend calls `/first-target` to display first puzzle
+  * `Submit` button triggers `/submit-answer`, handles either:
+
+    * JSON (next target)
+    * String (final message)
+  * `target-info` is updated accordingly; proximity is re-evaluated
+
+* **Backend session logic:**
+
+  * `GameSession`:
+
+    * Maintains `currentTarget`, `solvedLandmarks`, and player position
+    * `selectNextTarget()` chooses closest unsolved landmark
+    * `submitCurrentAnswer()` adds solved landmark and checks for completion
+  * `GameRestController`:
+
+    * `/submit-answer` uses `Map<String, String>` for simplicity
+    * Automatically selects first target if none exists
+    * Uses `serializeLandmark()` for consistent JSON return
+  * `first-target` improved to avoid 404 by auto-selecting if `currentTarget == null`
+
+##### Notes
+
+* Round flow is now: `start-round → first-target → submit-answer (→ repeat)`
+* Facing angle logic entirely frontend-driven
+* No redundant state on frontend—player and target vectors are computed per interaction
+* System supports both guest and logged-in users with unified logic

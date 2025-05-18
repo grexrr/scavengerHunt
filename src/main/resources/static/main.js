@@ -13,6 +13,8 @@ let roundStarted = false;
 let playerLat = null;     // Player latitude
 let playerLng = null;     // Player longitude
 let playerAngle = null;   // Player facing angle
+let currentTargetLat = null;
+let currentTargetLng = null;
 
 const localhost = "http://localhost:8080"; // Backend base URL
 const map = L.map('map').setView([51.8940, -8.4902], 17);  // Initialize map centered at UCC
@@ -22,6 +24,7 @@ const loginBtn = document.getElementById('login-btn');
 const registerBtn = document.getElementById('register-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const startBtn = document.getElementById('start-round-btn');
+const submitBtn = document.getElementById('submit-answer-btn');
 const radiusSlider = document.getElementById('radius-slider');
 let currentRadius = parseFloat(radiusSlider.value);  // Current value of slider
 
@@ -130,6 +133,32 @@ function calculateAngle(start, end) {
   return angle;
 }
 
+// ========== Math: Proximity and Angle ==========
+function checkProximityAndDirection() {
+  if (currentTargetLat == null || playerLat == null) return;
+
+  const playerPoint = L.latLng(playerLat, playerLng);
+  const targetPoint = L.latLng(currentTargetLat, currentTargetLng);
+  const distance = playerPoint.distanceTo(targetPoint); // meter
+
+  const angleToTarget = calculateAngle(
+    { lat: playerLat, lng: playerLng },
+    { lat: currentTargetLat, lng: currentTargetLng }
+  );
+
+  const angleDiff = Math.abs(playerAngle - angleToTarget);
+  const adjustedDiff = angleDiff > 180 ? 360 - angleDiff : angleDiff;
+
+  console.log(`[Frontend] Distance to target: ${distance.toFixed(2)}m`);
+  console.log(`[Frontend] Facing: ${playerAngle.toFixed(2)}°, Target Angle: ${angleToTarget.toFixed(2)}°, Diff: ${adjustedDiff.toFixed(2)}°`);
+
+  if (distance < 50 && adjustedDiff <= 30) {
+    document.getElementById('submit-answer-btn').style.display = 'inline-block';
+  } else {
+    document.getElementById('submit-answer-btn').style.display = 'none';
+  }
+}
+
 // ========== API Call: Start Round ==========
 function searchRadius(radiusMeter){
   let userId = getUserId();
@@ -159,16 +188,19 @@ function searchRadius(radiusMeter){
     roundStarted = true;
     alert('New Round Started');
   })
+  .then(()=>{
+    selectFirstTarget();
+  })
   .catch(err => {
     console.log('[Frontend] Round started Failure: ', err);
   });
 }
 
 // ========== API Call: Get Target ==========
-function selectedNextTarget(){
+function selectFirstTarget(){
   let userId = getUserId();
 
-  fetch(localhost + "/api/game/next-target?userId=" + userId)
+  fetch(localhost + "/api/game/first-target?userId=" + userId)
   .then(res => {
     if(!res.ok){
       throw new Error("No target available.")
@@ -178,6 +210,8 @@ function selectedNextTarget(){
   .then(target => {
     console.log("[Frontend] Current target: ", target);
     document.getElementById('target-info').innerText = target.name + "\n" + target.riddle;
+    currentTargetLat = target.latitude;
+    currentTargetLng = target.longitude;
   })
   .catch(err => {
     console.log("[Frontend] No target found:", err);
@@ -185,7 +219,17 @@ function selectedNextTarget(){
   });
 }
 
-// ========== Main Entry ==========
+// ========== API Call: Submit Answer ==========
+
+// function submitCurrentLandmark(){
+//   fetch(localhost + '/api/game/submit-answer', {
+//     method: 'POST',
+//     headers: {'Content-Type': 'application/json'},
+//     body: JSON.stringify({userId: getUserId()})
+//   })
+// }
+
+// ========== Main ==========
 document.addEventListener('DOMContentLoaded', () => {
   const userId = ensurePlayerId();
   document.getElementById('radius-ui').style.display = 'none';
@@ -246,7 +290,9 @@ document.addEventListener('DOMContentLoaded', () => {
     playerLng = lng;
     playerAngle = angle;
 
-    updatePlayerPosition(lat, lng, angle);
+    updatePlayerPosition(lat, lng, angle).then(() => {
+      checkProximityAndDirection();  
+    });
 
     dragStart = null;
     map.dragging.enable();
@@ -283,6 +329,8 @@ document.addEventListener('DOMContentLoaded', () => {
       searchCircle.setLatLng([playerLat, playerLng]);
       searchCircle.setRadius(currentRadius);
     }
+
+    checkProximityAndDirection();
   });
 
   // ======== Start Round ========
@@ -300,4 +348,39 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to update position before starting round', err);
       });
   });
+
+  // ======== Submit Answer ========
+
+  submitBtn.addEventListener('click', () => {
+    fetch(localhost + '/api/game/submit-answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: getUserId() })
+    })
+    .then(async res => {
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return res.json(); // landmark
+      } else {
+        return res.text(); // “All riddles solved!” or err msg
+      }
+    })
+    .then(data => {
+      if (typeof data === "string") {
+        alert(data);
+        document.getElementById('target-info').innerText = data;
+        submitBtn.style.display = 'none';
+      } else {
+        currentTargetLat = data.latitude;
+        currentTargetLng = data.longitude;
+        document.getElementById('target-info').innerText = data.name + "\n" + data.riddle;
+        checkProximityAndDirection(); 
+      }
+    })
+    .catch(err => {
+      alert("❌ Submission failed");
+      console.error("Submit error:", err);
+    });
+  });
+  
 });

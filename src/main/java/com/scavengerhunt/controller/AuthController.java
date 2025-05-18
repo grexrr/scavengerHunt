@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.scavengerhunt.dto.IdentityRequest;
 import com.scavengerhunt.model.User;
 import com.scavengerhunt.repository.UserRepository;
 
@@ -43,18 +44,5 @@ public class AuthController {
     @PostMapping("/logout")
     public String logout() {
         return "Logout";
-    }
-    
-    //DTO
-
-    public static class IdentityRequest {
-        private String username;
-        private String password;
-        // getters and setters
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
     }
 }

@@ -187,6 +187,10 @@ function searchRadius(radiusMeter){
     console.log('[Frontend] Round started: ', msg);
     roundStarted = true;
     alert('New Round Started');
+    if (searchCircle) {
+      map.removeLayer(searchCircle);
+      searchCircle = null;
+    }
   })
   .then(()=>{
     selectFirstTarget();
@@ -219,15 +223,24 @@ function selectFirstTarget(){
   });
 }
 
-// ========== API Call: Submit Answer ==========
+// ========== API Call: Submit Current Landmark ==========
 
-// function submitCurrentLandmark(){
-//   fetch(localhost + '/api/game/submit-answer', {
-//     method: 'POST',
-//     headers: {'Content-Type': 'application/json'},
-//     body: JSON.stringify({userId: getUserId()})
-//   })
-// }
+function submitCurrentLandmark() {
+  return fetch(localhost + '/api/game/submit-answer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: getUserId() })
+  })
+  .then(async res => {
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return res.json(); // next landmark
+    } else {
+      return res.text(); // "All riddles solved!" or error
+    }
+  });
+}
+
 
 // ========== Main ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -352,35 +365,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // ======== Submit Answer ========
 
   submitBtn.addEventListener('click', () => {
-    fetch(localhost + '/api/game/submit-answer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: getUserId() })
-    })
-    .then(async res => {
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        return res.json(); // landmark
-      } else {
-        return res.text(); // “All riddles solved!” or err msg
-      }
-    })
-    .then(data => {
-      if (typeof data === "string") {
-        alert(data);
-        document.getElementById('target-info').innerText = data;
-        submitBtn.style.display = 'none';
-      } else {
-        currentTargetLat = data.latitude;
-        currentTargetLng = data.longitude;
-        document.getElementById('target-info').innerText = data.name + "\n" + data.riddle;
-        checkProximityAndDirection(); 
-      }
-    })
-    .catch(err => {
-      alert("❌ Submission failed");
-      console.error("Submit error:", err);
-    });
-  });
-  
+    submitCurrentLandmark()
+      .then(data => {
+        if (typeof data === "string") {
+          alert(data);
+          document.getElementById('target-info').innerText = data;
+          submitBtn.style.display = 'none';
+        } else {
+          currentTargetLat = data.latitude;
+          currentTargetLng = data.longitude;
+          document.getElementById('target-info').innerText = data.name + "\n" + data.riddle;
+          checkProximityAndDirection(); 
+        }
+      })
+      .catch(err => {
+        alert("❌ Submission failed");
+        console.error("Submit error:", err);
+      });
+  });  
 });

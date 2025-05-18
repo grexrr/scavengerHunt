@@ -379,7 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .catch(err => {
-        alert("❌ Submission failed");
+        alert("Submission failed");
         console.error("Submit error:", err);
       });
   });  

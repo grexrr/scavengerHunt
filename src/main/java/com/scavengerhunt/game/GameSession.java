@@ -11,17 +11,19 @@ public class GameSession {
     
     private PlayerStateManager playerState;
     private LandmarkManager landmarkManager;
-    
+    private PuzzleManager puzzleManager;
+
     private Landmark currentTarget;
     private List<Landmark> currentTargetPool = new ArrayList<>(); 
     private List<Landmark> solvedLandmarks = new ArrayList<>(); 
 
     private String userId;
 
-    public GameSession(PlayerStateManager playerState, LandmarkManager landmarkManager, String userId) {
+    public GameSession(PlayerStateManager playerState, LandmarkManager landmarkManager, String userId, PuzzleManager puzzleManager) {
         this.playerState = playerState;
         this.landmarkManager = landmarkManager;
         this.userId = userId;
+        this.puzzleManager = puzzleManager;
     }
 
     /** 
@@ -73,12 +75,17 @@ public class GameSession {
             if (last == null){
                 double playerLat = playerState.getPlayer().getLatitude();
                 double playerLng = playerState.getPlayer().getLongitude();
-                
+
                 this.currentTarget = selectNearestTo(playerLat, playerLng);
             } else {
                 this.currentTarget = selectNearestTo(last.getLatitude(), last.getLongitude());
             }
-        } else {
+            
+            //Generate Riddle
+            String riddle = puzzleManager.getRiddleForLandmark(this.currentTarget.getId());
+            this.currentTarget.setRiddle(riddle);
+
+        } else {    
             this.currentTarget = null;
         }
         return this.currentTarget;

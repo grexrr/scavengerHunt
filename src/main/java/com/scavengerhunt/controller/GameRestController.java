@@ -21,9 +21,6 @@ import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
-import com.scavengerhunt.repository.RiddleRepository;
-
-import jakarta.annotation.PostConstruct;
 
 @RestController
 @RequestMapping("/api/game")
@@ -33,7 +30,6 @@ public class GameRestController {
     private final GameDataRepository gameDataRepo;
 
     @Autowired
-    private RiddleRepository riddleRepo;
     private PuzzleManager puzzleManager;
 
     public GameRestController(GameDataRepository gameDataRepo) {
@@ -53,7 +49,7 @@ public class GameRestController {
                 .map(user -> user.getPlayerId())
                 .orElse(null);
 
-            session = new GameSession(playerState, landmarkManager, userId);
+            session = new GameSession(playerState, landmarkManager, userId, puzzleManager);
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
@@ -75,13 +71,7 @@ public class GameRestController {
         Landmark target = session.getCurrentTarget();
         if (target == null) return ResponseEntity.status(404).body("[Backend] No target available.");
 
-        Map<String, Object> targetInfo = new HashMap<>();
-        targetInfo.put("name", target.getName());
-        targetInfo.put("riddle", target.getRiddle());
-        targetInfo.put("latitude", target.getLatitude());
-        targetInfo.put("longitude", target.getLongitude());
-
-        return ResponseEntity.ok(targetInfo);
+        return ResponseEntity.ok(target);
     }
 
 
@@ -100,7 +90,7 @@ public class GameRestController {
             return ResponseEntity.status(404).body("[Backend] No target available. Game may have finished.");
         }
     
-        return ResponseEntity.ok(serializeLandmark(target));
+        return ResponseEntity.ok(target);
     }
     
 
@@ -115,7 +105,7 @@ public class GameRestController {
             Landmark first = session.selectNextTarget();
             if (first == null) return ResponseEntity.status(404).body("No target available in this region.");
 
-            return ResponseEntity.ok(serializeLandmark(first));
+            return ResponseEntity.ok(first);
         }
 
         // ==== Normal Submission ====
@@ -129,26 +119,9 @@ public class GameRestController {
             gameDataRepo.savePlayerProgress(session.getPlayerState());
             return ResponseEntity.ok("All riddles solved!");
         } else {
-            return ResponseEntity.ok(serializeLandmark(next));
+            return ResponseEntity.ok(next);
         }
     }
-
-    @PostConstruct
-    public void init() {
-        this.puzzleManager = new PuzzleManager(riddleRepo);
-    }
-
-
-    private Map<String, Object> serializeLandmark(Landmark lm){
-        Map<String, Object> targetInfo = new HashMap<>();
-        targetInfo.put("name", lm.getName());
-        targetInfo.put("riddle", puzzleManager.getRiddleForLandmark(lm.getId()));  
-        targetInfo.put("latitude", lm.getLatitude());
-        targetInfo.put("longitude", lm.getLongitude());
-        return targetInfo;
-    }
-    
 }
-
 
 

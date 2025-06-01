@@ -2,9 +2,12 @@ package com.scavengerhunt.game;
 
 import java.util.List;
 
+import org.springframework.stereotype.Component;
+
 import com.scavengerhunt.model.Riddle;
 import com.scavengerhunt.repository.RiddleRepository;
 
+@Component
 public class PuzzleManager {
     private RiddleRepository riddleRepo;
 
@@ -22,3 +25,5 @@ public class PuzzleManager {
         return "(No riddle available)";
     }
 }
+
+

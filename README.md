@@ -610,3 +610,33 @@ main.js
 * Frontend logic remains clean and API-driven, with riddle display abstracted from data source
 
 ---
+
+#### **Jun. 28-29 2025**
+
+引入ELO机制完成玩家/地标评分系统，因此产生对数据结构/后端的影响需处理。草案如下。
+
+
+|模块|子任务|是否准备就绪|备注|
+|---|---|---|---|
+|**MongoDB 索引**|为 `geometry` 字段添加 `2dsphere` 索引|✅ 是|若未建索引，只需 `db.landmarks.createIndex({ geometry: "2dsphere" })`|
+|**后端结构变更**|`Landmark` 增加 `GeoJsonPolygon geometry` 映射|✅ 是|Spring Data MongoDB 支持 GeoJSON，需用 `org.springframework.data.mongodb.core.geo.GeoJsonPolygon`|
+|**GameRestController**|- `startRound`：根据玩家位置查找所有**geometry范围内**的地标- 返回地标列表用于前端高亮- 选中后进入谜题答题流程|⚠️ 需实现|原逻辑只匹配 `centroid`|
+|**答题判断**|- `submitAnswer` 接收 `landmarkId`- 判断是否是本轮允许作答的地标- 正误判定（字符串比对 / 模糊匹配）- 更新 user/landmark 的 rating/uncertainty|⚠️ 需实现|包括计时、尝试次数上限等逻辑|
+|**Elo 逻辑注入**|Java 实现简化版 `elo_calculator_demo.py` 中逻辑|⚠️ 待移植|若你希望我先给 Java 版 Elo 实现草稿，也可以安排|
+|**metadata 调用**|根据 `landmarkId` 找到 `landmark_metadata` 并附带 `meta.description` 返回|⚠️ 可选|可放入 `submitAnswer` 返回体中|
+|**前端逻辑**|- 地标轮廓→点击→选中提交- 显示谜题、尝试次数、倒计时- 答题后展示科普信息（来自 metadata）|⚠️ 部分已有|目前仅支持质心点与按钮点击，需扩展选中方式与 UI|
+
+
+更新后游戏主逻辑
+
+1. 允许答题: 玩家视角扇面 ∩ 任一 landmark.geometry ≠ ∅
+2. 答题流程: 玩家在“允许答题”状态下点击 Submit Answer，由后端判断正误
+3. 尝试上限: 每题最多 3 次机会, 30分钟为答题时间上限
+4. 更新 Elo: 玩家答题正确 or 已尝试 3 次
+
+
+更新Player类渲染JTS PlayerCone用于检测player视线是否与地标轮廓线存在交集
+
+更新GeoUtils工具类，提供player对landmark的检测逻辑：(略，GPT补充)
+**强调说明，目前用算法检测最优landmark作为玩家作答的检测是MVP需要的逻辑因此不甚严谨**
+但这并非本项目需要重点展示的部分。未来希望可以通过AR检测，这个部分的内容放在future works篇描述。

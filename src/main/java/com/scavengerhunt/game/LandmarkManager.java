@@ -16,39 +16,51 @@ import com.scavengerhunt.utils.GeoUtils;
  */
 public class LandmarkManager {
 
-    private List<Landmark> allLocalLandmarks; 
+    private List<Landmark> allRoundLandmarks; //within radius
+    private List<String> allLocalLandmarkIds;   //all landmarks of current city
     private GameDataRepository gameDataRepo;
 
     public LandmarkManager() {
-        this.allLocalLandmarks = new ArrayList<>();
+        this.allRoundLandmarks = new ArrayList<>();
     }
 
     public LandmarkManager(GameDataRepository dataRepo) {
-        this.allLocalLandmarks = new ArrayList<>();
+        this.allRoundLandmarks = new ArrayList<>();
         this.gameDataRepo = dataRepo;
-        this.allLocalLandmarks = this.gameDataRepo.loadLandmarks(); 
+        this.allRoundLandmarks = this.gameDataRepo.loadLandmarks(); 
     }
 
-    public List<Landmark> getLocalLandmarksWithinRadius(double lat, double lng, double radiusMeters) {
+    public List<String> getRoundLandmarksIdWithinRadius(double lat, double lng, double radiusMeters) {
         System.out.println("[LandmarkManager] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
-        for (Landmark lm : allLocalLandmarks) {
+        for (Landmark lm : allRoundLandmarks) {
             double dist = GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude());
             System.out.println("[LandmarkManager] " + lm.getName() + " distance = " + dist + "m");
         }
     
-        List<Landmark> filtered = this.allLocalLandmarks.stream()
+        List<String> filtered = this.allRoundLandmarks.stream()
             .filter(lm -> GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude()) <= radiusMeters)
+            .map(lm -> lm.getId())
             .collect(Collectors.toList());
 
         System.out.println("[LandmarkManager] Selected landmarks in range:");
-        for (Landmark lm : filtered) {
-            System.out.println("  - " + lm.getName());
+        for (String lmid : filtered) {
+            // search lm name in db
+            String landmarkName = gameDataRepo.findLandmarkNameById(lmid);
+            System.out.println("  - " + landmarkName);
         }
 
         return filtered;
     }
 
     public List<Landmark> getAllLandmarks() {
-        return this.allLocalLandmarks;
+        return this.allRoundLandmarks;
     }    
+
+    public void setAllLocalLandmarkIds(String city){
+        this.allLocalLandmarkIds = gameDataRepo.loadLandmarkIdByCity(city);
+    }
+
+    public List<String> getAllLocalLandmarkIds() {
+        return this.allLocalLandmarkIds;
+    }
 }

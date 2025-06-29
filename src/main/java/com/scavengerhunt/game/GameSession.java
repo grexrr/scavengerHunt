@@ -1,10 +1,11 @@
 package com.scavengerhunt.game;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.scavengerhunt.model.Landmark;
+import com.scavengerhunt.repository.LandmarkRepository;
 import com.scavengerhunt.utils.GeoUtils;
 
 public class GameSession {
@@ -12,10 +13,12 @@ public class GameSession {
     private PlayerStateManager playerState;
     private LandmarkManager landmarkManager;
     private PuzzleManager puzzleManager;
+    private LandmarkRepository landmarkRepository;
 
     private Landmark currentTarget;
-    private List<Landmark> currentTargetPool = new ArrayList<>(); 
-    private List<Landmark> solvedLandmarks = new ArrayList<>(); 
+    private Map<String, Integer> currentTargetPool; 
+    // private List<Landmark> solvedLandmarks = new ArrayList<>(); 
+    // public List<String> detectableLandmarkIds;
 
     private String userId;
 
@@ -39,29 +42,45 @@ public class GameSession {
         double lat = this.playerState.getPlayer().getLatitude();
         double lng = this.playerState.getPlayer().getLongitude();
 
-        this.currentTargetPool = landmarkManager.getLocalLandmarksWithinRadius(lat, lng, radiusMeters);
+        // init answering space
+        this.detectableLandmarkIds = landmarkRepository.findAllId();
+
+        // init candidate map
+        List<String> candidateLandmarksId= landmarkManager.getRoundLandmarksIdWithinRadius(lat, lng, radiusMeters);
+        this.currentTargetPool = candidateLandmarksId.stream()
+            .collect(Collectors.toMap(landmark -> landmark, landmark -> 0));
+
         this.currentTarget = null;
-        this.solvedLandmarks.clear();
 
         System.out.println("[Session] New game round started.");
     }
 
     public boolean submitCurrentAnswer() {
-        if (this.currentTarget == null) return false;
+        if (this.currentTarget == null) {
+            System.out.println("[Session] No current Target.");
+            return false;
+        };
 
-        if (checkAnswerCorrect(this.currentTarget)) {
-            this.solvedLandmarks.add(currentTarget);
+        Integer currentCount = this.currentTargetPool.get(this.currentTarget);
 
-            if (isGameFinished()) {
-                playerState.setGameFinished();
-            }
+        while (currentCount <= 3){
 
-            return true;
         }
         return false;
+
+        // if (checkAnswerCorrect(this.currentTarget) == true) {
+        //     selectNextTarget();
+
+        //     if (isGameFinished()) {
+        //         playerState.setGameFinished();
+        //     }
+        //     return true;
+        // }
+        // return false;
     }
 
     public Landmark selectNextTarget() {
+        // select Nearest for MVP
         if (!isGameFinished()) {
             Landmark last = this.currentTarget;
             if (last == null){

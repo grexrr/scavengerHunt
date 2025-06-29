@@ -10,9 +10,10 @@ import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
+import com.scavengerhunt.repository.LandmarkRepository;
 
 public class GeoUtils {
-
+    
     private static final double EARTH_RADIUS = 6371000; // meters
 
     /**
@@ -33,7 +34,7 @@ public class GeoUtils {
         return EARTH_RADIUS * c;
     }
 
-    public static Landmark detectedLandmarkPolygon(List<Landmark> candidates, Player player){
+    public static Landmark detectedLandmark(List<String> candidatesId, Player player, LandmarkRepository landmarkRepo){
         Polygon playerCone = player.getPlayerCone();
         double playerLat = player.getLatitude();
         double playerLng = player.getLongitude();
@@ -42,7 +43,10 @@ public class GeoUtils {
         Landmark selectedLandmark = null;
         double minAngleDiff = Double.MAX_VALUE;
 
-        for (Landmark lm : candidates) {
+        for (String lmid : candidatesId) {
+            Landmark lm = landmarkRepo.findById(lmid).orElse(null);
+            if (lm == null) continue;
+            
             Polygon lmPolygon = convertToJtsPolygon(lm.getGeometry()); // convert from MongoPolygon to JTS
             
             if (lmPolygon.intersects(playerCone)){

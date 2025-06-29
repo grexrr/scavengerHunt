@@ -46,14 +46,6 @@ public class GameSession {
         System.out.println("[Session] New game round started.");
     }
 
-
-    public Landmark getCurrentTarget() {
-        if (this.currentTarget == null) {
-            this.currentTarget = selectNextTarget();
-        }
-        return this.currentTarget;
-    }
-
     public boolean submitCurrentAnswer() {
         if (this.currentTarget == null) return false;
 
@@ -91,24 +83,9 @@ public class GameSession {
         return this.currentTarget;
     }
 
-    public boolean isGameFinished() {
-        return getUnsolvedLandmarks().isEmpty();
-    }
-
-
-    public PlayerStateManager getPlayerState() {
-        return this.playerState;
-    }
-
     /** 
      * Helper Functions
      */
-
-    public List<Landmark> getUnsolvedLandmarks() {
-        return this.currentTargetPool.stream()
-            .filter(lm -> !solvedLandmarks.contains(lm))
-            .collect(Collectors.toList());
-    }
 
     private Landmark selectNearestTo(double refLat, double refLng) {
         return getUnsolvedLandmarks().stream()
@@ -125,9 +102,33 @@ public class GameSession {
         return true;  // default true for mvp
     }
 
+    public boolean isGameFinished() {
+        return getUnsolvedLandmarks().isEmpty();
+    }
+
+    /** 
+     * Getter & Setter
+     */
+
+    public Landmark getCurrentTarget() {
+        if (this.currentTarget == null) {
+            this.currentTarget = selectNextTarget();
+        }
+        return this.currentTarget;
+    }
+
+    public List<Landmark> getUnsolvedLandmarks() {
+        return this.currentTargetPool.stream()
+            .filter(lm -> !solvedLandmarks.contains(lm))
+            .collect(Collectors.toList());
+    }
 
     public String getUserId() {
         return userId;
+    }
+
+    public PlayerStateManager getPlayerState() {
+        return this.playerState;
     }
 }
 

@@ -1,6 +1,10 @@
 package com.scavengerhunt.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -14,9 +18,16 @@ public class Landmark {
     private String id; 
     
     private String name;
+    private String city;
+
+    private Map<String, Double> centroid = new HashMap<>();  // keys: latitude, longitude
+    private GeoJsonPolygon geometry;
+
+    private double rating = 0.0; //range += 3 guarenteed by algorithm
+    private double uncertainty = 0.5; // Glicko / CAP style init
+    private double lastVisited = 0; //day
+
     private String riddle;
-    private double latitude;
-    private double longitude;
 
     /**
      * Constructs a new Landmark object.
@@ -32,14 +43,14 @@ public class Landmark {
 
     public Landmark(){}
 
-    public Landmark(String name, String riddle, double latitude, double longitude) {
+    public Landmark(String name, String city, double latitude, double longitude) {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("id and name cannot be null or empty");
         }
         this.name = name;
-        this.riddle = riddle;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.city = city;
+        this.centroid.put("latitude", latitude);
+        this.centroid.put("longitude", longitude);
     }
 
     /**
@@ -62,6 +73,67 @@ public class Landmark {
         this.name = name;
     }
 
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public Map<String, Double> getCentroid() {
+        return centroid;
+    }
+
+    public void setCentroid(Map<String, Double> centroid) {
+        this.centroid = centroid;
+    }
+
+    public void setCentroid(double latitude, double longitude) {
+        this.centroid.put("latitude", latitude);
+        this.centroid.put("longitude", longitude);
+    }
+
+    public double getLatitude() {
+        return centroid.get("latitude");
+    }
+
+    public double getLongitude() {
+        return centroid.get("longitude");
+    }
+
+    public GeoJsonPolygon getGeometry() {
+        return geometry;
+    }
+
+    public void setGeometry(GeoJsonPolygon geometry) {
+        this.geometry = geometry;
+    }
+
+    public double getRating() {
+        return rating;
+    }
+
+    public void setRating(double rating) {
+        this.rating = rating;
+    }
+
+    public double getUncertainty() {
+        return uncertainty;
+    }
+
+    public void setUncertainty(double uncertainty) {
+        this.uncertainty = uncertainty;
+    }
+
+    public double getLastVisited() {
+        return lastVisited;
+    }
+
+    public void setLastVisited(double lastVisited) {
+        this.lastVisited = lastVisited;
+    }
+
     public String getRiddle() {
         return riddle;
     }
@@ -69,21 +141,4 @@ public class Landmark {
     public void setRiddle(String riddle) {
         this.riddle = riddle;
     }
-
-    public double getLatitude() {
-        return latitude;
-    }
-
-    public void setLatitude(double latitude) {
-        this.latitude = latitude;
-    }
-
-    public double getLongitude() {
-        return longitude;
-    }
-
-    public void setLongitude(double longitude) {
-        this.longitude = longitude;
-    }
-   
 }

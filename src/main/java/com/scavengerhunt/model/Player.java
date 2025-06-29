@@ -1,5 +1,12 @@
 package com.scavengerhunt.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Polygon;
+
 /**
  * Represents a player entity in the game.
  * Contains basic information including position and orientation.
@@ -10,6 +17,12 @@ public class Player {
     private double latitude;
     private double longitude;
     private double angle;
+    
+    //playerCone
+    private Polygon playerCone;
+    double spanDeg = 30;
+    double radiusMeters = 50;
+    int resolution = 50;
 
     private String playerId;
     private String nickname;
@@ -25,10 +38,11 @@ public class Player {
         this.latitude = latitude;
         this.longitude = longitude;
         this.angle = angle;
+        this.playerCone = setPlayerViewCone(latitude, longitude, angle, this.spanDeg, this.radiusMeters, this.resolution);
     }
 
     /**
-     * Player Status Manager
+     * Getter & Setter
      */
     public double getLatitude() {
         return latitude;
@@ -54,6 +68,10 @@ public class Player {
         this.angle = angle;
     }
 
+    public Polygon getPlayerCone(){
+        return this.playerCone;
+    }
+
     /**
      * Other Info
      */
@@ -72,4 +90,26 @@ public class Player {
     public void setPlayerNickname(String nickname) {
         this.nickname = nickname;
     }    
+
+    /**
+     * Core
+     */
+
+    private Polygon setPlayerViewCone(double latitude, double longitude, double angle, double spanDeg, double radiusMeters, int resolution){
+        List<Coordinate> coords = new ArrayList<>();
+        coords.add(new Coordinate(longitude, latitude)); // lng first, starting with player coord
+
+        double step = spanDeg / resolution;
+        double startAngle = angle - spanDeg / 2;
+
+        for (int i = 0; i <= resolution; i++) {
+            double theta = Math.toRadians(startAngle + i * step);
+            double dLat = (radiusMeters * Math.cos(theta)) / 111320.0;
+            double dLng = (radiusMeters * Math.sin(theta)) / (111320.0 * Math.cos(Math.toRadians(latitude)));
+            coords.add(new Coordinate(longitude + dLng, latitude + dLat));
+        }
+    
+        coords.add(coords.get(0)); // close
+        return new GeometryFactory().createPolygon(coords.toArray(new Coordinate[0]));
+    }
 }

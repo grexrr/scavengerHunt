@@ -27,8 +27,16 @@ public class GameDataRepository {
         return landmarkRepo.findAll();
     }
 
+    public List<String> loadLandmarkIdByCity(String city) {
+        return landmarkRepo.findIdByCity(city);
+    }
+
     public UserRepository getUserRepo(){
         return this.userRepo;
+    }
+
+    public String findLandmarkNameById(String id){
+        return landmarkRepo.findNameById(id);
     }
 
     /**

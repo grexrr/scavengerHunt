@@ -611,32 +611,65 @@ main.js
 
 ---
 
-#### **Jun. 28-29 2025**
+#### **Jun. 28–29 2025**
 
-引入ELO机制完成玩家/地标评分系统，因此产生对数据结构/后端的影响需处理。草案如下。
+* **Elo-based scoring mechanism:**
+
+  * Introduced rating fields to both `User` and `Landmark` classes:
+    * `rating`, `uncertainty`, and `displayRating`
+    * All initialized based on Glicko/CAP standards (rating = 0.0, uncertainty = 0.5)
+  * Elo logic follows the CAP-based HSHS (High-Speed High-Stakes) scoring model:
+    * Implemented in Python (`elo_calculator_demo.py`), to be ported to Java
+    * Player and landmark ratings are updated only:
+      * When a correct answer is submitted
+      * Or after 3 failed attempts
+  * Game round allows up to 3 attempts per riddle, with a 30-minute time limit for scoring
+
+* **Backend detection logic overhaul:**
+
+  * Introduced `playerCone` using JTS `Polygon` to represent player’s visible cone
+  * `GeoUtils.detectedLandmark(...)` method:
+    * Takes all city-wide landmark geometries (not just radius-limited candidates)
+    * Returns the most directionally aligned intersecting landmark within the player's field of view
+    * Prioritizes usability over spatial rigor for MVP purposes
+  * Rationale: While current algorithmic detection is approximate, future work will explore AR-based landmark detection for precise vision-based validation
+
+| Module | Subtask | Ready | Notes |
+|--------|---------|-------|-------|
+| **MongoDB Index** | Add `2dsphere` index to `geometry` field | ✅ Yes | If missing, run `db.landmarks.createIndex({ geometry: "2dsphere" })` |
+| **Backend Structure Update** | Add `GeoJsonPolygon geometry` to `Landmark` mapping | ✅ Yes | Spring Data MongoDB supports GeoJSON via `org.springframework.data.mongodb.core.geo.GeoJsonPolygon` |
+| **GameRestController** | - `startRound`: find landmarks **within geometry** from player location <br> - Return landmark list for frontend highlight <br> - Proceed to puzzle upon selection | ⚠️ To Implement | Original logic used only `centroid` |
+| **Answer Submission Logic** | - `submitAnswer` receives `landmarkId` <br> - Validates if landmark is allowed for answering <br> - Verifies correctness (string or fuzzy match) <br> - Updates user/landmark rating/uncertainty | ⚠️ To Implement | Includes timing, max attempts, etc. |
+| **Elo Logic Injection** | Java implementation of simplified `elo_calculator_demo.py` logic | ⚠️ Pending | Let me know if you want a draft of Java Elo implementation |
+| **Metadata Fetch** | Find `landmark_metadata` by `landmarkId`, return with `meta.description` | ⚠️ Optional | Can be included in `submitAnswer` response |
+| **Frontend Logic** | - Landmark outline → click → selection submission <br> - Show puzzle, attempt count, countdown timer <br> - Show science description (from metadata) after answer | ⚠️ Partially Present | Currently supports only centroid and button click, needs UI and interaction update |
+
+## Updated Game Core Logic
+
+1. **Answer Eligibility**: A puzzle can be answered if player view cone ∩ any `landmark.geometry` ≠ ∅  
+2. **Answering Flow**: When eligible, player clicks Submit Answer; backend validates answer
+3. **Attempt Limit**: Up to 3 attempts per puzzle; max time: 30 minutes
+4. **Elo Update**: Ratings update on either correct answer or after 3 failed attempts
+
+---
+
+## Supporting Class/Module Changes
+
+- Updated `Player` class to render `JTS` `playerCone` to check visibility intersection with landmark polygons
+- Updated `GeoUtils` class to provide detection logic of player vs. landmarks:
+  - **Note**: MVP uses best-aligned algorithmic match; this is intentionally approximate for current usability
+  - **Future Work**: Replace with AR-based vision detection for precise validation
+
+- Rewrote `PlayerStateManager`, `LandmarkManager`, and related classes:
+  - `PlayerStateManager` maintains current detected landmark and `solvedLandmarksID` (now only for frontend rendering; no longer used in difficulty modulation)
+  - `LandmarkManager` maintains:
+    - `allRoundLandmarks`: landmarks in current round (within radius)
+    - `allLocalLandmarkIds`: all city-wide landmarks eligible for answering
+  - `GameSession` manages:
+    - Verifies current target is consistent with player's detected landmark
+    - Tracks number of attempts and timer per riddle
+    - Records global completion timestamp (for future extension)
+    - Elo module queries `GameSession` to apply rating updates
 
 
-|模块|子任务|是否准备就绪|备注|
-|---|---|---|---|
-|**MongoDB 索引**|为 `geometry` 字段添加 `2dsphere` 索引|✅ 是|若未建索引，只需 `db.landmarks.createIndex({ geometry: "2dsphere" })`|
-|**后端结构变更**|`Landmark` 增加 `GeoJsonPolygon geometry` 映射|✅ 是|Spring Data MongoDB 支持 GeoJSON，需用 `org.springframework.data.mongodb.core.geo.GeoJsonPolygon`|
-|**GameRestController**|- `startRound`：根据玩家位置查找所有**geometry范围内**的地标- 返回地标列表用于前端高亮- 选中后进入谜题答题流程|⚠️ 需实现|原逻辑只匹配 `centroid`|
-|**答题判断**|- `submitAnswer` 接收 `landmarkId`- 判断是否是本轮允许作答的地标- 正误判定（字符串比对 / 模糊匹配）- 更新 user/landmark 的 rating/uncertainty|⚠️ 需实现|包括计时、尝试次数上限等逻辑|
-|**Elo 逻辑注入**|Java 实现简化版 `elo_calculator_demo.py` 中逻辑|⚠️ 待移植|若你希望我先给 Java 版 Elo 实现草稿，也可以安排|
-|**metadata 调用**|根据 `landmarkId` 找到 `landmark_metadata` 并附带 `meta.description` 返回|⚠️ 可选|可放入 `submitAnswer` 返回体中|
-|**前端逻辑**|- 地标轮廓→点击→选中提交- 显示谜题、尝试次数、倒计时- 答题后展示科普信息（来自 metadata）|⚠️ 部分已有|目前仅支持质心点与按钮点击，需扩展选中方式与 UI|
 
-
-更新后游戏主逻辑
-
-1. 允许答题: 玩家视角扇面 ∩ 任一 landmark.geometry ≠ ∅
-2. 答题流程: 玩家在“允许答题”状态下点击 Submit Answer，由后端判断正误
-3. 尝试上限: 每题最多 3 次机会, 30分钟为答题时间上限
-4. 更新 Elo: 玩家答题正确 or 已尝试 3 次
-
-
-更新Player类渲染JTS PlayerCone用于检测player视线是否与地标轮廓线存在交集
-
-更新GeoUtils工具类，提供player对landmark的检测逻辑：(略，GPT补充)
-**强调说明，目前用算法检测最优landmark作为玩家作答的检测是MVP需要的逻辑因此不甚严谨**
-但这并非本项目需要重点展示的部分。未来希望可以通过AR检测，这个部分的内容放在future works篇描述。

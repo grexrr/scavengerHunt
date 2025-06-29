@@ -17,6 +17,7 @@ public class Player {
     private double latitude;
     private double longitude;
     private double angle;
+    private String city;
     
     //playerCone
     private Polygon playerCone;
@@ -38,12 +39,44 @@ public class Player {
         this.latitude = latitude;
         this.longitude = longitude;
         this.angle = angle;
+        this.city = "Cork"; // mvp
         this.playerCone = setPlayerViewCone(latitude, longitude, angle, this.spanDeg, this.radiusMeters, this.resolution);
+    }
+
+    /**
+     * Core
+     */
+
+     public Polygon setPlayerViewCone(double latitude, double longitude, double angle, double spanDeg, double radiusMeters, int resolution){
+        List<Coordinate> coords = new ArrayList<>();
+        coords.add(new Coordinate(longitude, latitude)); // lng first, starting with player coord
+
+        double step = spanDeg / resolution;
+        double startAngle = angle - spanDeg / 2;
+
+        for (int i = 0; i <= resolution; i++) {
+            double theta = Math.toRadians(startAngle + i * step);
+            double dLat = (radiusMeters * Math.cos(theta)) / 111320.0;
+            double dLng = (radiusMeters * Math.sin(theta)) / (111320.0 * Math.cos(Math.toRadians(latitude)));
+            coords.add(new Coordinate(longitude + dLng, latitude + dLat));
+        }
+    
+        coords.add(coords.get(0)); // close
+        return new GeometryFactory().createPolygon(coords.toArray(new Coordinate[0]));
     }
 
     /**
      * Getter & Setter
      */
+
+    public String getCity() {
+        return this.city;
+    }
+
+    public void setCity(String city){
+        this.city = city;
+    }
+
     public double getLatitude() {
         return latitude;
     }
@@ -72,9 +105,6 @@ public class Player {
         return this.playerCone;
     }
 
-    /**
-     * Other Info
-     */
     public String getPlayerId() {
         return playerId;
     }
@@ -91,25 +121,4 @@ public class Player {
         this.nickname = nickname;
     }    
 
-    /**
-     * Core
-     */
-
-    private Polygon setPlayerViewCone(double latitude, double longitude, double angle, double spanDeg, double radiusMeters, int resolution){
-        List<Coordinate> coords = new ArrayList<>();
-        coords.add(new Coordinate(longitude, latitude)); // lng first, starting with player coord
-
-        double step = spanDeg / resolution;
-        double startAngle = angle - spanDeg / 2;
-
-        for (int i = 0; i <= resolution; i++) {
-            double theta = Math.toRadians(startAngle + i * step);
-            double dLat = (radiusMeters * Math.cos(theta)) / 111320.0;
-            double dLng = (radiusMeters * Math.sin(theta)) / (111320.0 * Math.cos(Math.toRadians(latitude)));
-            coords.add(new Coordinate(longitude + dLng, latitude + dLat));
-        }
-    
-        coords.add(coords.get(0)); // close
-        return new GeometryFactory().createPolygon(coords.toArray(new Coordinate[0]));
-    }
 }

@@ -16,51 +16,69 @@ import com.scavengerhunt.utils.GeoUtils;
  */
 public class LandmarkManager {
 
-    private List<Landmark> allRoundLandmarks; //within radius
-    private List<String> allLocalLandmarkIds;   //all landmarks of current city
     private GameDataRepository gameDataRepo;
+    private String currentCity;
+
+    private List<Landmark> allRoundLandmarks; //within radius
+    private List<String> allLocalLandmarkIds; //all landmark-Ids of current city
+    
 
     public LandmarkManager() {
         this.allRoundLandmarks = new ArrayList<>();
     }
 
-    public LandmarkManager(GameDataRepository dataRepo) {
+    public LandmarkManager(GameDataRepository gameDataRepo, String city) {
         this.allRoundLandmarks = new ArrayList<>();
-        this.gameDataRepo = dataRepo;
-        this.allRoundLandmarks = this.gameDataRepo.loadLandmarks(); 
+        this.gameDataRepo = gameDataRepo;
+        this.currentCity = city;
+        this.allLocalLandmarkIds = this.gameDataRepo.loadLandmarkIdByCity(city); // mvp style, expandable
     }
 
-    public List<String> getRoundLandmarksIdWithinRadius(double lat, double lng, double radiusMeters) {
+    public void getRoundLandmarksIdWithinRadius(double lat, double lng, double radiusMeters) {
         System.out.println("[LandmarkManager] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
-        for (Landmark lm : allRoundLandmarks) {
-            double dist = GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude());
-            System.out.println("[LandmarkManager] " + lm.getName() + " distance = " + dist + "m");
-        }
-    
-        List<String> filtered = this.allRoundLandmarks.stream()
-            .filter(lm -> GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude()) <= radiusMeters)
-            .map(lm -> lm.getId())
+        
+        List<Landmark> filtered = allLocalLandmarkIds.stream()
+            .map(id -> gameDataRepo.findLandmarkById(id).orElse(null)) 
+            .filter(lm -> lm != null)
+            .filter(lm -> {
+                double dist = GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude());
+                System.out.println("[LandmarkManager] " + lm.getName() + " distance = " + dist + "m");
+                return dist <= radiusMeters;
+            })
             .collect(Collectors.toList());
-
+        
         System.out.println("[LandmarkManager] Selected landmarks in range:");
-        for (String lmid : filtered) {
-            // search lm name in db
-            String landmarkName = gameDataRepo.findLandmarkNameById(lmid);
-            System.out.println("  - " + landmarkName);
+        for (Landmark landmark : filtered) {
+            System.out.println("  - " + landmark.getName());
         }
 
-        return filtered;
+        this.allRoundLandmarks = filtered;
     }
 
-    public List<Landmark> getAllLandmarks() {
+    /**
+     * Update the current city and reload local landmark IDs
+     */
+    public void setCurrentCity(String city) {
+        this.currentCity = city;
+        this.allLocalLandmarkIds = this.gameDataRepo.loadLandmarkIdByCity(city);
+    }
+
+    /**
+     * Get the current city
+     */
+    public String getCurrentCity() {
+        return this.currentCity;
+    }
+
+    /** 
+     * Getter & Setter
+     */
+
+    public List<Landmark> getAllRouLandmark(){
         return this.allRoundLandmarks;
-    }    
-
-    public void setAllLocalLandmarkIds(String city){
-        this.allLocalLandmarkIds = gameDataRepo.loadLandmarkIdByCity(city);
     }
 
-    public List<String> getAllLocalLandmarkIds() {
+    public List<String> getAllLocalLandmarkIds(){
         return this.allLocalLandmarkIds;
     }
 }

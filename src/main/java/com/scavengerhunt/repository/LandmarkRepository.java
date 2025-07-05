@@ -8,6 +8,8 @@ import com.scavengerhunt.model.Landmark;
 
 public interface LandmarkRepository extends MongoRepository<Landmark, String> {
     List<String> findAllId();
-    String findNameById(String id);
     List<String > findIdByCity(String city);
+
+    String findNameById(String id);
+    
 }

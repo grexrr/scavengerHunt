@@ -5,8 +5,7 @@ import java.util.List;
 
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
-import com.scavengerhunt.repository.LandmarkRepository;
-import com.scavengerhunt.utils.GeoUtils;
+import com.scavengerhunt.repository.GameDataRepository;
 
 /**
  * Manages the state of a player in the scavenger hunt game.
@@ -15,18 +14,18 @@ public class PlayerStateManager {
     // private Landmark currentTarget;
     private Player player;
     private LandmarkManager landmarkManager;
-    private LandmarkRepository landmarkRepository;
+    private GameDataRepository gameDataRepository;
 
-    private boolean isGameFinish = false;
+    private boolean isGameFinish = true;
     
     private Landmark detectedLandmark;
     private List<String> solvedLandmarksId = new ArrayList<>(); // for frontend to render into diff color
  
-    public PlayerStateManager(Player player, LandmarkManager landmarkManager, LandmarkRepository landmarkRepository) {
+    public PlayerStateManager(Player player, LandmarkManager landmarkManager, GameDataRepository gameDataRepository) {
         // this.currentTarget = landmark;
         this.player = player;
         this.landmarkManager = landmarkManager;
-        this.landmarkRepository = landmarkRepository;
+        this.gameDataRepository = gameDataRepository;
     }
 
     /** 
@@ -38,10 +37,11 @@ public class PlayerStateManager {
         this.player.setLongitude(longitude);
         this.player.setAngle(angle);
         this.player.setPlayerViewCone(latitude, longitude, angle, longitude, angle, 50);
+        updateDetectedLandmark();
     }
 
     public void updateDetectedLandmark(){
-        setDetectedLandmark(GeoUtils.detectedLandmark(landmarkManager.getAllLocalLandmarkIds(), getPlayer(), landmarkRepository));
+        setDetectedLandmark(gameDataRepository.detectLandmark(landmarkManager.getAllLocalLandmarkIds(), getPlayer()));
     }
 
     public void updateSolvedLandmarksId(String solvedLandmarksId) {
@@ -55,8 +55,6 @@ public class PlayerStateManager {
     }
 
     public void setGameFinished(){this.isGameFinish = true;}
-
-    
 
     // Getter and Setter
 

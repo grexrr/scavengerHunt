@@ -44,7 +44,7 @@ public class GeoUtils {
         double minAngleDiff = Double.MAX_VALUE;
 
         for (String lmid : candidatesId) {
-            Landmark lm = landmarkRepo.findById(lmid).orElse(null);
+            Landmark lm = landmarkRepo.findById(lmid).orElse(null); // needs front end to response to this!
             if (lm == null) continue;
             
             Polygon lmPolygon = convertToJtsPolygon(lm.getGeometry()); // convert from MongoPolygon to JTS

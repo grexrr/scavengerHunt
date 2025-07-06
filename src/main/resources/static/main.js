@@ -120,6 +120,10 @@ function updatePlayerPosition(lat, lng, angle) {
   .then(res => res.text())
   .then(msg => {
     console.log("[Frontend] Position updated", msg);
+    // 如果是游客用户，显示提示信息
+    if (userId.startsWith('guest-')) {
+      console.log("[Frontend] Guest user - position updated but no session created");
+    }
   });
 }
 
@@ -172,54 +176,56 @@ function searchRadius(radiusMeter){
     playerLng = latlng.lng;
   }
 
-  fetch(localhost + '/api/game/start-round', {
+  // 首先确保session存在
+  fetch(localhost + '/api/game/init-game', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       userId: userId,
       latitude: playerLat,
       longitude: playerLng,
-      radiusMeters: radiusMeter  
+      angle: playerAngle || 0
     })
-  }) 
-  .then(res => res.text())
-  .then(msg => {
-    console.log('[Frontend] Round started: ', msg);
+  })
+  .then(() => {
+    // 然后调用start-round
+    return fetch(localhost + '/api/game/start-round', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: userId,
+        latitude: playerLat,
+        longitude: playerLng,
+        angle: playerAngle,
+        radiusMeters: radiusMeter  
+      })
+    });
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error("Failed to start round");
+      return res.text();
+    }
+    return res.json();
+  })
+  .then(target => {
+    console.log('[Frontend] Round started with target: ', target);
     roundStarted = true;
     alert('New Round Started');
+    
+    // 直接处理目标信息
+    document.getElementById('target-info').innerText = target.name + "\n" + target.riddle;
+    currentTargetLat = target.latitude;
+    currentTargetLng = target.longitude;
+    
     if (searchCircle) {
       map.removeLayer(searchCircle);
       searchCircle = null;
     }
   })
-  .then(()=>{
-    selectFirstTarget();
-  })
   .catch(err => {
     console.log('[Frontend] Round started Failure: ', err);
-  });
-}
-
-// ========== API Call: Get Target ==========
-function selectFirstTarget(){
-  let userId = getUserId();
-
-  fetch(localhost + "/api/game/first-target?userId=" + userId)
-  .then(res => {
-    if(!res.ok){
-      throw new Error("No target available.")
-    }
-    return res.json();
-  })
-  .then(target => {
-    console.log("[Frontend] Current target: ", target);
-    document.getElementById('target-info').innerText = target.name + "\n" + target.riddle;
-    currentTargetLat = target.latitude;
-    currentTargetLng = target.longitude;
-  })
-  .catch(err => {
-    console.log("[Frontend] No target found:", err);
-    document.getElementById('target-info').innerText = "(No target yet)";
+    alert('Failed to start round: ' + err.message);
   });
 }
 
@@ -231,16 +237,25 @@ function submitCurrentLandmark() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId: getUserId() })
   })
-  .then(async res => {
-    const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      return res.json(); // next landmark
-    } else {
-      return res.text(); // "All riddles solved!" or error
+  .then(res => {
+    if (!res.ok) {
+      throw new Error("Submission failed");
     }
+    return res.text(); // 现在只返回字符串消息
   });
 }
 
+// ========== API Call: Get Current Target ==========
+function getCurrentTarget() {
+  const userId = getUserId();
+  return fetch(localhost + '/api/game/get-current-target?userId=' + userId)
+    .then(res => {
+      if (!res.ok) {
+        throw new Error("Failed to get current target");
+      }
+      return res.json();
+    });
+}
 
 // ========== Main ==========
 document.addEventListener('DOMContentLoaded', () => {
@@ -348,11 +363,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ======== Start Round ========
   startBtn.addEventListener('click', () => {
+    const uid = getUserId();
+  
+    if (!uid || uid.startsWith("guest-")) {
+      alert("You must log in before starting a game round.");
+      return;
+    }
+  
     if (playerLat == null || playerLng == null) {
       alert("Please click on the map to set your position first.");
       return;
     }
-
+  
     updatePlayerPosition(playerLat, playerLng, playerAngle)
       .then(() => {
         searchRadius(currentRadius);
@@ -361,25 +383,57 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to update position before starting round', err);
       });
   });
+  
 
   // ======== Submit Answer ========
 
   submitBtn.addEventListener('click', () => {
     submitCurrentLandmark()
-      .then(data => {
-        if (typeof data === "string") {
-          alert(data);
-          document.getElementById('target-info').innerText = data;
-          submitBtn.style.display = 'none';
+      .then(message => {
+        alert(message);
+        
+        if (message.includes("correct")) {
+          // Check if game is completed
+          if (message.includes("completed")) {
+            document.getElementById('target-info').innerText = "Congratulations! You've completed all targets!";
+            submitBtn.style.display = 'none';
+            return;
+          }
+          
+          // 答案正确，获取下一个目标
+          document.getElementById('target-info').innerText = "Getting next target...";
+          
+          getCurrentTarget()
+            .then(target => {
+              if (target) {
+                document.getElementById('target-info').innerText = target.name + "\n" + target.riddle;
+                currentTargetLat = target.latitude;
+                currentTargetLng = target.longitude;
+                checkProximityAndDirection();
+              } else {
+                document.getElementById('target-info').innerText = "Game completed!";
+                submitBtn.style.display = 'none';
+              }
+            })
+            .catch(err => {
+              console.error("Failed to get next target:", err);
+              document.getElementById('target-info').innerText = "Game completed or error occurred";
+              submitBtn.style.display = 'none';
+            });
         } else {
-          currentTargetLat = data.latitude;
-          currentTargetLng = data.longitude;
-          document.getElementById('target-info').innerText = data.name + "\n" + data.riddle;
-          checkProximityAndDirection(); 
+          // Check if game is over due to too many wrong answers
+          if (message.includes("exhausted") || message.includes("Game over")) {
+            document.getElementById('target-info').innerText = "Game over. You've exhausted all attempts.";
+            submitBtn.style.display = 'none';
+            return;
+          }
+          
+          // 答案错误，保持当前目标不变
+          console.log("Answer incorrect, try again");
         }
       })
       .catch(err => {
-        alert("Submission failed");
+        alert("Submission failed: " + err.message);
         console.error("Submit error:", err);
       });
   });  

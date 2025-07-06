@@ -21,9 +21,9 @@ public class Player {
     
     //playerCone
     private Polygon playerCone;
-    double spanDeg = 30;
-    double radiusMeters = 50;
-    int resolution = 50;
+    private double spanDeg = 30;
+    private double radiusMeters = 50;
+    private int resolution = 50;
 
     private String playerId;
     private String nickname;
@@ -39,8 +39,8 @@ public class Player {
         this.latitude = latitude;
         this.longitude = longitude;
         this.angle = angle;
-        this.city = "Cork"; // mvp
         this.playerCone = setPlayerViewCone(latitude, longitude, angle, this.spanDeg, this.radiusMeters, this.resolution);
+        acquireCity(); // MVP as "Cork"
     }
 
     /**
@@ -62,7 +62,15 @@ public class Player {
         }
     
         coords.add(coords.get(0)); // close
-        return new GeometryFactory().createPolygon(coords.toArray(new Coordinate[0]));
+        this.playerCone = new GeometryFactory().createPolygon(coords.toArray(new Coordinate[0]));
+        return this.playerCone;
+    }
+
+    /**
+     * Update player cone based on current position and angle
+     */
+    public void updatePlayerCone() {
+        this.playerCone = setPlayerViewCone(this.latitude, this.longitude, this.angle, this.spanDeg, this.radiusMeters, this.resolution);
     }
 
     /**
@@ -71,6 +79,10 @@ public class Player {
 
     public String getCity() {
         return this.city;
+    }
+
+    public void acquireCity(){
+        this.city = "Cork";
     }
 
     public void setCity(String city){
@@ -119,6 +131,17 @@ public class Player {
 
     public void setPlayerNickname(String nickname) {
         this.nickname = nickname;
-    }    
-
+    }
+    
+    public double getSpanDeg() {
+        return spanDeg;
+    }
+    
+    public double getRadiusMeters() {
+        return radiusMeters;
+    }
+    
+    public int getResolution() {
+        return resolution;
+    }
 }

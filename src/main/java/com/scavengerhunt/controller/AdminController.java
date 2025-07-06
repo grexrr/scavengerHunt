@@ -28,9 +28,9 @@ public class AdminController {
     @PostMapping("/insert-landmarks")
     public ResponseEntity<String> insertLandmarks() {
         List<Landmark> landmarks = List.of(
-            new Landmark("Glucksman Gallery", "Where art hides behind glass and stone", 51.8947384, -8.4903073),
-            new Landmark("Honan Chapel", "Echoes of vows and silent prayer linger here", 51.8935836, -8.49002395),
-            new Landmark("Boole Library", "Numbers and knowledge, my namesake knew", 51.892795899999996,-8.491407089727364)
+            new Landmark("Glucksman Gallery", "Cork", 51.8947384, -8.4903073),
+            new Landmark("Honan Chapel", "Cork", 51.8935836, -8.49002395),
+            new Landmark("Boole Library", "Cork", 51.892795899999996,-8.491407089727364)
         );
 
         landmarkRepository.saveAll(landmarks);

@@ -21,43 +21,73 @@ import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
+import com.scavengerhunt.utils.EloUtils;
 
 @RestController
 @RequestMapping("/api/game")
 public class GameRestController {
 
     private Map<String, GameSession> sessionMap = new HashMap<>();
-    private final GameDataRepository gameDataRepo;
+
+    @Autowired
+    private GameDataRepository gameDataRepo;
 
     @Autowired
     private PuzzleManager puzzleManager;
+    
+    @Autowired
+    private EloUtils eloUtils;
 
-    public GameRestController(GameDataRepository gameDataRepo) {
-        this.gameDataRepo = gameDataRepo;
-    }
 
     @PostMapping("/update-position")
     public ResponseEntity<String> updatePlayerPosition(@RequestBody PlayerPositionRequest request) {
         
+        if (request.getUserId().startsWith("guest-")) {
+            return ResponseEntity.ok("[Backend] Guest position updated (no session created).");
+        }
+        
+        // create session for login use
         GameSession session = sessionMap.get(request.getUserId());
         if (session == null) {
             Player player = new Player(request.getLatitude(), request.getLongitude(), request.getAngle());
-            PlayerStateManager playerState = new PlayerStateManager(player, false);
-            LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo);
+            LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
+            PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
-            String userId = gameDataRepo.getUserRepo().findById(request.getUserId())
-                .map(user -> user.getPlayerId())
-                .orElse(null);
-
-            session = new GameSession(playerState, landmarkManager, userId, puzzleManager);
+            String userId = request.getUserId();
+            
+            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, eloUtils);
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
-        return ResponseEntity.ok("[Backend] Player Position Updated.");
+        
+        // user based response
+        if (request.getUserId().startsWith("guest-")) {
+            return ResponseEntity.ok("[Backend] Guest position updated (session created).");
+        } else {
+            return ResponseEntity.ok("[Backend] Player Position Updated.");
+        }
+    }
+
+    @PostMapping("/init-game")
+    public void initGame(@RequestBody PlayerPositionRequest request) {
+     
+        Player player = new Player(request.getLatitude(), request.getLongitude(), request.getAngle());
+        LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
+        PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
+
+        String userId = request.getUserId();
+        
+        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, eloUtils);
+        sessionMap.put(userId, session);
     }
 
     @PostMapping("/start-round")
     public ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
+
+        if (request.getUserId().startsWith("guest-")) {
+            return ResponseEntity.status(403).body("[Backend] Must be logged in to start round.");
+        }
+        
         GameSession session = sessionMap.get(request.getUserId());
         if (session == null) return ResponseEntity.status(404).body("[Backend] Session Not Found.");
 
@@ -74,53 +104,40 @@ public class GameRestController {
         return ResponseEntity.ok(target);
     }
 
-
-    @GetMapping("/first-target")
-    public ResponseEntity<?> getNextTarget(@RequestParam String userId) {
-        GameSession session = sessionMap.get(userId);
-        if (session == null) return ResponseEntity.status(404).body("[Backend] Session Not Found.");
-    
-        Landmark target = session.getCurrentTarget();
-    
-        if (target == null) {
-            target = session.selectNextTarget(); 
-        }
-    
-        if (target == null) {
-            return ResponseEntity.status(404).body("[Backend] No target available. Game may have finished.");
-        }
-    
-        return ResponseEntity.ok(target);
-    }
-    
-
     @PostMapping("/submit-answer") // update user solved landmarks
     public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
         String userId = request.get("userId");
         GameSession session = sessionMap.get(userId);
         if (session == null) return ResponseEntity.status(404).body("Session not found");
         
-        // ==== First Submission ====
-        if (session.getCurrentTarget() == null) {
-            Landmark first = session.selectNextTarget();
-            if (first == null) return ResponseEntity.status(404).body("No target available in this region.");
-
-            return ResponseEntity.ok(first);
-        }
-
-        // ==== Normal Submission ====
-        boolean result = session.submitCurrentAnswer();
-        if (!result){
-            return ResponseEntity.status(404).body("Answer Incorrect.");
-        }
-
-        Landmark next = session.selectNextTarget();
-        if (next == null){
-            gameDataRepo.savePlayerProgress(session.getPlayerState());
-            return ResponseEntity.ok("All riddles solved!");
+        boolean isCorrect = session.submitCurrentAnswer();
+        
+        if (isCorrect) {
+            // Check if game is finished
+            if (session.isGameFinished()) {
+                return ResponseEntity.ok("Congratulations! You've completed all targets in this round.");
+            } else {
+                return ResponseEntity.ok("Answer correct! Next target selected.");
+            }
         } else {
-            return ResponseEntity.ok(next);
-        }
+            // Check if game is finished due to too many wrong answers
+            if (session.isGameFinished()) {
+                return ResponseEntity.ok("Game over. You've exhausted all attempts for the available targets.");
+            } else {
+                return ResponseEntity.ok("Answer incorrect. Try again.");
+            }
+        }        
+    }
+
+    @GetMapping("/get-current-target")
+    public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {
+        GameSession session = sessionMap.get(userId);
+        if (session == null) return ResponseEntity.status(404).body("Session not found");
+        
+        Landmark target = session.getCurrentTarget();
+        if (target == null) return ResponseEntity.status(404).body("No target available");
+        
+        return ResponseEntity.ok(target);
     }
 }
 

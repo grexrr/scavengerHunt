@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import com.scavengerhunt.game.PlayerStateManager;
 import com.scavengerhunt.model.Landmark;
-import com.scavengerhunt.model.Player;
+import com.scavengerhunt.model.User;
 
 @Repository
 public class GameDataRepository {
@@ -37,7 +37,13 @@ public class GameDataRepository {
      * Load landmark IDs by city.
      */
     public List<String> loadLandmarkIdByCity(String city) {
-        return landmarkRepo.findIdByCity(city);
+        System.out.println("[GameDataRepository] Querying for city: '" + city + "'");
+        List<Landmark> landmarks = landmarkRepo.findByCity(city);
+        List<String> ids = landmarks.stream()
+            .map(landmark -> landmark.getId())
+            .collect(java.util.stream.Collectors.toList());
+        System.out.println("[GameDataRepository] Found " + ids.size() + " landmarks for city: " + city);
+        return ids;
     }
 
     /**
@@ -70,6 +76,12 @@ public class GameDataRepository {
         return this.userRepo;
     }
 
+    public User getUserById(String id) {
+        return userRepo.findById(id).orElse(null);
+    }
+
+    
+
     // ==================== Game State Operations ====================
     
     /**
@@ -82,13 +94,5 @@ public class GameDataRepository {
         System.out.println("Solved Landmarks: " + playerState.getSolvedLandmarksId());
         System.out.println("Detected Landmark: " + 
             (playerState.getDetectedLandmark() != null ? playerState.getDetectedLandmark().getName() : "None"));
-    }
-
-    /**
-     * Detect landmark based on player position and view cone.
-     * This method provides the functionality that PlayerStateManager needs.
-     */
-    public Landmark detectLandmark(List<String> candidatesId, Player player) {
-        return com.scavengerhunt.utils.GeoUtils.detectedLandmark(candidatesId, player, landmarkRepo);
     }
 }

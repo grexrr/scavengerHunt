@@ -31,12 +31,18 @@ public class PuzzleManager {
         payload.put("landmarkId", landmarkId);
 
         HttpEntity<Map<String, String>> request = new HttpEntity<>(payload, headers);
-        ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+        
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
 
-        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            return (String) response.getBody().get("riddle");
-        } else {
-            return "[Failed to get riddle]";
+            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+                return (String) response.getBody().get("riddle");
+            } else {
+                return null;
+            }
+        } catch (Exception e) {
+            System.out.println("[PuzzleManager] Python backend not available, returning null: " + e.getMessage());
+            return null;
         }
     }
 }

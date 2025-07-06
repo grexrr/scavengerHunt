@@ -1,6 +1,5 @@
 package com.scavengerhunt.utils;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.scavengerhunt.model.Landmark;
@@ -13,7 +12,6 @@ public class EloUtils {
     private UserRepository userRepo;
     private LandmarkRepository landmarkRepo;
 
-    @Autowired
     public EloUtils(UserRepository userRepo, LandmarkRepository landmarkRepo) {
         this.userRepo = userRepo;
         this.landmarkRepo = landmarkRepo;

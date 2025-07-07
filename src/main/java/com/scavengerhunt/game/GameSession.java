@@ -69,8 +69,9 @@ public class GameSession {
 
         System.out.println("[Debug] Target pool created with " + this.targetPool.size() + " landmarks");
 
-        // select the first target
+        // select the first target & set round start time
         selectNextTarget();
+        setRoundStartTime(); 
         
         System.out.println("[Session] New game round started.");
     }
@@ -85,16 +86,16 @@ public class GameSession {
         System.out.println("[Debug] Target pool size: " + this.targetPool.size());
         System.out.println("[Debug] Target pool contents: " + this.targetPool.keySet());
 
-        // check if detected landmark == currentTarget
+        // 
+        //check if detected landmark == currentTarget
+        //
+        this.playerState.updateDetectedLandmark(); // Force update detected landmark before checking
         Landmark detectedLandmark = this.playerState.getDetectedLandmark();
         System.out.println("[Debug] Current target: " + this.currentTarget.getName() + " (ID: " + this.currentTarget.getId() + ")");
         System.out.println("[Debug] Detected landmark: " + (detectedLandmark != null ? detectedLandmark.getName() + " (ID: " + detectedLandmark.getId() + ")" : "null"));
         
-        // Force update detected landmark before checking
-        this.playerState.updateDetectedLandmark();
-        detectedLandmark = this.playerState.getDetectedLandmark();
-        System.out.println("[Debug] Updated detected landmark: " + (detectedLandmark != null ? detectedLandmark.getName() + " (ID: " + detectedLandmark.getId() + ")" : "null"));
-        
+        // for the sake of robustness!
+        // if not detected landmark, front end does not allow submission button anyway
         if (detectedLandmark == null) {
             //if no landmark detected, current wrong count + 1
             System.out.println("[Debug] No landmark detected, wrong count + 1");
@@ -105,8 +106,9 @@ public class GameSession {
             if (this.targetPool.get(this.currentTarget.getId()) >= this.maxWrongAnswer) {
                 System.out.println("[Debug] Current target has reached max wrong answers (" + this.maxWrongAnswer + ")");
                 
-                // Remove current target from pool
+                //pool removal and update rating (User & currentTarget)
                 this.targetPool.remove(this.currentTarget.getId());
+                eloCalculator.updateRating(false);
                 // add to solved landmark as wrong
                 this.solvedLandmarks.put(this.currentTarget.getId(), false);
                 
@@ -125,15 +127,16 @@ public class GameSession {
                     return false; // Continue with next target
                 }
             }
-            
             return false;
         }
         
+        //if detected landmark is not within TargetPool
         if (this.targetPool.get(detectedLandmark.getId()) == null) {
-            //if detected landmark is not within TargetPool, current wrong count + 1
+
             System.out.println("[Debug] Detected landmark not in target pool, wrong count + 1");
             System.out.println("[Debug] Detected landmark ID: " + detectedLandmark.getId());
             System.out.println("[Debug] Target pool IDs: " + this.targetPool.keySet());
+            // wrong count of this landmark += 1
             this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) + 1);
             System.out.println("[Debug] Current target wrong count: " + this.targetPool.get(this.currentTarget.getId()));
             
@@ -141,8 +144,10 @@ public class GameSession {
             if (this.targetPool.get(this.currentTarget.getId()) >= this.maxWrongAnswer) {
                 System.out.println("[Debug] Current target has reached max wrong answers (" + this.maxWrongAnswer + ")");
                 
-                // Remove current target from pool
+                //pool removal and update rating (User & currentTarget)
                 this.targetPool.remove(this.currentTarget.getId());
+                eloCalculator.updateRating(false);
+
                 // add to solved landmark as wrong
                 this.solvedLandmarks.put(this.currentTarget.getId(), false);
                 
@@ -161,7 +166,6 @@ public class GameSession {
                     return false; // Continue with next target
                 }
             }
-            
             return false;
         } else {
             //if it's within TargetPool
@@ -170,7 +174,11 @@ public class GameSession {
                 //if correct
                 System.out.println("[Debug] Answer is correct!");
                 System.out.println("[Debug] Target pool before removal: " + this.targetPool.keySet());
+                
+                //pool removal and update rating (User & currentTarget)
                 this.targetPool.remove(this.currentTarget.getId());
+                eloCalculator.updateRating(true);
+                
                 System.out.println("[Debug] Target pool after removal: " + this.targetPool.keySet());
                 this.solvedLandmarks.put(this.currentTarget.getId(), true);
                 
@@ -188,6 +196,7 @@ public class GameSession {
                     return true; // Continue with next target
                 }
             } else {
+                //if incorrect
                 System.out.println("[Debug] Answer is incorrect, wrong count + 1");
                 this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) + 1);
                 System.out.println("[Debug] Current target wrong count: " + this.targetPool.get(this.currentTarget.getId()));
@@ -196,8 +205,10 @@ public class GameSession {
                 if (this.targetPool.get(this.currentTarget.getId()) >= this.maxWrongAnswer) {
                     System.out.println("[Debug] Current target has reached max wrong answers (" + this.maxWrongAnswer + ")");
                     
-                    // Remove current target from pool
+                    //pool removal and update rating (User & currentTarget)
                     this.targetPool.remove(this.currentTarget.getId());
+                    eloCalculator.updateRating(false);
+                    
                     // add to solved landmark as wrong
                     this.solvedLandmarks.put(this.currentTarget.getId(), false);
                     
@@ -274,7 +285,7 @@ public class GameSession {
     private Landmark selectNearestTo(double refLat, double refLng) {
         System.out.println("[Debug] Trying to select from: " + getUnsolvedLandmarks().keySet());
         return getUnsolvedLandmarks().entrySet().stream()
-            .map(entry -> gameDataRepository.findLandmarkById(entry.getKey()).orElse(null))
+            .map(entry -> gameDataRepository.findLandmarkById(entry.getKey()))
             .filter(landmark -> landmark != null)
             .min((l1, l2) -> {
                 double d1 = GeoUtils.distanceInMeters(refLat, refLng, l1.getLatitude(), l1.getLongitude());
@@ -295,6 +306,24 @@ public class GameSession {
 
     public boolean isGameFinished() {
         return this.playerState.isGameFinished();
+    }
+
+    /**
+     * Set the round start time for timing calculations
+     */
+    private void setRoundStartTime() {
+        this.roundStartTime = System.currentTimeMillis();
+        System.out.println("[Session] Round start time set: " + this.roundStartTime);
+    }
+
+    /**
+     * Get the elapsed time since round start in seconds
+     */
+    public long getElapsedTimeSeconds() {
+        if (this.roundStartTime == 0) {
+            return 0;
+        }
+        return (System.currentTimeMillis() - this.roundStartTime) / 1000;
     }
 
     /** 

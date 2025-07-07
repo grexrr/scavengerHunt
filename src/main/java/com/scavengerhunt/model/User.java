@@ -1,5 +1,6 @@
 package com.scavengerhunt.model;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -22,29 +23,34 @@ public class User {
     private double uncertainty = 0.5; // Glicko / CAP style init
     private double displayRating; //updatable by simple sigmoid
 
+    // timestamp fields
+    private LocalDateTime createdAt;
+    private LocalDateTime lastLoginAt;
+    private LocalDateTime lastGameAt; 
 
     public User(){}
     
     public User(String username, String password) {
         this.username = username;
         this.password = password;
-        setPlayerId();
+        this.createdAt = LocalDateTime.now(); // 设置创建时间 (Set creation time)
+        setUserId();
     }
 
     public User(String username, String password, Boolean isAdmin) {
         this.username = username;
         this.password = password;
+        this.createdAt = LocalDateTime.now(); // 设置创建时间 (Set creation time)
         setAdmin(isAdmin);
-        setPlayerId();
+        setUserId();
     }
-
 
     public String getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
+    public void setUserId() {
+        this.userId = UUID.randomUUID().toString();
     }
     
     public String getUsername() {
@@ -54,17 +60,13 @@ public class User {
     public void setUsername(String username) {
         this.username = username;
     }
+
     public String getPassword() {
         return password;
     }
+
     public void setPassword(String password) {
         this.password = password;
-    }
-    public String getPlayerId() {
-        return userId;
-    }
-    public void setPlayerId() {
-        this.userId = UUID.randomUUID().toString();
     }
 
     public List<Integer> getSolvedLandmarkIds() {
@@ -105,6 +107,30 @@ public class User {
 
     public void setDisplayRating(double displayRating) {
         this.displayRating = displayRating;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public LocalDateTime getLastGameAt() {
+        return lastGameAt;
+    }
+
+    public void setLastGameAt(LocalDateTime lastGameAt) {
+        this.lastGameAt = lastGameAt;
     }
     
 }

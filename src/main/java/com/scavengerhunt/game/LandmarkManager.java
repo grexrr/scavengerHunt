@@ -42,7 +42,7 @@ public class LandmarkManager {
         System.out.println("[LandmarkManager] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
         
         List<Landmark> filtered = allLocalLandmarkIds.stream()
-            .map(id -> gameDataRepo.findLandmarkById(id).orElse(null)) 
+            .map(id -> gameDataRepo.findLandmarkById(id)) 
             .filter(lm -> lm != null)
             .filter(lm -> {
                 double dist = GeoUtils.distanceInMeters(lat, lng, lm.getLatitude(), lm.getLongitude());

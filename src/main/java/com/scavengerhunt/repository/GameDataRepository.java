@@ -1,7 +1,7 @@
 package com.scavengerhunt.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
@@ -25,16 +25,17 @@ public class GameDataRepository {
 
     // ==================== Landmark Operations ====================
     
-    /**
-     * Load all landmarks (for MVP version).
-   
+    // Load all landmarks (for MVP version).
     public List<Landmark> loadLandmarks() {
         return landmarkRepo.findAll();
     }
 
-    /**
-     * Load landmark IDs by city.
-     */
+    // Get all landmark IDs.
+    public List<String> getAllLandmarkIds() {
+        return landmarkRepo.findAllId();
+    }
+
+    // Load landmark IDs by city
     public List<String> loadLandmarkIdByCity(String city) {
         System.out.println("[GameDataRepository] Querying for city: '" + city + "'");
         List<Landmark> landmarks = landmarkRepo.findByCity(city);
@@ -45,39 +46,41 @@ public class GameDataRepository {
         return ids;
     }
 
-    /**
-     * Find landmark by ID.
-     */
-    public Optional<Landmark> findLandmarkById(String id) {
-        return landmarkRepo.findById(id);
-    }
-
-    /**
-     * Find landmark name by ID.
-     */
-    public String findLandmarkNameById(String id) {
-        return landmarkRepo.findNameById(id);
-    }
-
-    /**
-     * Get all landmark IDs.
-     */
-    public List<String> getAllLandmarkIds() {
-        return landmarkRepo.findAllId();
+    // Find landmark by ID.
+    public Landmark findLandmarkById(String id) {
+        return landmarkRepo.findById(id).orElse(null);
     }
 
     // ==================== User Operations ====================
-    
-    /**
-     * Get UserRepository for user-specific operations.
-     */
-    public UserRepository getUserRepo() {
-        return this.userRepo;
-    }
 
     public User getUserById(String id) {
         return userRepo.findById(id).orElse(null);
     }
 
+    public void updateUserLastGameAt(String uId, LocalDateTime lastGameAt){
+        System.out.println("[GameDataRepository] Update User [" + getUserById(uId).getUserId() + "] Last Game to: " + lastGameAt.toString());
+        // implementation empty for now
+    }
+
+    public void updateUserUncertainty(String uId, double uncertainty){
+        System.out.println("[GameDataRepository] Update User [" + getUserById(uId).getUserId() + "] Uncertainty: " + uncertainty);
+        // implementation empty for now
+    }
+
+    public void updateLandmarkLastAnswered(String landmarkId, LocalDateTime lastAnswered){
+        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Last Answered to: " + lastAnswered.toString());
+        // implementation empty for now
+    }
+
+    public void updateLandmarkUncertainty(String landmarkId, double uncertainty){
+        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Uncertainty: " + uncertainty);
+        // implementation empty for now
+    }
+
+    // ==================== getters & setters ====================
     
+    public UserRepository getUserRepo() {
+        return this.userRepo;
+    }
+
 }

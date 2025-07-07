@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -89,8 +88,8 @@ public class GameSessionTest {
         // Prepare test data - 2 landmarks
         List<Landmark> candidateLandmarks = Arrays.asList(landmark1, landmark2);
         when(landmarkManager.getAllRouLandmark()).thenReturn(candidateLandmarks);
-        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(Optional.of(landmark1));
-        when(gameDataRepository.findLandmarkById("landmark2")).thenReturn(Optional.of(landmark2));
+        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(landmark1);
+        when(gameDataRepository.findLandmarkById("landmark2")).thenReturn(landmark2);
         
         // Start new game
         gameSession.startNewRound(100.0);
@@ -128,8 +127,8 @@ public class GameSessionTest {
         // Prepare test data - 2 landmarks
         List<Landmark> candidateLandmarks = Arrays.asList(landmark1, landmark2);
         when(landmarkManager.getAllRouLandmark()).thenReturn(candidateLandmarks);
-        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(Optional.of(landmark1));
-        when(gameDataRepository.findLandmarkById("landmark2")).thenReturn(Optional.of(landmark2));
+        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(landmark1);
+        when(gameDataRepository.findLandmarkById("landmark2")).thenReturn(landmark2);
         
         // Start new game
         gameSession.startNewRound(100.0);
@@ -139,6 +138,9 @@ public class GameSessionTest {
         assertEquals(2, gameSession.getUnsolvedLandmarks().size());
         assertFalse(gameSession.isGameFinished());
 
+        // Mock updateDetectedLandmark to do nothing (preserve our getDetectedLandmark mock)
+        doAnswer(invocation -> null).when(playerState).updateDetectedLandmark();
+        
         // First wrong answer - no landmark detected
         when(playerState.getDetectedLandmark()).thenReturn(null);
         boolean result1 = gameSession.submitCurrentAnswer();
@@ -179,7 +181,7 @@ public class GameSessionTest {
         // Prepare test data - only 1 landmark
         List<Landmark> candidateLandmarks = Arrays.asList(landmark1);
         when(landmarkManager.getAllRouLandmark()).thenReturn(candidateLandmarks);
-        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(Optional.of(landmark1));
+        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(landmark1);
         
         // Start new game
         gameSession.startNewRound(100.0);
@@ -189,6 +191,9 @@ public class GameSessionTest {
         assertEquals(1, gameSession.getUnsolvedLandmarks().size());
         assertFalse(gameSession.isGameFinished());
 
+        // Mock updateDetectedLandmark to do nothing (preserve our getDetectedLandmark mock)
+        doAnswer(invocation -> null).when(playerState).updateDetectedLandmark();
+        
         // First wrong answer
         when(playerState.getDetectedLandmark()).thenReturn(null);
         boolean result1 = gameSession.submitCurrentAnswer();
@@ -219,10 +224,13 @@ public class GameSessionTest {
         // Prepare test data
         List<Landmark> candidateLandmarks = Arrays.asList(landmark1);
         when(landmarkManager.getAllRouLandmark()).thenReturn(candidateLandmarks);
-        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(Optional.of(landmark1));
+        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(landmark1);
         
         // Start new game
         gameSession.startNewRound(100.0);
+        
+        // Mock updateDetectedLandmark to do nothing (preserve our getDetectedLandmark mock)
+        doAnswer(invocation -> null).when(playerState).updateDetectedLandmark();
         
         // Simulate detecting a landmark not in the target pool
         when(playerState.getDetectedLandmark()).thenReturn(landmark2); // landmark2 is not in target pool
@@ -253,7 +261,7 @@ public class GameSessionTest {
         // Prepare test data
         List<Landmark> candidateLandmarks = Arrays.asList(landmark1);
         when(landmarkManager.getAllRouLandmark()).thenReturn(candidateLandmarks);
-        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(Optional.of(landmark1));
+        when(gameDataRepository.findLandmarkById("landmark1")).thenReturn(landmark1);
         
         // Start new game
         gameSession.startNewRound(100.0);

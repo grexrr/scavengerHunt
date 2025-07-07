@@ -50,7 +50,7 @@ public class GeoUtils {
         double minAngleDiff = Double.MAX_VALUE;
 
         for (String lmid : candidatesId) {
-            Landmark lm = gameDataRepo.findLandmarkById(lmid).orElse(null);
+            Landmark lm = gameDataRepo.findLandmarkById(lmid);
             if (lm == null) {
                 System.out.println("[GeoUtils] Landmark not found for ID: " + lmid);
                 continue;

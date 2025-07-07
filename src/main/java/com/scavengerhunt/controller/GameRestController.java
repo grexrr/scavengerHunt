@@ -55,7 +55,7 @@ public class GameRestController {
 
             String userId = request.getUserId();
             
-            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, eloUtils);
+            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager);
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
@@ -77,7 +77,7 @@ public class GameRestController {
 
         String userId = request.getUserId();
         
-        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, eloUtils);
+        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager);
         sessionMap.put(userId, session);
     }
 

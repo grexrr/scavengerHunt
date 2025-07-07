@@ -1,6 +1,5 @@
 package com.scavengerhunt.game;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import com.scavengerhunt.model.Landmark;
@@ -20,7 +19,7 @@ public class PlayerStateManager {
     private boolean isGameFinish = true;
     
     private Landmark detectedLandmark;
-    private List<String> solvedLandmarksId = new ArrayList<>(); // for frontend to render into diff color
+    // private Map<String, Boolean> solvedLandmarksId = new HashMap<>(); // for frontend to render into diff color
  
     public PlayerStateManager(Player player, LandmarkManager landmarkManager, GameDataRepository gameDataRepository) {
         // this.currentTarget = landmark;
@@ -57,14 +56,14 @@ public class PlayerStateManager {
         }
     }
 
-    public void updateSolvedLandmarksId(String solvedLandmarksId) {
-        this.solvedLandmarksId.add(solvedLandmarksId);
-    }
+    // public void updateSolvedLandmarksId(String solvedLandmarksId, boolean isCorrect) {
+    //     this.solvedLandmarksId.put(solvedLandmarksId, isCorrect);
+    // }
 
     public void resetGame(){
         this.isGameFinish = false;
         this.detectedLandmark = null;
-        this.solvedLandmarksId = new ArrayList<>();
+        // this.solvedLandmarksId = new HashMap<>();
     }
 
     public void setGameFinished(){this.isGameFinish = true;}
@@ -79,11 +78,7 @@ public class PlayerStateManager {
         return detectedLandmark;
     }
 
-    public void setDetectedLandmark(Landmark detectedLandmark) {
-        this.detectedLandmark = detectedLandmark;
-    }
-
-    public List<String> getSolvedLandmarksId() {
-        return solvedLandmarksId;
-    }
+    // public Map<String, Boolean> getSolvedLandmarksId() {
+    //     return solvedLandmarksId;
+    // }
 }   

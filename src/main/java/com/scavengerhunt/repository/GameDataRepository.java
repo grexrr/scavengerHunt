@@ -5,7 +5,6 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
 
-import com.scavengerhunt.game.PlayerStateManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.User;
 
@@ -81,18 +80,4 @@ public class GameDataRepository {
     }
 
     
-
-    // ==================== Game State Operations ====================
-    
-    /**
-     * Save player's solved landmark IDs and game progress.
-     */
-    public void savePlayerProgress(PlayerStateManager playerState) {
-        System.out.println("== Saving Player Progress ==");
-        System.out.println("Player ID: " + playerState.getPlayer().getPlayerId());
-        System.out.println("Game Finished: " + playerState.isGameFinished());
-        System.out.println("Solved Landmarks: " + playerState.getSolvedLandmarksId());
-        System.out.println("Detected Landmark: " + 
-            (playerState.getDetectedLandmark() != null ? playerState.getDetectedLandmark().getName() : "None"));
-    }
 }

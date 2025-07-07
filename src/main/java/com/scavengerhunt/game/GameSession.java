@@ -18,23 +18,23 @@ public class GameSession {
     private PlayerStateManager playerState;
     private LandmarkManager landmarkManager;
     private PuzzleManager puzzleManager;
-    private EloCalculator eloManager;
+    private EloCalculator eloCalculator;
 
     private Landmark currentTarget;
     private Map<String, Integer> targetPool; 
     private Map<String, Boolean> solvedLandmarks = new HashMap<>(); // only for frontend rendering
 
     private int maxWrongAnswer = 3;
-    private long currentStartTime; // to calculate time of each riddle
+    private long roundStartTime; // to calculate time of each riddle
 
 
-    public GameSession(String userId, GameDataRepository gameDataRepository, PlayerStateManager playerState, LandmarkManager landmarkManager, PuzzleManager puzzleManager, EloCalculator eloManager){
+    public GameSession(String userId, GameDataRepository gameDataRepository, PlayerStateManager playerState, LandmarkManager landmarkManager, PuzzleManager puzzleManager){
         this.userId = userId;
         this.gameDataRepository = gameDataRepository;
         this.playerState = playerState;
         this.landmarkManager = landmarkManager;
         this.puzzleManager = puzzleManager;
-        this.eloManager = eloManager;
+        this.eloCalculator = new EloCalculator(userId, gameDataRepository);
     }
 
     /** 

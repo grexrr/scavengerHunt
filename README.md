@@ -644,7 +644,7 @@ main.js
 | **Metadata Fetch** | Find `landmark_metadata` by `landmarkId`, return with `meta.description` | ⚠️ Optional | Can be included in `submitAnswer` response |
 | **Frontend Logic** | - Landmark outline → click → selection submission <br> - Show puzzle, attempt count, countdown timer <br> - Show science description (from metadata) after answer | ⚠️ Partially Present | Currently supports only centroid and button click, needs UI and interaction update |
 
-## Updated Game Core Logic
+##### Updated Game Core Logic
 
 1. **Answer Eligibility**: A puzzle can be answered if player view cone ∩ any `landmark.geometry` ≠ ∅  
 2. **Answering Flow**: When eligible, player clicks Submit Answer; backend validates answer
@@ -653,7 +653,7 @@ main.js
 
 ---
 
-## Supporting Class/Module Changes
+##### Supporting Class/Module Changes
 
 - Updated `Player` class to render `JTS` `playerCone` to check visibility intersection with landmark polygons
 - Updated `GeoUtils` class to provide detection logic of player vs. landmarks:
@@ -671,5 +671,9 @@ main.js
     - Records global completion timestamp (for future extension)
     - Elo module queries `GameSession` to apply rating updates
 
+---
 
+#### **Jul. 5-7 2025**
+
+完善GameSession以及单元测试游戏逻辑。补充必要更新。
 

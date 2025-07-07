@@ -36,7 +36,7 @@ public class AuthController {
     public ResponseEntity<String> login(@RequestBody IdentityRequest request) {
         return userRepo.findByUsername(request.getUsername())
         .filter(user -> user.getPassword().equals(request.getPassword()))
-        .map(user -> ResponseEntity.ok(user.getPlayerId()))
+        .map(user -> ResponseEntity.ok(user.getUserId()))
         .orElse(ResponseEntity.status(401).body("[Backend] Invalid username or password."));
     }
 

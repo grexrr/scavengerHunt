@@ -1,5 +1,6 @@
 package com.scavengerhunt.model;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class Landmark {
 
     private double rating = 0.0; //range += 3 guarenteed by algorithm
     private double uncertainty = 0.5; // Glicko / CAP style init
-    private double lastVisited = 0; //day
+    private LocalDateTime lastAnswered; //day
 
     private String riddle;
 
@@ -126,12 +127,12 @@ public class Landmark {
         this.uncertainty = uncertainty;
     }
 
-    public double getLastVisited() {
-        return lastVisited;
+    public LocalDateTime getLastAnswered() {
+        return lastAnswered;
     }
 
-    public void setLastVisited(double lastVisited) {
-        this.lastVisited = lastVisited;
+    public void getLastAnswered(LocalDateTime lastAnswered) {
+        this.lastAnswered = lastAnswered;
     }
 
     public String getRiddle() {

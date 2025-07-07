@@ -8,17 +8,20 @@ import com.scavengerhunt.repository.LandmarkRepository;
 import com.scavengerhunt.repository.UserRepository;
 
 @Service
-public class EloUtils {
+public class EloCalculator {
+
+    private User user;
     private UserRepository userRepo;
     private LandmarkRepository landmarkRepo;
 
-    public EloUtils(UserRepository userRepo, LandmarkRepository landmarkRepo) {
+    public EloCalculator(String userId, UserRepository userRepo, LandmarkRepository landmarkRepo) {
         this.userRepo = userRepo;
         this.landmarkRepo = landmarkRepo;
+        this.user = this.userRepo.findByUserId(userId).orElseThrow();
     }
 
-    public void updateRating(String userId, String landmarkId, long secondsUsed, boolean correct) {
-        User user = userRepo.findById(userId).orElseThrow();
+    public void updateRating(String landmarkId, long secondsUsed, boolean correct) {
+        
         Landmark landmark = landmarkRepo.findById(landmarkId).orElseThrow();
 
         // else

@@ -21,7 +21,7 @@ import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
-import com.scavengerhunt.utils.EloUtils;
+import com.scavengerhunt.utils.EloCalculator;
 
 @RestController
 @RequestMapping("/api/game")
@@ -36,7 +36,7 @@ public class GameRestController {
     private PuzzleManager puzzleManager;
     
     @Autowired
-    private EloUtils eloUtils;
+    private EloCalculator eloUtils;
 
 
     @PostMapping("/update-position")

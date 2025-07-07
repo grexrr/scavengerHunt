@@ -77,7 +77,7 @@ public class GameSessionTest {
         }).when(playerState).setGameFinished();
 
         // Create GameSession instance
-        gameSession = new GameSession("test-user", gameDataRepository, playerState, landmarkManager, puzzleManager, eloManager);
+        gameSession = new GameSession("test-user", gameDataRepository, playerState, landmarkManager, puzzleManager);
     }
 
     /**

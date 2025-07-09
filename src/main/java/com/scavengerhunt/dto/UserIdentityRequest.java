@@ -1,10 +1,10 @@
 package com.scavengerhunt.dto;
 
-public class IdentityRequest {
+public class UserIdentityRequest {
     private String username;
     private String password;
 
-    // getters and setters
+    // ========== getters & setters ==========
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 

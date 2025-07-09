@@ -21,7 +21,6 @@ import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
-import com.scavengerhunt.utils.EloCalculator;
 
 @RestController
 @RequestMapping("/api/game")
@@ -35,8 +34,7 @@ public class GameRestController {
     @Autowired
     private PuzzleManager puzzleManager;
     
-    @Autowired
-    private EloCalculator eloUtils;
+    // EloCalculator is created dynamically in GameSession, not as a Spring bean
 
 
     @PostMapping("/update-position")

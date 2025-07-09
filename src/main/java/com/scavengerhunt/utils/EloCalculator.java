@@ -2,13 +2,10 @@ package com.scavengerhunt.utils;
 
 import java.time.LocalDateTime;
 
-import org.springframework.stereotype.Service;
-
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.User;
 import com.scavengerhunt.repository.GameDataRepository;
 
-@Service
 public class EloCalculator {
 
     private User user;
@@ -27,16 +24,43 @@ public class EloCalculator {
         } else {
             System.out.println("[ELO] Wrong! Update Rating");
         }
-        
     }
 
-    public void updateRating(String landmarkId, long riddleMinutes, boolean correct) {
+    public void updateRating(String landmarkId, long riddleMinutes, boolean isCorrect) {
+        // Reset user to get latest data from database
+        this.user = this.gameDataRepo.getUserById(this.user.getUserId());
         
-        // else
+        Landmark landmark = gameDataRepo.findLandmarkById(landmarkId);
+        
+        double[] dynamicK = dynamicK(this.user, landmark);
+        double userK = dynamicK[0];
+        double landmarkK = dynamicK[1];
+
+        double[] hshsResult = hshsExpectation(riddleMinutes * 60, user.getRating(), landmark.getRating(), isCorrect);
+        double hshs = hshsResult[0];
+        double expectation = hshsResult[1];
+
+        double delta = (hshs - expectation);
+
+        double userNewRating = this.user.getRating() + userK * delta;
+        double landmarkNewRating = landmark.getRating() - landmarkK * delta;
+
+        gameDataRepo.updateUserRating(this.user.getUserId(), userNewRating);
+        gameDataRepo.updateLandmarkRating(landmark.getId(), landmarkNewRating);
     }
 
     private double[] dynamicK(User user, Landmark landmark){
-        return new double[]{3.0, 4.0};
+        double K = 0.0075;
+        double Kmax = 4.0;
+        double Kmin = 0.5;
+
+        double userNewUncertainty = updateUncertainty(user, "default");
+        double landmarkNewUncertainty = updateUncertainty(landmark, "default");
+
+        double userK = K * (1 + Kmax * userNewUncertainty - Kmin * landmarkNewUncertainty);
+        double landmarkK = K * (1 + Kmax * landmarkNewUncertainty - Kmin * userNewUncertainty);
+
+        return new double[]{userK, landmarkK};
     }
 
     private <T> double updateUncertainty(T entity, String mode){
@@ -45,18 +69,22 @@ public class EloCalculator {
                 //1. Acquire User.lastGameAt
                 User user = (User) entity;
                 LocalDateTime lastGameAt = user.getLastGameAt();
-                int dayDiff = 30;
-
+                
                 //2. if User.lastGameAt is null, day diff = 30
-                //   else calculate day diff
+                int dayDiff = 30;
                 if (lastGameAt == null) {
-                    // lastGameAt = LocalDateTime.now().minusDays(dayDiff);
+                    // update User.lastGameAt
                     gameDataRepo.updateUserLastGameAt(user.getUserId(), LocalDateTime.now());
                 } else {
+                    // else calculate dayDiff
                     dayDiff = (int) java.time.Duration.between(lastGameAt, LocalDateTime.now()).toDays();
                 }
+
                 // 3. Calculate U
                 double uncertainty = user.getUncertainty() - (1 / 40.0) + (1 / 30.0) * dayDiff;
+                // Clamp uncertainty to [0, 1] range
+                uncertainty = Math.max(0, Math.min(1, uncertainty));
+                // update newU;
                 gameDataRepo.updateUserUncertainty(user.getUserId(), uncertainty);
                 return uncertainty;
 
@@ -72,6 +100,8 @@ public class EloCalculator {
                 }
                 
                 double uncertainty = landmark.getUncertainty() - (1 / 40.0) + (1 / 30.0) * dayDiff;
+                // Clamp uncertainty to [0, 1] range
+                uncertainty = Math.max(0, Math.min(1, uncertainty));
                 
                 gameDataRepo.updateLandmarkUncertainty(landmark.getId(), uncertainty);
                 return uncertainty;
@@ -97,11 +127,11 @@ public class EloCalculator {
         
         double timeLimitSeconds = this.timeLimitMinutes * 60; //convert to seconds for calculation
 
-        double discrimination = discrimination(timeUsedSeconds, "default");
-        double timeComponent = discrimination * (timeLimitSeconds - timeUsedSeconds);
+        //for now use default mode with 1/10 discrimination until further testing
+        double discrimination = discrimination(timeLimitSeconds, "default");
 
+        double timeComponent = discrimination * (timeLimitSeconds - timeUsedSeconds);
         double hshs = isCorrect ? timeComponent : -timeComponent; 
-        
         double delta = userRating - landmarkRating;
         if (Math.abs(delta) < 1e-6){
             delta = 1e-6;
@@ -114,11 +144,11 @@ public class EloCalculator {
         return new double[]{hshs, expectation};
     }
 
-    private double discrimination(double timeUsedSeconds, String mode){
-        if (mode != "default"){
-            return 1.0 / timeUsedSeconds;
-        } else {
+    private double discrimination(double timeLimitSeconds, String mode){
+        if (mode == "default"){
             return 1.0 / 10;
+        } else {
+            return 1.0 / timeLimitSeconds;
         }
     }
 

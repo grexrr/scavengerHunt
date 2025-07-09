@@ -673,7 +673,55 @@ main.js
 
 ---
 
-#### **Jul. 5-7 2025**
+#### **Jul. 5–8 2025**
 
-完善GameSession以及单元测试游戏逻辑。补充必要更新。
+* **Game logic and session management:**
+
+  * Refactored and enhanced `GameSession`:
+    * Tracks current puzzle state, attempt count, and start timestamp
+    * Determines if puzzle is still answerable (within time and attempt limits)
+    * Flags when Elo update is needed (on correct answer or after 3 failed attempts)
+  
+  * Clarified responsibilities between `PlayerStateManager` and `LandmarkManager`:
+    * `PlayerStateManager`: tracks current visible landmark and solved status, used only for frontend rendering
+    * `LandmarkManager`: manages `allRoundLandmarks` (current round pool) and `allLocalLandmarkIds` (city-wide answerable landmarks)
+
+* **Game session unit testing:**
+
+  * Added tests simulating user answer flow:
+    * Incremental attempt submission
+    * Time-based expiry
+    * Correct/incorrect answers
+  * Verified internal state transitions and rating update conditions
+
+* **Elo integration and module encapsulation:**
+
+  * Ported CAP-based HSHS model from `elo_calculator_demo.py` into Java service module
+  * Supports real-time Elo calculation based on response time and correctness
+  * Exposed `applyRatingUpdate(Player p, Landmark l, boolean correct, int secondsUsed)` API for `GameSession` use
+
+---
+
+#### **Jul. 9 2025**
+
+* **PuzzleManager rewrite:**
+
+  * Refactored puzzle logic into modular `PuzzleManager`:
+    * Accepts `landmarkId` and calls Python `RiddleGenerator` service
+    * Saves generated riddle and its creation timestamp
+    * Initializes relevant fields in `GameSession` upon first attempt
+    * Returns riddle and optional `meta.description` for frontend display
+
+* **Frontend structure update:**
+
+  * Updated role-based behavior in `main.js`:
+    * Admins retain simulated click-to-move interaction
+    * Guests and regular players now follow real-time position logic (mocked for now; GPS/WebSocket support planned)
+  
+  * Adjusted riddle submission interaction:
+    * Submit button only appears when player is within cone & distance to landmark
+    * Removed static submission trigger; now dynamically toggled via `checkProximityAndDirection()`
+
+    
+
 

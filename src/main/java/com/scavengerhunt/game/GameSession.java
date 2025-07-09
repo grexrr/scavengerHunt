@@ -25,8 +25,6 @@ public class GameSession {
     private Map<String, Boolean> solvedLandmarks = new HashMap<>(); // only for frontend rendering
 
     private int maxWrongAnswer = 3;
-    private long roundStartTime; // to calculate time of each riddle
-
 
     public GameSession(String userId, GameDataRepository gameDataRepository, PlayerStateManager playerState, LandmarkManager landmarkManager, PuzzleManager puzzleManager){
         this.userId = userId;
@@ -37,9 +35,7 @@ public class GameSession {
         this.eloCalculator = new EloCalculator(userId, gameDataRepository);
     }
 
-    /** 
-     * Core Function
-     */
+    // ==================== Core Functions ====================
 
     public void updatePlayerPosition(double lat, double lng, double angle){
         this.playerState.updatePlayerPosition(lat, lng, angle);
@@ -63,16 +59,14 @@ public class GameSession {
             System.out.println("[Debug] - " + lm.getName() + " (ID: " + lm.getId() + ")");
         }
 
-        // map the currect answer counter
+        // map the current answer counter (starts from 3, decreases to 0)
         this.targetPool = candidateLandmarks.stream()
-            .collect(Collectors.toMap(landmark -> landmark.getId(), landmark -> 0));
+            .collect(Collectors.toMap(landmark -> landmark.getId(), landmark -> 3));
 
         System.out.println("[Debug] Target pool created with " + this.targetPool.size() + " landmarks");
 
         // select the first target & set round start time
         selectNextTarget();
-        setRoundStartTime(); 
-        
         System.out.println("[Session] New game round started.");
     }
 
@@ -86,9 +80,7 @@ public class GameSession {
         System.out.println("[Debug] Target pool size: " + this.targetPool.size());
         System.out.println("[Debug] Target pool contents: " + this.targetPool.keySet());
 
-        // 
         //check if detected landmark == currentTarget
-        //
         this.playerState.updateDetectedLandmark(); // Force update detected landmark before checking
         Landmark detectedLandmark = this.playerState.getDetectedLandmark();
         System.out.println("[Debug] Current target: " + this.currentTarget.getName() + " (ID: " + this.currentTarget.getId() + ")");
@@ -99,139 +91,28 @@ public class GameSession {
         if (detectedLandmark == null) {
             //if no landmark detected, current wrong count + 1
             System.out.println("[Debug] No landmark detected, wrong count + 1");
-            this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) + 1);
-            System.out.println("[Debug] Current target wrong count: " + this.targetPool.get(this.currentTarget.getId()));
-            
-            // Check if current target has reached max wrong answers
-            if (this.targetPool.get(this.currentTarget.getId()) >= this.maxWrongAnswer) {
-                System.out.println("[Debug] Current target has reached max wrong answers (" + this.maxWrongAnswer + ")");
-                
-                //pool removal and update rating (User & currentTarget)
-                this.targetPool.remove(this.currentTarget.getId());
-                eloCalculator.updateRating(false);
-                // add to solved landmark as wrong
-                this.solvedLandmarks.put(this.currentTarget.getId(), false);
-                
-                System.out.println("[Debug] Target pool after removing current target: " + this.targetPool.keySet());
-                System.out.println("[Debug] Target pool size after removal: " + this.targetPool.size());
-                
-                // Check if this was the last target
-                if (this.targetPool.isEmpty()) {
-                    System.out.println("[Debug] Target pool is empty - game finished");
-                    this.playerState.setGameFinished();
-                    this.currentTarget = null;
-                    return false; // Game finished
-                } else {
-                    System.out.println("[Debug] Target pool not empty, selecting next target");
-                    selectNextTarget();
-                    return false; // Continue with next target
-                }
-            }
-            return false;
+            return singleTransaction(false);
         }
         
         //if detected landmark is not within TargetPool
-        if (this.targetPool.get(detectedLandmark.getId()) == null) {
-
+        if (detectedLandmark != null && !this.targetPool.containsKey(detectedLandmark.getId())) {
             System.out.println("[Debug] Detected landmark not in target pool, wrong count + 1");
-            System.out.println("[Debug] Detected landmark ID: " + detectedLandmark.getId());
-            System.out.println("[Debug] Target pool IDs: " + this.targetPool.keySet());
-            // wrong count of this landmark += 1
-            this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) + 1);
-            System.out.println("[Debug] Current target wrong count: " + this.targetPool.get(this.currentTarget.getId()));
-            
-            // Check if current target has reached max wrong answers
-            if (this.targetPool.get(this.currentTarget.getId()) >= this.maxWrongAnswer) {
-                System.out.println("[Debug] Current target has reached max wrong answers (" + this.maxWrongAnswer + ")");
-                
-                //pool removal and update rating (User & currentTarget)
-                this.targetPool.remove(this.currentTarget.getId());
-                eloCalculator.updateRating(false);
-
-                // add to solved landmark as wrong
-                this.solvedLandmarks.put(this.currentTarget.getId(), false);
-                
-                System.out.println("[Debug] Target pool after removing current target: " + this.targetPool.keySet());
-                System.out.println("[Debug] Target pool size after removal: " + this.targetPool.size());
-                
-                // Check if this was the last target
-                if (this.targetPool.isEmpty()) {
-                    System.out.println("[Debug] Target pool is empty - game finished");
-                    this.playerState.setGameFinished();
-                    this.currentTarget = null;
-                    return false; // Game finished
-                } else {
-                    System.out.println("[Debug] Target pool not empty, selecting next target");
-                    selectNextTarget();
-                    return false; // Continue with next target
-                }
-            }
-            return false;
+            return singleTransaction(false);
         } else {
             //if it's within TargetPool
             System.out.println("[Debug] Detected landmark is in target pool, checking if correct...");
             if (answerCorrect(detectedLandmark)){
                 //if correct
-                System.out.println("[Debug] Answer is correct!");
-                System.out.println("[Debug] Target pool before removal: " + this.targetPool.keySet());
-                
-                //pool removal and update rating (User & currentTarget)
-                this.targetPool.remove(this.currentTarget.getId());
-                eloCalculator.updateRating(true);
-                
-                System.out.println("[Debug] Target pool after removal: " + this.targetPool.keySet());
-                this.solvedLandmarks.put(this.currentTarget.getId(), true);
-                
-                // Check if this was the last target
-                if (this.targetPool.isEmpty()) {
-                    System.out.println("[Debug] All targets completed - game finished");
-                    this.playerState.setGameFinished();
-                    this.currentTarget = null;
-                    return true; // Game completed successfully
-                } else {
-                    System.out.println("[Debug] Targets remaining, selecting next target");
-                    // updateELO() & select next target
-                    this.currentTarget = null;
-                    selectNextTarget();
-                    return true; // Continue with next target
-                }
+                return singleTransaction(true);
             } else {
                 //if incorrect
-                System.out.println("[Debug] Answer is incorrect, wrong count + 1");
-                this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) + 1);
-                System.out.println("[Debug] Current target wrong count: " + this.targetPool.get(this.currentTarget.getId()));
-                
-                // Check if current target has reached max wrong answers
-                if (this.targetPool.get(this.currentTarget.getId()) >= this.maxWrongAnswer) {
-                    System.out.println("[Debug] Current target has reached max wrong answers (" + this.maxWrongAnswer + ")");
-                    
-                    //pool removal and update rating (User & currentTarget)
-                    this.targetPool.remove(this.currentTarget.getId());
-                    eloCalculator.updateRating(false);
-                    
-                    // add to solved landmark as wrong
-                    this.solvedLandmarks.put(this.currentTarget.getId(), false);
-                    
-                    System.out.println("[Debug] Target pool after removing current target: " + this.targetPool.keySet());
-                    System.out.println("[Debug] Target pool size after removal: " + this.targetPool.size());
-                    
-                    // Check if this was the last target
-                    if (this.targetPool.isEmpty()) {
-                        System.out.println("[Debug] Target pool is empty - game finished");
-                        this.playerState.setGameFinished();
-                        this.currentTarget = null;
-                        return false; // Game finished
-                    } else {
-                        System.out.println("[Debug] Target pool not empty, selecting next target");
-                        selectNextTarget();
-                        return false; // Continue with next target
-                    }
-                }
-                
-                return false;
+                return singleTransaction(false);
             }
         }
     }
+
+
+    // ==================== Helper Functions ====================
 
     public Landmark selectNextTarget() {
         // select Nearest for MVP
@@ -241,6 +122,7 @@ public class GameSession {
                 System.out.println("[Debug] Target pool is empty, marking game as finished");
                 this.playerState.setGameFinished();
                 this.currentTarget = null;
+                this.puzzleManager.storeUserGameRoundStatistics();
                 return null;
             }
             
@@ -271,16 +153,86 @@ public class GameSession {
                 System.out.println("[Debug] New detected landmark: " + (newDetected != null ? newDetected.getName() + " (ID: " + newDetected.getId() + ")" : "null"));
             }
 
+            
+            // puzzleManager.startPuzzleTimer(this.currentTarget);
+
         } else {    
             System.out.println("[Debug] Game is finished, no more targets");
+            
+            // puzzleManager.pausePuzzleTimer(currentTarget);
             this.currentTarget = null;
         }
+
         return this.currentTarget;
     }
 
-    /** 
-     * Helper Functions
-     */
+    private boolean singleTransaction(Boolean isCorrect){
+        // Only proceed if game has not finished (i.e., game is active)
+        if (this.playerState.isGameFinished()) {
+            System.out.println("[Debug] Game is finished, ignoring transaction");
+            return false;
+        }
+        
+        if (isCorrect == false){
+            this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) - 1);
+            System.out.println("[Debug] Current target attempts remaining: " + this.targetPool.get(this.currentTarget.getId()));
+            
+            // Check if current target has reached 0 attempts
+            if (this.targetPool.get(this.currentTarget.getId()) <= 0) {
+                System.out.println("[Debug] Current target has reached 0 attempts remaining");
+
+                //pool removal and update rating (User & currentTarget)
+                this.targetPool.remove(this.currentTarget.getId());
+                
+                eloCalculator.updateRating(isCorrect);
+                // add to solved landmark as wrong
+                this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
+                
+                System.out.println("[Debug] Target pool after removing current target: " + this.targetPool.keySet());
+                System.out.println("[Debug] Target pool size after removal: " + this.targetPool.size());
+                
+                // Check if this was the last target
+                if (checkAndHandleGameEnd()) {
+                    return isCorrect; // Game finished
+                } else {
+                    return isCorrect; // Continue with next target
+                }
+            }
+            return isCorrect;
+        } else {
+            System.out.println("[Debug] Answer is correct!");
+            System.out.println("[Debug] Target pool before removal: " + this.targetPool.keySet());
+            
+            //pool removal and update rating (User & currentTarget)
+            this.targetPool.remove(this.currentTarget.getId());
+            eloCalculator.updateRating(isCorrect);
+            
+            System.out.println("[Debug] Target pool after removal: " + this.targetPool.keySet());
+            this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
+            
+            // Check if this was the last target
+            if (checkAndHandleGameEnd()) {
+                return isCorrect; // Game completed successfully
+            } else {
+                return isCorrect; // Continue with next target
+            }
+        }
+    }
+
+    private boolean checkAndHandleGameEnd() {
+        // Only handle game end if game is active (not already finished)
+        if (this.targetPool.isEmpty()) {
+            System.out.println("[Debug] Target pool is empty - game finished");
+            this.playerState.setGameFinished();
+            this.currentTarget = null;
+            this.puzzleManager.storeUserGameRoundStatistics();
+            return true; // Game finished
+        } else {
+            System.out.println("[Debug] Target pool not empty, selecting next target");
+            selectNextTarget();
+            return false; // Continue with next target
+        }
+    }
 
     private Landmark selectNearestTo(double refLat, double refLng) {
         System.out.println("[Debug] Trying to select from: " + getUnsolvedLandmarks().keySet());
@@ -305,30 +257,17 @@ public class GameSession {
     }
 
     public boolean isGameFinished() {
-        return this.playerState.isGameFinished();
-    }
-
-    /**
-     * Set the round start time for timing calculations
-     */
-    private void setRoundStartTime() {
-        this.roundStartTime = System.currentTimeMillis();
-        System.out.println("[Session] Round start time set: " + this.roundStartTime);
-    }
-
-    /**
-     * Get the elapsed time since round start in seconds
-     */
-    public long getElapsedTimeSeconds() {
-        if (this.roundStartTime == 0) {
-            return 0;
+        if (this.playerState.isGameFinished()) {
+            return true;
         }
-        return (System.currentTimeMillis() - this.roundStartTime) / 1000;
+        if (this.targetPool != null && this.targetPool.isEmpty()) {
+            checkAndHandleGameEnd();
+            return true;
+        }
+        return false;
     }
 
-    /** 
-     * Getter & Setter
-     */
+    // ==================== Getters & Setters ====================
 
     public Landmark getCurrentTarget() {
         // If game is finished, don't try to select new targets

@@ -51,6 +51,21 @@ public class GameDataRepository {
         return landmarkRepo.findById(id).orElse(null);
     }
 
+    public void updateLandmarkRating(String landmarkId, double rating){
+        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Rating: " + rating);
+        // implementation empty for now
+    }
+
+    public void updateLandmarkLastAnswered(String landmarkId, LocalDateTime lastAnswered){
+        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Last Answered to: " + lastAnswered.toString());
+        // implementation empty for now
+    }
+
+    public void updateLandmarkUncertainty(String landmarkId, double uncertainty){
+        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Uncertainty: " + uncertainty);
+        // implementation empty for now
+    }
+
     // ==================== User Operations ====================
 
     public User getUserById(String id) {
@@ -67,15 +82,12 @@ public class GameDataRepository {
         // implementation empty for now
     }
 
-    public void updateLandmarkLastAnswered(String landmarkId, LocalDateTime lastAnswered){
-        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Last Answered to: " + lastAnswered.toString());
+
+    public void updateUserRating(String userId, double rating){
+        System.out.println("[GameDataRepository] Update User [" + userId + "] Rating: " + rating);
         // implementation empty for now
     }
 
-    public void updateLandmarkUncertainty(String landmarkId, double uncertainty){
-        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Uncertainty: " + uncertainty);
-        // implementation empty for now
-    }
 
     // ==================== getters & setters ====================
     

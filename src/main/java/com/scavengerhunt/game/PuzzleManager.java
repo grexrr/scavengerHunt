@@ -1,5 +1,7 @@
 package com.scavengerhunt.game;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,15 +13,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.scavengerhunt.repository.RiddleRepository;
+import com.scavengerhunt.model.Landmark;
+import com.scavengerhunt.repository.GameDataRepository;
 
 @Component
 public class PuzzleManager {
     
     private final RestTemplate restTemplate;
+    private GameDataRepository gameDataRepo;
+
+    private LocalDateTime sessionTimeId;
+    private Map<String, ?> gameRoundStdMap;
+    private LocalDateTime lastPuzzleStartTime;
   
-    public PuzzleManager(RiddleRepository riddleRepo) {
-        this.restTemplate = new RestTemplate(); 
+    public PuzzleManager(GameDataRepository gameDataRepo) {
+        this.restTemplate = new RestTemplate();
+        this.gameDataRepo = gameDataRepo; 
     }
 
     public String getRiddleForLandmark(String landmarkId) {
@@ -44,6 +53,22 @@ public class PuzzleManager {
             System.out.println("[PuzzleManager] Python backend not available, returning null: " + e.getMessage());
             return null;
         }
+    }
+
+    public void storeUserGameRoundStatistics(){
+
+    }
+
+    public void startPuzzleTimer(Landmark currentLandmark){
+        System.out.println("[Puzzle Manager] Start Timing for" + currentLandmark.getName());
+        lastPuzzleStartTime = LocalDateTime.now();
+    }
+
+    public void pausePuzzleTimer(Landmark currentLandmark){
+        System.out.println("[Puzzle Manager] Pausing Timing for" + currentLandmark.getName());
+        long durationSeconds = Duration.between(lastPuzzleStartTime, LocalDateTime.now()).getSeconds();
+        lastPuzzleStartTime = LocalDateTime.now();
+        // add info to the round map
     }
 }
 

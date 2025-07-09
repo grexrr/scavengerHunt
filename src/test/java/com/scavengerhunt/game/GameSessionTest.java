@@ -145,7 +145,7 @@ public class GameSessionTest {
         when(playerState.getDetectedLandmark()).thenReturn(null);
         boolean result1 = gameSession.submitCurrentAnswer();
         assertFalse(result1);
-        assertEquals(1, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
+        assertEquals(2, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
 
         // Second wrong answer - wrong landmark detected
         String currentTargetId = gameSession.getCurrentTarget().getId();
@@ -153,7 +153,7 @@ public class GameSessionTest {
         when(playerState.getDetectedLandmark()).thenReturn(wrongLandmark);
         boolean result2 = gameSession.submitCurrentAnswer();
         assertFalse(result2);
-        assertEquals(2, gameSession.getUnsolvedLandmarks().get(currentTargetId));
+        assertEquals(1, gameSession.getUnsolvedLandmarks().get(currentTargetId));
 
         // Third wrong answer - no landmark detected again
         when(playerState.getDetectedLandmark()).thenReturn(null);
@@ -166,7 +166,7 @@ public class GameSessionTest {
         System.out.println("[DEBUG] - targetPool contents: " + gameSession.getUnsolvedLandmarks().keySet());
         System.out.println("[DEBUG] - current target: " + (gameSession.getCurrentTarget() != null ? gameSession.getCurrentTarget().getId() : "null"));
         
-        // Verify that after reaching max wrong answers, current landmark is removed and next landmark is automatically selected
+        // Verify that after reaching 0 attempts, current landmark is removed and next landmark is automatically selected
         assertEquals(1, gameSession.getUnsolvedLandmarks().size());
         assertNotNull(gameSession.getCurrentTarget()); // Should automatically select next landmark
         assertFalse(gameSession.isGameFinished());
@@ -174,7 +174,7 @@ public class GameSessionTest {
 
     /**
      * Test Scenario 3: If first landmark is intentionally answered wrong, will it trigger automatic new game restart
-     * Verify that when there's only one landmark, after 3 wrong answers the game ends
+     * Verify that when there's only one landmark, after 3 wrong answers (0 attempts remaining) the game ends
      */
     @Test
     void scenario3() {
@@ -198,20 +198,20 @@ public class GameSessionTest {
         when(playerState.getDetectedLandmark()).thenReturn(null);
         boolean result1 = gameSession.submitCurrentAnswer();
         assertFalse(result1);
-        assertEquals(1, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
+        assertEquals(2, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
 
         // Second wrong answer
         when(playerState.getDetectedLandmark()).thenReturn(null);
         boolean result2 = gameSession.submitCurrentAnswer();
         assertFalse(result2);
-        assertEquals(2, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
+        assertEquals(1, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
 
         // Third wrong answer
         when(playerState.getDetectedLandmark()).thenReturn(null);
         boolean result3 = gameSession.submitCurrentAnswer();
         assertFalse(result3);
         
-        // Verify that after reaching max wrong answers, since there are no more landmarks, the game ends
+        // Verify that after reaching 0 attempts, since there are no more landmarks, the game ends
         assertEquals(0, gameSession.getUnsolvedLandmarks().size());
         assertTrue(gameSession.isGameFinished());
     }
@@ -238,7 +238,7 @@ public class GameSessionTest {
         
         // Verify this is treated as a wrong answer
         assertFalse(result);
-        assertEquals(1, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
+        assertEquals(2, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
     }
 
     /**

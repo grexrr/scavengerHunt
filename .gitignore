@@ -123,3 +123,6 @@ dmypy.json
 cython_debug/
 
 .DS_Store
+
+application.properties
+keystore.p12

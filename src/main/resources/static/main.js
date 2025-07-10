@@ -1,6 +1,8 @@
 // ========== Global Variables ==========
 let dragStart = null;  // Stores the starting point of mouse drag
 let playerMarker = null;  // The player's arrow marker on the INIT_MAP
+let geoWatchId = null;
+
 const icon = L.icon({     // Custom icon for player marker
   iconUrl: 'arrow.png',
   iconSize: [32, 32],
@@ -16,7 +18,8 @@ let testPlayerAngle = null;   // Test Player facing angle
 let playerCoord = null;    // Normal Player Coordination;
 let currentTargetCoord = null;
 
-const LOCAL_HOST = "http://localhost:8080"; // Backend base URL
+// const LOCAL_HOST = "http://localhost:8080"; // Backend base URL
+const LOCAL_HOST = "http://192.168.1.88:8080"  //MY HOME WIFI IP!!
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 
@@ -52,8 +55,8 @@ function initMap() {
     //update testPlayer Position
     playerMarker = L.marker(ADMIN_TEST_COORD, {icon}).addTo(INIT_MAP);
   } else {
-    // real time normal player or guest
-    trackPlayerMovement();
+    // RESET GUEST/PLAYER COORD
+    fetchPlayerCoord();
   }
 }
 
@@ -107,9 +110,9 @@ function logout(){
   localStorage.removeItem('userId');
   localStorage.removeItem('username');
   localStorage.setItem('role', "GUEST");
+  initMap();
   updateAuthUI(); 
   alert('Logut successful.')
-  initMap();
 }
 
 registerBtn.addEventListener('click', () => {
@@ -133,7 +136,14 @@ logoutBtn.addEventListener('click', () => {
 
 // ========== Movement Functions ==========
 
-function trackPlayerMovement() {
+function fetchPlayerCoord() {
+
+  if (geoWatchId !== null) {
+    navigator.geolocation.clearWatch(geoWatchId);
+    geoWatchId = null;
+    console.log('[Frontend] Stopped previous geolocation tracking');
+  }
+
   if (!navigator.geolocation){
     alert('Geolocation unavailable.');
     return;
@@ -144,17 +154,29 @@ function trackPlayerMovement() {
       let lng = position.coords.longitude;
       playerCoord = L.latLng(lat, lng);
 
-      if (!playerMarker) {
-        INIT_MAP.setView(playerCoord, 17);  
+      
+      
+      if(!playerMarker) {  
+        INIT_MAP.setView(playerCoord, 17);
         playerMarker = L.marker(playerCoord, {icon}).addTo(INIT_MAP);
       } else {
         playerMarker.setLatLng(playerCoord);
+        INIT_MAP.setView(playerCoord, 17);
       }
-
     },
-    err => console.error("[Geolocation error]", err),
-    { enableHighAccuracy: true }
+    err => {
+      console.error("[Geolocation error]", err);
+      alert('Failed to get your location. Please check your permissions.');
+    },
+    { 
+      enableHighAccuracy: true,
+      timeout: 10000,           // 10 seconds
+      maximumAge: 5000          // 5 seconds
+    }
   );
+}
+
+function trackPlayerMovement() {
 }
 
 // ========== Tool Functions ==========

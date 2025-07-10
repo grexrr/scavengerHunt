@@ -722,6 +722,15 @@ main.js
     * Submit button only appears when player is within cone & distance to landmark
     * Removed static submission trigger; now dynamically toggled via `checkProximityAndDirection()`
 
+---
+
+#### **Jul. 10 2025**
+
+尝试通过 'ifconfig | grep "inet " | grep -v 127.0.0.1' 寻找本地网络接口访问前端 -> 位置更新需要https -> 尝试设定本地整数 by 'keytool -genkeypair -alias scavengerhunt -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore keystore.p12 -validity 3650' -> 初次访问没问题，从登录账户logout后二次索取位置权限失败
+
+最终：ngrox https 外链以允许ipad通过公域访问前端，可解决大部分https访问权限问题，为后续使用ipad陀螺仪等进行玩家位置更新，角度上传提供基础
+
+
     
 
 

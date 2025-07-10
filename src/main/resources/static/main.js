@@ -18,8 +18,9 @@ let testPlayerAngle = null;   // Test Player facing angle
 let playerCoord = null;    // Normal Player Coordination;
 let currentTargetCoord = null;
 
-// const LOCAL_HOST = "http://localhost:8080"; // Backend base URL
-const LOCAL_HOST = "http://192.168.1.88:8443"  //MY HOME WIFI IP!!
+
+// const LOCAL_HOST = "http://localhost:8080";   // Backend base URL
+const LOCAL_HOST = "https://e36427c21dff.ngrok-free.app "  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 

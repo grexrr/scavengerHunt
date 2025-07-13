@@ -34,12 +34,22 @@ public class Player {
      * @param longitude The initial longitude position  
      * @param angle The initial facing angle in degrees
      */
-    
+
+    public Player(){}
+
     public Player(double latitude, double longitude, double angle) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.angle = angle;
         this.playerCone = setPlayerViewCone(latitude, longitude, angle, this.spanDeg, this.radiusMeters, this.resolution);
+        acquireCity(); // MVP as "Cork"
+    }
+    
+    public Player(double latitude, double longitude, double angle, double spanDeg, double radiusMeters) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+        this.angle = angle;
+        this.playerCone = setPlayerViewCone(latitude, longitude, angle, spanDeg, radiusMeters, this.resolution);
         acquireCity(); // MVP as "Cork"
     }
 
@@ -51,8 +61,8 @@ public class Player {
         List<Coordinate> coords = new ArrayList<>();
         coords.add(new Coordinate(longitude, latitude)); // lng first, starting with player coord
 
-        double step = spanDeg / resolution;
-        double startAngle = angle - spanDeg / 2;
+        double step = this.spanDeg / resolution;
+        double startAngle = angle - this.spanDeg/ 2;
 
         for (int i = 0; i <= resolution; i++) {
             double theta = Math.toRadians(startAngle + i * step);

@@ -1,8 +1,12 @@
 package com.scavengerhunt.controller;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.locationtech.jts.geom.Coordinate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.scavengerhunt.dto.LandmarkDTO;
 import com.scavengerhunt.dto.PlayerPositionRequest;
 import com.scavengerhunt.dto.StartRoundRequest;
 import com.scavengerhunt.game.GameSession;
@@ -21,6 +26,7 @@ import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
+import com.scavengerhunt.utils.GeoUtils;
 
 @RestController
 @RequestMapping("/api/game")
@@ -36,18 +42,17 @@ public class GameRestController {
     
     // EloCalculator is created dynamically in GameSession, not as a Spring bean
 
-
     @PostMapping("/update-position")
     public ResponseEntity<String> updatePlayerPosition(@RequestBody PlayerPositionRequest request) {
         
         if (request.getUserId().startsWith("guest-")) {
-            return ResponseEntity.ok("[Backend] Guest position updated (no session created).");
+            return ResponseEntity.ok("[Backend][API] Guest position updated (no session created).");
         }
         
-        // create session for login use
+        // create session for whatever user type
         GameSession session = sessionMap.get(request.getUserId());
         if (session == null) {
-            Player player = new Player(request.getLatitude(), request.getLongitude(), request.getAngle());
+            Player player = new Player(request.getLatitude(), request.getLongitude(), request.getAngle(), request.getSpanDeg(), request.getConeRadiusMeters());
             LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
             PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
@@ -57,47 +62,100 @@ public class GameRestController {
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
+
         
         // user based response
         if (request.getUserId().startsWith("guest-")) {
-            return ResponseEntity.ok("[Backend] Guest position updated (session created).");
+            return ResponseEntity.ok("[Backend][API] Guest position updated (session created).");
         } else {
-            return ResponseEntity.ok("[Backend] Player Position Updated.");
+            return ResponseEntity.ok("[Backend][API] Player Position Updated.");
         }
     }
 
     @PostMapping("/init-game")
-    public void initGame(@RequestBody PlayerPositionRequest request) {
-     
-        Player player = new Player(request.getLatitude(), request.getLongitude(), request.getAngle());
+    public ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
+        
+        System.out.println("[InitGame] Request from user: " + request.getUserId());
+        System.out.println("[InitGame] city: " + request.getCity());
+
+        Player player = new Player(
+            request.getLatitude(),
+            request.getLongitude(),
+            request.getAngle(),
+            request.getSpanDeg(),
+            request.getConeRadiusMeters()
+        );
+
         LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
         PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
         String userId = request.getUserId();
-        
         GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager);
         sessionMap.put(userId, session);
+        //responding landmark coord for frontend rendering
+        
+        
+        // List<Landmark> landmarks= gameDataRepo.getLandmarkRepo().findByCity(request.getCity());
+        // Map<String, Object> response = new HashMap<>();
+        // List<Map<String, Object>> frontendLandmarks = new ArrayList<>();
+
+        // for (Landmark lm : landmarks) {
+        //     Map<String, Object> oneLandmark = new HashMap<>();
+        //     oneLandmark.put("name", lm.getName());
+        //     oneLandmark.put("id", lm.getId());
+
+        //     List<List<Double>> coords = new ArrayList<>();
+        //     Coordinate[] polygon = GeoUtils.convertToJtsPolygon(lm.getGeometry()).getCoordinates();
+        //     for (Coordinate coord : polygon) {
+        //         coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
+        //     }
+
+        //     oneLandmark.put("coordinates", coords);
+        //     frontendLandmarks.add(oneLandmark);
+        // }
+
+        // response.put("landmarks", frontendLandmarks);
+        // return ResponseEntity.ok(response);
+
+        // switch to using encapsulated landmarkDTO
+        List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(request.getCity());
+        List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
+
+        for (Landmark lm : landmarks) {
+            List<List<Double>> coords = new ArrayList<>();
+            Coordinate[] polygon = GeoUtils.convertToJtsPolygon(lm.getGeometry()).getCoordinates();
+            for (Coordinate coord : polygon) {
+                coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
+            }
+
+            LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), coords);
+            frontendLandmarks.add(dto);
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("landmarks", frontendLandmarks);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/start-round")
     public ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
 
         if (request.getUserId().startsWith("guest-")) {
-            return ResponseEntity.status(403).body("[Backend] Must be logged in to start round.");
+            return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
         }
         
         GameSession session = sessionMap.get(request.getUserId());
-        if (session == null) return ResponseEntity.status(404).body("[Backend] Session Not Found.");
+        if (session == null) return ResponseEntity.status(404).body("[Backend][API] Session Not Found.");
 
         if (session.getUserId() == null) {
-            return ResponseEntity.status(403).body("[Backend] Must be logged in to start round.");
+            return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
         }
 
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
         session.startNewRound(request.getRadiusMeters());
 
         Landmark target = session.getCurrentTarget();
-        if (target == null) return ResponseEntity.status(404).body("[Backend] No target available.");
+        if (target == null) return ResponseEntity.status(404).body("[Backend][API] No target available.");
 
         return ResponseEntity.ok(target);
     }

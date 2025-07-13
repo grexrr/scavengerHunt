@@ -107,7 +107,7 @@ public class GeoUtils {
      * Helper Functions
      */
 
-    private static Polygon convertToJtsPolygon(GeoJsonPolygon geo) {
+    public static Polygon convertToJtsPolygon(GeoJsonPolygon geo) {
         // GeoJsonPolygon coordination：first element is outer-parameter（shell），then inner（holes）
         var shell = geo.getCoordinates().get(0); // GeoJsonLineString
         Coordinate[] coords = shell.getCoordinates().stream()

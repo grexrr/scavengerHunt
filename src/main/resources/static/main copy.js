@@ -253,7 +253,7 @@ function getCurrentTarget() {
       if (!res.ok) {
         throw new Error("Failed to get current target");
       }
-      return res.json();
+      return res.json();a
     });
 }
 

@@ -95,4 +95,7 @@ public class GameDataRepository {
         return this.userRepo;
     }
 
+    public LandmarkRepository getLandmarkRepo() {
+        return this.landmarkRepo;
+    }
 }

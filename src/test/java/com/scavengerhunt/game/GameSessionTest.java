@@ -76,7 +76,7 @@ public class GameSessionTest {
         }).when(playerState).setGameFinished();
 
         // Create GameSession instance
-        gameSession = new GameSession("test-user", gameDataRepository, playerState, landmarkManager, puzzleManager);
+        gameSession = new GameSession("test-user", gameDataRepository, playerState, landmarkManager, puzzleManager, 30);
     }
 
     /**
@@ -101,7 +101,7 @@ public class GameSessionTest {
 
         // Simulate correct answer for first landmark
         when(playerState.getDetectedLandmark()).thenReturn(landmark2); // Current target is landmark2
-        boolean result1 = gameSession.submitCurrentAnswer();
+        boolean result1 = gameSession.submitCurrentAnswer(300);
         
         // Verify first landmark is correctly answered
         assertTrue(result1);
@@ -110,7 +110,7 @@ public class GameSessionTest {
 
         // Simulate correct answer for second landmark
         when(playerState.getDetectedLandmark()).thenReturn(landmark1); 
-        boolean result2 = gameSession.submitCurrentAnswer();
+        boolean result2 = gameSession.submitCurrentAnswer(300);
         
         // Verify second landmark is correctly answered, game completed
         assertTrue(result2);
@@ -143,7 +143,7 @@ public class GameSessionTest {
         
         // First wrong answer - no landmark detected
         when(playerState.getDetectedLandmark()).thenReturn(null);
-        boolean result1 = gameSession.submitCurrentAnswer();
+        boolean result1 = gameSession.submitCurrentAnswer(300);
         assertFalse(result1);
         assertEquals(2, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
 
@@ -151,13 +151,13 @@ public class GameSessionTest {
         String currentTargetId = gameSession.getCurrentTarget().getId();
         Landmark wrongLandmark = currentTargetId.equals("landmark1") ? landmark2 : landmark1;
         when(playerState.getDetectedLandmark()).thenReturn(wrongLandmark);
-        boolean result2 = gameSession.submitCurrentAnswer();
+        boolean result2 = gameSession.submitCurrentAnswer(300);
         assertFalse(result2);
         assertEquals(1, gameSession.getUnsolvedLandmarks().get(currentTargetId));
 
         // Third wrong answer - no landmark detected again
         when(playerState.getDetectedLandmark()).thenReturn(null);
-        boolean result3 = gameSession.submitCurrentAnswer();
+        boolean result3 = gameSession.submitCurrentAnswer(300);
         assertFalse(result3);
         
         // Debug information
@@ -196,19 +196,19 @@ public class GameSessionTest {
         
         // First wrong answer
         when(playerState.getDetectedLandmark()).thenReturn(null);
-        boolean result1 = gameSession.submitCurrentAnswer();
+        boolean result1 = gameSession.submitCurrentAnswer(300);
         assertFalse(result1);
         assertEquals(2, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
 
         // Second wrong answer
         when(playerState.getDetectedLandmark()).thenReturn(null);
-        boolean result2 = gameSession.submitCurrentAnswer();
+        boolean result2 = gameSession.submitCurrentAnswer(300);
         assertFalse(result2);
         assertEquals(1, gameSession.getUnsolvedLandmarks().get(gameSession.getCurrentTarget().getId()));
 
         // Third wrong answer
         when(playerState.getDetectedLandmark()).thenReturn(null);
-        boolean result3 = gameSession.submitCurrentAnswer();
+        boolean result3 = gameSession.submitCurrentAnswer(300);
         assertFalse(result3);
         
         // Verify that after reaching 0 attempts, since there are no more landmarks, the game ends
@@ -234,7 +234,7 @@ public class GameSessionTest {
         
         // Simulate detecting a landmark not in the target pool
         when(playerState.getDetectedLandmark()).thenReturn(landmark2); // landmark2 is not in target pool
-        boolean result = gameSession.submitCurrentAnswer();
+        boolean result = gameSession.submitCurrentAnswer(300);
         
         // Verify this is treated as a wrong answer
         assertFalse(result);

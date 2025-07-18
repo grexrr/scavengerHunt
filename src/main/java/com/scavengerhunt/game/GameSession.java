@@ -25,14 +25,22 @@ public class GameSession {
     private Map<String, Boolean> solvedLandmarks = new HashMap<>(); // only for frontend rendering
 
     private int maxWrongAnswer = 3;
+    // private int maxRiddleDurationMinutes = 30;
 
-    public GameSession(String userId, GameDataRepository gameDataRepository, PlayerStateManager playerState, LandmarkManager landmarkManager, PuzzleManager puzzleManager){
+    public GameSession(
+        String userId, 
+        GameDataRepository gameDataRepository, 
+        PlayerStateManager playerState, 
+        LandmarkManager landmarkManager, 
+        PuzzleManager puzzleManager,
+        int maxRiddleDurationMinutes
+        ){
         this.userId = userId;
         this.gameDataRepository = gameDataRepository;
         this.playerState = playerState;
         this.landmarkManager = landmarkManager;
         this.puzzleManager = puzzleManager;
-        this.eloCalculator = new EloCalculator(userId, gameDataRepository);
+        this.eloCalculator = new EloCalculator(userId, gameDataRepository, maxRiddleDurationMinutes);
     }
 
     // ==================== Core Functions ====================
@@ -61,7 +69,7 @@ public class GameSession {
 
         // map the current answer counter (starts from 3, decreases to 0)
         this.targetPool = candidateLandmarks.stream()
-            .collect(Collectors.toMap(landmark -> landmark.getId(), landmark -> 3));
+            .collect(Collectors.toMap(landmark -> landmark.getId(), landmark -> maxWrongAnswer));
 
         System.out.println("[Debug] Target pool created with " + this.targetPool.size() + " landmarks");
 
@@ -70,7 +78,8 @@ public class GameSession {
         System.out.println("[Session] New game round started.");
     }
 
-    public boolean submitCurrentAnswer() {
+    public boolean submitCurrentAnswer(long riddleSeconds) {
+
         if (this.currentTarget == null) {
             System.out.println("[Session] No current Target.");
             return false;
@@ -91,22 +100,22 @@ public class GameSession {
         if (detectedLandmark == null) {
             //if no landmark detected, current wrong count + 1
             System.out.println("[Debug] No landmark detected, wrong count + 1");
-            return singleTransaction(false);
+            return singleTransaction(riddleSeconds,false);
         }
         
         //if detected landmark is not within TargetPool
         if (detectedLandmark != null && !this.targetPool.containsKey(detectedLandmark.getId())) {
             System.out.println("[Debug] Detected landmark not in target pool, wrong count + 1");
-            return singleTransaction(false);
+            return singleTransaction(riddleSeconds,false);
         } else {
             //if it's within TargetPool
             System.out.println("[Debug] Detected landmark is in target pool, checking if correct...");
             if (answerCorrect(detectedLandmark)){
                 //if correct
-                return singleTransaction(true);
+                return singleTransaction(riddleSeconds,true);
             } else {
                 //if incorrect
-                return singleTransaction(false);
+                return singleTransaction(riddleSeconds,false);
             }
         }
     }
@@ -166,7 +175,7 @@ public class GameSession {
         return this.currentTarget;
     }
 
-    private boolean singleTransaction(Boolean isCorrect){
+    private boolean singleTransaction(long riddleSeconds, Boolean isCorrect){
         // Only proceed if game has not finished (i.e., game is active)
         if (this.playerState.isGameFinished()) {
             System.out.println("[Debug] Game is finished, ignoring transaction");
@@ -182,9 +191,10 @@ public class GameSession {
                 System.out.println("[Debug] Current target has reached 0 attempts remaining");
 
                 //pool removal and update rating (User & currentTarget)
-                this.targetPool.remove(this.currentTarget.getId());
-                
-                eloCalculator.updateRating(isCorrect);
+                String lmid = this.currentTarget.getId();
+                this.targetPool.remove(lmid);
+                eloCalculator.updateRating(lmid, riddleSeconds, isCorrect);
+
                 // add to solved landmark as wrong
                 this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
                 
@@ -204,8 +214,9 @@ public class GameSession {
             System.out.println("[Debug] Target pool before removal: " + this.targetPool.keySet());
             
             //pool removal and update rating (User & currentTarget)
-            this.targetPool.remove(this.currentTarget.getId());
-            eloCalculator.updateRating(isCorrect);
+            String lmid = this.currentTarget.getId();
+            this.targetPool.remove(lmid);
+            eloCalculator.updateRating(lmid, riddleSeconds, isCorrect);
             
             System.out.println("[Debug] Target pool after removal: " + this.targetPool.keySet());
             this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
@@ -269,7 +280,7 @@ public class GameSession {
 
     // ==================== Getters & Setters ====================
 
-    public Landmark getCurrentTarget() {
+    public Map<String, Object> getCurrentTarget() {
         // If game is finished, don't try to select new targets
         if (this.playerState.isGameFinished()) {
             System.out.println("[Debug] Game is finished, returning null for current target");
@@ -281,9 +292,14 @@ public class GameSession {
             System.out.println("[Debug] Current target is null, attempting to select next target");
             this.currentTarget = selectNextTarget();
         }
-        
-        return this.currentTarget;
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", this.currentTarget.getId());
+        result.put("name", this.currentTarget.getName());
+        result.put("attemptsLeft", this.targetPool.get(this.currentTarget.getId()));
+        return result;
     }
+
     public String getUserId() {
         return userId;
     }

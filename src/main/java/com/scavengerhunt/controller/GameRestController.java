@@ -9,11 +9,9 @@ import java.util.Map;
 import org.locationtech.jts.geom.Coordinate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.scavengerhunt.dto.LandmarkDTO;
@@ -58,7 +56,7 @@ public class GameRestController {
 
             String userId = request.getUserId();
             
-            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager);
+            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
@@ -90,7 +88,7 @@ public class GameRestController {
         PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
         String userId = request.getUserId();
-        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager);
+        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
         sessionMap.put(userId, session);
         //responding landmark coord for frontend rendering
         
@@ -154,47 +152,48 @@ public class GameRestController {
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
         session.startNewRound(request.getRadiusMeters());
 
-        Landmark target = session.getCurrentTarget();
-        if (target == null) return ResponseEntity.status(404).body("[Backend][API] No target available.");
+        Map<String, Object> currentTarget = session.getCurrentTarget();
 
-        return ResponseEntity.ok(target);
+        if (currentTarget == null) return ResponseEntity.status(404).body("[Backend][API] No target available.");
+
+        return ResponseEntity.ok(currentTarget);
     }
 
-    @PostMapping("/submit-answer") // update user solved landmarks
-    public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
-        String userId = request.get("userId");
-        GameSession session = sessionMap.get(userId);
-        if (session == null) return ResponseEntity.status(404).body("Session not found");
+    // @PostMapping("/submit-answer") // update user solved landmarks
+    // public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
+    //     String userId = request.get("userId");
+    //     GameSession session = sessionMap.get(userId);
+    //     if (session == null) return ResponseEntity.status(404).body("Session not found");
         
-        boolean isCorrect = session.submitCurrentAnswer();
+    //     boolean isCorrect = session.submitCurrentAnswer();
         
-        if (isCorrect) {
-            // Check if game is finished
-            if (session.isGameFinished()) {
-                return ResponseEntity.ok("Congratulations! You've completed all targets in this round.");
-            } else {
-                return ResponseEntity.ok("Answer correct! Next target selected.");
-            }
-        } else {
-            // Check if game is finished due to too many wrong answers
-            if (session.isGameFinished()) {
-                return ResponseEntity.ok("Game over. You've exhausted all attempts for the available targets.");
-            } else {
-                return ResponseEntity.ok("Answer incorrect. Try again.");
-            }
-        }        
-    }
+    //     if (isCorrect) {
+    //         // Check if game is finished
+    //         if (session.isGameFinished()) {
+    //             return ResponseEntity.ok("Congratulations! You've completed all targets in this round.");
+    //         } else {
+    //             return ResponseEntity.ok("Answer correct! Next target selected.");
+    //         }
+    //     } else {
+    //         // Check if game is finished due to too many wrong answers
+    //         if (session.isGameFinished()) {
+    //             return ResponseEntity.ok("Game over. You've exhausted all attempts for the available targets.");
+    //         } else {
+    //             return ResponseEntity.ok("Answer incorrect. Try again.");
+    //         }
+    //     }        
+    // }
 
-    @GetMapping("/get-current-target")
-    public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {
-        GameSession session = sessionMap.get(userId);
-        if (session == null) return ResponseEntity.status(404).body("Session not found");
+    // @GetMapping("/get-current-target")
+    // public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {
+    //     GameSession session = sessionMap.get(userId);
+    //     if (session == null) return ResponseEntity.status(404).body("Session not found");
         
-        Landmark target = session.getCurrentTarget();
-        if (target == null) return ResponseEntity.status(404).body("No target available");
+    //     Landmark target = session.getCurrentTarget();
+    //     if (target == null) return ResponseEntity.status(404).body("No target available");
         
-        return ResponseEntity.ok(target);
-    }
+    //     return ResponseEntity.ok(target);
+    // }
 }
 
 

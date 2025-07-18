@@ -5,6 +5,8 @@ public class StartRoundRequest {
     private double latitude;
     private double longitude;
     private double angle;
+    private double radiusMeters;
+    
     public double getAngle() {
         return angle;
     }
@@ -12,8 +14,6 @@ public class StartRoundRequest {
     public void setAngle(double angle) {
         this.angle = angle;
     }
-    private double radiusMeters;
-
 
     public String getUserId() {
         return userId;
@@ -26,18 +26,23 @@ public class StartRoundRequest {
     public double getLatitude() {
         return latitude;
     }
+
     public void setLatitude(double latitude) {
         this.latitude = latitude;
     }
+
     public double getLongitude() {
         return longitude;
     }
+
     public void setLongitude(double longitude) {
         this.longitude = longitude;
     }
+
     public double getRadiusMeters() {
         return radiusMeters;
     }
+    
     public void setRadiusMeters(double radiusMeters) {
         this.radiusMeters = radiusMeters;
     }

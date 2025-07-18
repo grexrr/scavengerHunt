@@ -11,11 +11,12 @@ public class EloCalculator {
     private User user;
     private GameDataRepository gameDataRepo;
 
-    private double timeLimitMinutes = 30;
+    private int maxRiddleDurationMinutes = 30;
     
-    public EloCalculator(String userId, GameDataRepository gameDataRepo) {
+    public EloCalculator(String userId, GameDataRepository gameDataRepo, int maxRiddleDurationMinutes) {
         this.gameDataRepo = gameDataRepo;
         this.user = this.gameDataRepo.getUserById(userId);
+        this.maxRiddleDurationMinutes = maxRiddleDurationMinutes;
     }
 
     public void updateRating(boolean isCorrect){
@@ -26,7 +27,7 @@ public class EloCalculator {
         }
     }
 
-    public void updateRating(String landmarkId, long riddleMinutes, boolean isCorrect) {
+    public void updateRating(String landmarkId, long riddleSeconds, boolean isCorrect) {
         // Reset user to get latest data from database
         this.user = this.gameDataRepo.getUserById(this.user.getUserId());
         
@@ -36,7 +37,7 @@ public class EloCalculator {
         double userK = dynamicK[0];
         double landmarkK = dynamicK[1];
 
-        double[] hshsResult = hshsExpectation(riddleMinutes * 60, user.getRating(), landmark.getRating(), isCorrect);
+        double[] hshsResult = hshsExpectation(riddleSeconds, user.getRating(), landmark.getRating(), isCorrect);
         double hshs = hshsResult[0];
         double expectation = hshsResult[1];
 
@@ -125,7 +126,7 @@ public class EloCalculator {
 
     private double[] hshsExpectation(double timeUsedSeconds, double userRating, double landmarkRating, boolean isCorrect){
         
-        double timeLimitSeconds = this.timeLimitMinutes * 60; //convert to seconds for calculation
+        double timeLimitSeconds = this.maxRiddleDurationMinutes * 60; //convert to seconds for calculation
 
         //for now use default mode with 1/10 discrimination until further testing
         double discrimination = discrimination(timeLimitSeconds, "default");

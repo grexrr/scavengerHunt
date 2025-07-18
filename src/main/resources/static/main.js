@@ -278,19 +278,67 @@ function setupInteractions() {
   }
 }
 
-// ======== Game Mechanism` ========
+// ======== Game Mechanism ========
 
 function startRound(){
-  if(localStorage.getItem('role') === 'GUEST') console.log("[Frontend] Please Log in First");
-  
+  let role = localStorage.getItem('role');
+
+  if(role === 'GUEST') {
+    console.log("[Frontend] Please Log in First");
+    return;
+  }
+
+  if (!playerCoord) {
+    alert("Waiting for location... Please allow GPS or wait a few seconds.");
+    return;
+  }
+
   roundStarted = true;
-  if(searchCircle){
+  radiusSlider.disabled = true;
+  document.getElementById('countdown-timer').style.display = 'block';
+
+  if (searchCircle){
     INIT_MAP.removeLayer(searchCircle);
     searchCircle = null;
   }
-  radiusSlider.disabled = true;
+
+  const requestBody = {
+    userId: localStorage.getItem('userId'),
+    latitude: playerCoord?.lat ?? 0.0,
+    longitude: playerCoord?.lng ?? 0.0,
+    angle: playerAngle ?? 0.0,
+    radiusMeters: sliderRadius
+  };
+
+  fetch(LOCAL_HOST + '/api/game/start-round', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json' 
+    },
+    body: JSON.stringify(requestBody)
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('[Frontend] Failed to fetch current target');
+      return res.json();
+    })
+    .then(data => {
+      const landmarkName = data.name;
+      const attemptsLeft = data.attemptsLeft;
+    
+      document.getElementById('chances-left').style.display = 'block';
+      document.getElementById('chances-left').innerText = `Remaining Attempts: ${attemptsLeft}`;
+      document.getElementById('target-info').innerText = landmarkName;
+    });
+
   console.log("[Frontend] Starting Game!");
+  startCountdown(); 
+
+  //updateUI
+  startBtn.disable = true;
+  startBtn.style.display = 'inline-block';
+  submitBtn.disable = false;
 }
+
 
 // ========== Test Player Movement ==========
 
@@ -312,8 +360,13 @@ function updateTestPlayerPosition(lat, lng, angle) {
   });
 }
 
+function submitCurrentLandmark(){}
+
   
 // ========== Tool Functions ==========
+function startCountdown(){
+  console.log('[Frontend] Counting Down')
+}
 
 function drawRadiusCircle() {
   if (!roundStarted){
@@ -342,7 +395,7 @@ function updatePlayerViewCone() {
   const startAngle = angle - spanDeg / 2;
   const endAngle = angle + spanDeg / 2;
 
-  const conePoints = [[playerCoord.lat, playerCoord.lng]];  // 中心点作为扇形第一个点
+  const conePoints = [[playerCoord.lat, playerCoord.lng]];  
 
   for (let i = 0; i <= resolution; i++) {
     const angleDeg = startAngle + (i / resolution) * (endAngle - startAngle);

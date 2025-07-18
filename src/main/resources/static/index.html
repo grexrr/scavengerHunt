@@ -27,6 +27,12 @@
   <div class="info-box">
     Click map to move player (simulating movement).<br/>
     <div id="coord"></div>
+
+    <div id="countdown-timer" style="margin-top: 8px; font-weight: bold; display: none;">
+      Time Left: <span id="timer">30:00</span>
+    </div>
+    <div id="chances-left" style="display: none; margin-left: 10px;"></div>
+
     <div id="radius-ui" style="display: none; margin-top: 8px;">
       <label for="radius-slider">Search Radius (meters): </label>
       <input type="range" id="radius-slider" min="50" max="300" value="50" />

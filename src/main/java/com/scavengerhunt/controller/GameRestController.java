@@ -159,30 +159,46 @@ public class GameRestController {
         return ResponseEntity.ok(currentTarget);
     }
 
-    // @PostMapping("/submit-answer") // update user solved landmarks
-    // public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
-    //     String userId = request.get("userId");
-    //     GameSession session = sessionMap.get(userId);
-    //     if (session == null) return ResponseEntity.status(404).body("Session not found");
-        
-    //     boolean isCorrect = session.submitCurrentAnswer();
-        
-    //     if (isCorrect) {
-    //         // Check if game is finished
-    //         if (session.isGameFinished()) {
-    //             return ResponseEntity.ok("Congratulations! You've completed all targets in this round.");
-    //         } else {
-    //             return ResponseEntity.ok("Answer correct! Next target selected.");
-    //         }
-    //     } else {
-    //         // Check if game is finished due to too many wrong answers
-    //         if (session.isGameFinished()) {
-    //             return ResponseEntity.ok("Game over. You've exhausted all attempts for the available targets.");
-    //         } else {
-    //             return ResponseEntity.ok("Answer incorrect. Try again.");
-    //         }
-    //     }        
-    // }
+    @PostMapping("/submit-answer")
+    public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
+        String userId = request.get("userId");
+        GameSession session = sessionMap.get(userId);
+        if (session == null) {
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", "Session not found"
+            ));
+        }
+
+        long secondsUsed = Long.parseLong(request.get("secondsUsed")); 
+
+        boolean isCorrect = session.submitCurrentAnswer(secondsUsed);
+        boolean gameFinished = session.isGameFinished();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("isCorrect", isCorrect);
+        response.put("gameFinished", gameFinished);
+
+        // message
+        if (gameFinished && isCorrect) {
+            response.put("message", "Congratulations! You've completed all targets in this round.");
+        } else if (gameFinished) {
+            response.put("message", "Game over. You've exhausted all attempts for the available targets.");
+        } else if (isCorrect) {
+            response.put("message", "Correct! Next target selected.");
+        } else {
+            response.put("message", "Incorrect. Try again or check your position.");
+        }
+
+        // target info: currentTarget or nextTarget
+        Map<String, Object> target = session.getCurrentTarget();
+        if (target != null) {
+            response.put("target", target); // id, name, attemptsLeft
+        }
+
+        return ResponseEntity.ok(response);
+    }
+
 
     // @GetMapping("/get-current-target")
     // public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {

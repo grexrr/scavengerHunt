@@ -25,7 +25,12 @@ let testPlayerAngle = null;   // Test Player facing angle
 
 let searchCircle = null;  // Circle representing search radius
 
+let countdownSeconds = 1800; // 30 minutes
+let countdownInterval = null;
+let countdownStartTimestamp = null;
+
 let roundStarted = false;
+
 
 let currentTargetCoord = null;
 
@@ -93,7 +98,7 @@ function initGame(){
     angle = playerAngle;
   }
 
-  request = {
+  const requestBody = {
     latitude: playerCoord.lat,
     longitude: playerCoord.lng,
     angle: angle,
@@ -102,10 +107,11 @@ function initGame(){
     city: city,
     userId: localStorage.getItem('userId'),
   }
+
   fetch(LOCAL_HOST + '/api/game/init-game', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(request)
+    body: JSON.stringify(requestBody)
   })
   .then(res => res.json())
   .then(data => {
@@ -337,8 +343,75 @@ function startRound(){
   startBtn.disable = true;
   startBtn.style.display = 'inline-block';
   submitBtn.disable = false;
+  submitBtn.style.display = 'inline-block';
 }
 
+function submitAnswer() {
+  const secondsUsed = stopCountdown();
+  if (secondsUsed == null) {
+    alert("⏱ Time not running!");
+    return;
+  }
+
+  const requestBody = {
+    userId: localStorage.getItem('userId'),
+    secondsUsed: secondsUsed
+  };
+
+  fetch(LOCAL_HOST + '/api/game/submit-answer', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody)
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log("[Frontend] Submit result:", data);
+
+      alert(data.message);
+
+      // GameFinish
+      if (data.gameFinished) {
+        resetGameToInit();
+        return;
+      }
+
+      // 更新 UI（谜题名称、剩余尝试次数）
+      if (data.target) {
+        const oldName = document.getElementById('target-info').innerText;
+        const newName = data.target.name;
+
+        document.getElementById('target-info').innerText = newName;
+        document.getElementById('chances-left').style.display = 'block';
+        document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.target.attemptsLeft}`;
+
+        // ✅ 只有在“答对”或“换题”情况下重启倒计时
+        if (data.isCorrect || oldName !== newName) {
+          startCountdown();
+        }
+      }
+    })
+    .catch(err => {
+      console.error("[Frontend] Failed to submit answer:", err);
+      alert("❌ Failed to submit answer.");
+    });
+}
+
+
+function resetGameToInit() {
+  roundStarted = false;
+  radiusSlider.disabled = false;
+  countdownSeconds = 1800;
+  countdownStartTimestamp = null;
+
+  document.getElementById('countdown-timer').textContent = "";
+  document.getElementById('countdown-timer').style.display = 'none';
+  document.getElementById('target-info').innerText = "(No target yet)";
+  document.getElementById('chances-left').style.display = 'none';
+
+  submitBtn.disabled = true;
+  startBtn.disabled = false;
+  drawRadiusCircle();
+}
 
 // ========== Test Player Movement ==========
 
@@ -360,12 +433,47 @@ function updateTestPlayerPosition(lat, lng, angle) {
   });
 }
 
-function submitCurrentLandmark(){}
+
 
   
 // ========== Tool Functions ==========
-function startCountdown(){
-  console.log('[Frontend] Counting Down')
+
+function startCountdown() {
+  clearInterval(countdownInterval);   
+  countdownSeconds = 1800;            
+  countdownStartTimestamp = Date.now();
+
+  const timerDisplay = document.getElementById('countdown-timer');
+
+  function updateTimer() {
+    const minutes = Math.floor(countdownSeconds / 60);
+    const seconds = countdownSeconds % 60;
+    timerDisplay.textContent = `Remaining Time:, ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+    if (countdownSeconds <= 0) {
+      clearInterval(countdownInterval);
+      timerDisplay.textContent = "Time's up!";
+      onCountdownFinish();
+    }
+
+    countdownSeconds--;
+  }
+
+  updateTimer(); 
+  countdownInterval = setInterval(updateTimer, 1000);
+}
+
+function stopCountdown() {
+  clearInterval(countdownInterval);
+
+  if (!countdownStartTimestamp) return null;
+
+  const now = Date.now();
+  const elapsedMs = now - countdownStartTimestamp;
+  const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+  console.log("[Frontend] Time used:", elapsedSeconds, "seconds");
+  return elapsedSeconds;
 }
 
 function drawRadiusCircle() {
@@ -471,4 +579,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startRound();
   });
 
+  submitBtn.addEventListener('click', () => {
+    submitAnswer();
+  });
 })

@@ -88,6 +88,12 @@ public class GameSession {
         System.out.println("[Debug] Current target: " + this.currentTarget.getName() + " (ID: " + this.currentTarget.getId() + ")");
         System.out.println("[Debug] Target pool size: " + this.targetPool.size());
         System.out.println("[Debug] Target pool contents: " + this.targetPool.keySet());
+        
+        // check finishing time
+        if (riddleSeconds > 1800) {
+            System.out.println("[Debug] Time limit exceeded (" + riddleSeconds + "s) → auto-fail.");
+            return singleTransaction(riddleSeconds, false);
+        }
 
         //check if detected landmark == currentTarget
         this.playerState.updateDetectedLandmark(); // Force update detected landmark before checking

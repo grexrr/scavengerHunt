@@ -65,6 +65,7 @@ public class EloCalculator {
     }
 
     private <T> double updateUncertainty(T entity, String mode){
+
         if (mode == "default"){
             if (entity instanceof User){
                 //1. Acquire User.lastGameAt

@@ -3,6 +3,7 @@ let userId = null;
 let city = 'Cork';
 
 let geoWatchId = null;
+let enableMapRotation = true;  // map behavior
 
 let dragStart = null;  // Stores the starting point of mouse drag
 
@@ -31,8 +32,9 @@ let countdownStartTimestamp = null;
 
 let roundStarted = false;
 
-
 let currentTargetCoord = null;
+
+
 
 
 // const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
@@ -627,7 +629,6 @@ function initOrientationListener() {
 }
 
 function handleOrientation(event) {
-  
   let heading;
 
   if (event.webkitCompassHeading !== undefined) {
@@ -640,9 +641,26 @@ function handleOrientation(event) {
   if (heading !== undefined) {
     playerAngle = heading;
 
-    if (playerCoord && playerCoord.lat != null) { 
+    if (playerCoord && playerCoord.lat != null) {
       updatePlayerViewCone();
-      if (playerMarker) playerMarker.setRotationAngle(playerAngle);
+
+      const role = localStorage.getItem('role');
+      
+      if (playerMarker) {
+        if (role === 'ADMIN') {
+          playerMarker.setRotationAngle(playerAngle);  // ADMIN: marker rotation
+        } else {
+          playerMarker.setRotationAngle(0);  // non ADMIN：marker always up north
+        }
+      }
+
+      // non admin map rotation
+      if (role !== 'ADMIN' && enableMapRotation) {
+        const mapContainer = document.getElementById('map');
+        mapContainer.style.transform = `rotate(-${playerAngle}deg)`;
+        mapContainer.style.transformOrigin = 'center center';
+        mapContainer.style.transition = 'transform 0.1s linear';
+      }
     }
 
     document.getElementById('angle-display').innerText = `Angle: ${heading.toFixed(2)}°`;
@@ -694,6 +712,9 @@ document.addEventListener('DOMContentLoaded', () => {
     submitAnswer();
   });
 
-  document.querySelector('.info-box').insertAdjacentHTML('beforeend', '<div id="angle-display">Angle: ?</div>');
-  
+  document.getElementById('rotation-toggle').addEventListener('click', () => {
+    enableMapRotation = !enableMapRotation;
+    const label = enableMapRotation ? "Rotation: On" : "Rotation: Off";
+    document.getElementById('rotation-toggle').innerText = label;
+  });
 })

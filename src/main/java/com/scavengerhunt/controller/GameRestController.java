@@ -199,6 +199,22 @@ public class GameRestController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/finish-round")
+    public ResponseEntity<?> finishRound(@RequestBody Map<String, String> request) {
+        String userId = request.get("userId");
+
+        if (userId == null || userId.isEmpty()) {
+            return ResponseEntity.badRequest().body("Missing userId.");
+        }
+
+        sessionMap.remove(userId);  
+        System.out.println("[Backend][API] Session cleared for user: " + userId);
+
+        Map<String, Object> res = new HashMap<>();
+        res.put("message", "Game session ended.");
+
+        return ResponseEntity.ok(res);
+    }
 
     // @GetMapping("/get-current-target")
     // public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {

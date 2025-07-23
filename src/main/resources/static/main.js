@@ -35,8 +35,8 @@ let roundStarted = false;
 let currentTargetCoord = null;
 
 
-const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
-// const LOCAL_HOST = "https://904d529b8eb6.ngrok-free.app"  // Ngrok
+// const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
+const LOCAL_HOST = "https://d30c7f9234cf.ngrok-free.app"  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 
@@ -182,6 +182,7 @@ function login(username, password) {
     initMap();
     setupInteractions();
     initGame();
+    drawRadiusCircle(); 
   })
 }
 
@@ -189,6 +190,7 @@ function logout(){
   localStorage.removeItem('userId');
   localStorage.removeItem('username');
   localStorage.setItem('role', "GUEST");
+  resetGameToInit(); 
   initMap();
   updateAuthUI(); 
   setupInteractions();
@@ -361,6 +363,12 @@ function startRound() {
     return res.json();
   })
   .then(data => {
+
+    if (searchCircle){
+      INIT_MAP.removeLayer(searchCircle);
+      searchCircle = null;
+    }
+
     document.getElementById('target-info').innerText = data.name;
     document.getElementById('chances-left').style.display = 'block';
     document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
@@ -374,10 +382,13 @@ function startRound() {
   .catch(err => {
     console.error("[Frontend] startRound error:", err);
     alert("Failed to start round.");
+    drawRadiusCircle();
   });
 
-  startBtn.disabled = true;
+  // startBtn.disabled = true;
   startBtn.style.display = 'inline-block';
+  startBtn.innerText = "Finish Round";
+  startBtn.onclick = finishRound; 
   submitBtn.disabled = false;
   submitBtn.style.display = 'inline-block';
 }
@@ -435,6 +446,25 @@ function submitAnswer() {
   });
 }
 
+function finishRound() {
+  fetch(LOCAL_HOST + '/api/game/finish-round', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      userId: localStorage.getItem('userId')
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message);
+    resetGameToInit();
+  })
+  .catch(err => {
+    console.error("[Frontend] Failed to finish round:", err);
+    alert("Finish round failed.");
+  });
+}
+
 function resetGameToInit() {
   roundStarted = false;
   radiusSlider.disabled = false;
@@ -445,9 +475,13 @@ function resetGameToInit() {
   document.getElementById('countdown-timer').style.display = 'none';
   document.getElementById('target-info').innerText = "(No target yet)";
   document.getElementById('chances-left').style.display = 'none';
+  document.getElementById('riddle-box').innerText = "";
 
   submitBtn.disabled = true;
   startBtn.disabled = false;
+  startBtn.innerText = "Start Round";
+  startBtn.onclick = startRound;
+
   drawRadiusCircle();
 }
 
@@ -512,6 +546,7 @@ function stopCountdown() {
 }
 
 function drawRadiusCircle() {
+  if (localStorage.getItem("role") === "GUEST") return;
   if (!roundStarted){
     if (!searchCircle) {
       searchCircle = L.circle(playerCoord, {

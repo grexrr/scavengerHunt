@@ -37,6 +37,7 @@ public class PuzzleManager {
         Map<String, Object> payload = new HashMap<>();
         payload.put("landmarkId", landmarkId);
         // put difficulties as well
+        // 考虑处理 user rating差值
         double landmarkRating = gameDataRepo.getLandmarkRatingById(landmarkId);
         payload.put("difficulty", normalizeRating(landmarkRating, "sigmoid"));
 

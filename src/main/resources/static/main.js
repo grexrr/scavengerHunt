@@ -36,7 +36,7 @@ let currentTargetCoord = null;
 
 
 const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
-// const LOCAL_HOST = "https://596af72e820d.ngrok-free.app"  // Ngrok
+// const LOCAL_HOST = "https://904d529b8eb6.ngrok-free.app"  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 
@@ -81,8 +81,12 @@ function initMap() {
   if(userRole === "ADMIN"){
     INIT_MAP.setView(ADMIN_TEST_COORD, 17);
     console.log('[Frontend][Init] Admin INIT_MAP initialized at UCC');
+    playerCoord = ADMIN_TEST_COORD; // re-ensuring fetching default coord
     //update testPlayer Position
     playerMarker = L.marker(ADMIN_TEST_COORD, {icon}).addTo(INIT_MAP);
+    setTimeout(() => {
+      initGame();
+    }, 100);
   } else {
     // RESET GUEST/PLAYER COORD
     fetchPlayerCoord();
@@ -194,6 +198,10 @@ function logout(){
 // ========== Player Movement ==========
 
 function fetchPlayerCoord() {
+  // reference 
+  // Real time location tracker app on leafletjs || HTML5 geolocation || Tekson
+  // https://www.youtube.com/watch?v=8KX4_4NK7ZY
+
   if (!navigator.geolocation) {
     alert('Geolocation is not supported on this device.');
     return;
@@ -203,25 +211,54 @@ function fetchPlayerCoord() {
     navigator.geolocation.clearWatch(geoWatchId);
   }
 
+  let firstUpdate = true;
+  let accuracyCircle = null;
+
   geoWatchId = navigator.geolocation.watchPosition(
     position => {
       playerCoord = L.latLng(position.coords.latitude, position.coords.longitude);
+      const accuracy = position.coords.accuracy;
+
+      updatePlayerViewCone();
+      drawRadiusCircle(); 
+
       if (!playerMarker) {
         playerMarker = L.marker(playerCoord, { icon }).addTo(INIT_MAP);
-        INIT_MAP.setView(playerCoord, 17);
       } else {
         playerMarker.setLatLng(playerCoord);
-        INIT_MAP.panTo(playerCoord); 
       }
+
+      // tracking
+      if (firstUpdate) {
+        INIT_MAP.setView(playerCoord, 17);
+        firstUpdate = false;
+      } else {
+        // pan always follows player
+        INIT_MAP.panTo(playerCoord);
+      }
+
+      // accuracy circle
+      if (accuracyCircle) {
+        accuracyCircle.setLatLng(playerCoord);
+        accuracyCircle.setRadius(accuracy);
+      } else {
+        accuracyCircle = L.circle(playerCoord, {
+          radius: accuracy,
+          color: 'green',
+          fillColor: '#c2f0c2',
+          fillOpacity: 0.2
+        }).addTo(INIT_MAP);
+      }
+
     },
     error => {
       console.error('[Geolocation Error]', error);
       alert('Location tracking failed: ' + error.message);
     },
     {
-      enableHighAccuracy: true, 
-      timeout: 5000,
-      maximumAge: 0 
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 1000
     }
   );
 }
@@ -538,6 +575,46 @@ function calculateAngle(start, end) {
   return angle;
 }
 
+function initOrientationListener() {
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // iOS 
+    DeviceOrientationEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+        }
+      })
+      .catch(console.error);
+  } else {
+    // Android 
+    window.addEventListener('deviceorientation', handleOrientation, true);
+  }
+}
+
+function handleOrientation(event) {
+  
+  let heading;
+
+  if (event.webkitCompassHeading !== undefined) {
+    heading = event.webkitCompassHeading;
+  } else if (event.alpha !== null) {
+    heading = 360 - event.alpha;
+    console.warn("[Frontend][Orientation] Fallback to alpha. May be imprecise.");
+  }
+
+  if (heading !== undefined) {
+    playerAngle = heading;
+
+    if (playerCoord && playerCoord.lat != null) { 
+      updatePlayerViewCone();
+      if (playerMarker) playerMarker.setRotationAngle(playerAngle);
+    }
+
+    document.getElementById('angle-display').innerText = `Angle: ${heading.toFixed(2)}°`;
+  }
+}
+
+
 // ========== Main ==========
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -549,7 +626,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }).addTo(INIT_MAP);
   
   initMap();
-
+  initOrientationListener();
+  
   registerBtn.addEventListener('click', () => {
     const username = prompt('Enter Username: ');
     const password = prompt('Enter Password: ');
@@ -580,4 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
   submitBtn.addEventListener('click', () => {
     submitAnswer();
   });
+
+  document.querySelector('.info-box').insertAdjacentHTML('beforeend', '<div id="angle-display">Angle: ?</div>');
+  
 })

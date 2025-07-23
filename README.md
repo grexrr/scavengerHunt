@@ -726,9 +726,56 @@ main.js
 
 #### **Jul. 10 2025**
 
-尝试通过 'ifconfig | grep "inet " | grep -v 127.0.0.1' 寻找本地网络接口访问前端 -> 位置更新需要https -> 尝试设定本地整数 by 'keytool -genkeypair -alias scavengerhunt -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore keystore.p12 -validity 3650' -> 初次访问没问题，从登录账户logout后二次索取位置权限失败
+* **Local HTTPS testing & geolocation permission debugging:**
 
-最终：ngrox https 外链以允许ipad通过公域访问前端，可解决大部分https访问权限问题，为后续使用ipad陀螺仪等进行玩家位置更新，角度上传提供基础
+  * Attempted to expose frontend to LAN by running:  
+    ```bash
+    ifconfig | grep "inet " | grep -v 127.0.0.1
+    ```
+  * Created local HTTPS certificate using:
+    ```bash
+    keytool -genkeypair -alias scavengerhunt -keyalg RSA -keysize 2048 -storetype PKCS12 -keystore keystore.p12 -validity 3650
+    ```
+  * Geolocation worked on first access, but failed to re-request permission after logout, likely due to HTTPS trust issue;
+  * Switched to `ngrok https` tunnel to expose local server publicly;
+  * iPad access now stable with HTTPS, ready for integrating gyroscope/GPS input in future stages.
+
+---
+
+#### **Jul. 11–19 2025**
+
+* **Core mechanics validated:**
+
+  * Finalized game flow:
+    * `GameSession` tracks `currentTarget`, `targetPool`, and user responses (correct/incorrect);
+    * `GameRestController.submitAnswer()` receives `secondsUsed` and triggers full validation;
+    * Handles timeouts, undetected targets, and ends game gracefully when pool is exhausted;
+
+  * Riddle submission pipeline and scoring integrated:
+    * `submitCurrentAnswer()` calls `EloCalculator` internally;
+    * Both player and landmark ratings are updated;
+    * Rating fallback logic added (`null → 0.5`) to ensure robustness;
+
+  * EloCalculator deployed:
+    * Implements a custom HSHS scoring model based on correctness + time efficiency;
+    * Dynamic K-factor calculated from inferred uncertainty (based on time since last activity);
+    * Sigmoid mapping planned to classify difficulty tiers from rating values;
+    * Ratings and uncertainties are no longer persisted, computed live from timestamps;
+
+  * Logging and debugging enhanced:
+    * All rating operations include `[EloCalc]` console output;
+    * Handles and avoids NaN/null cases;
+    * Logs target pool status and state transitions throughout gameplay;
+
+  * Functionality verified:
+    * Python script used to simulate and test convergence behavior of HSHS model;
+    * Ratings for both user and landmark fluctuate and stabilize during real interactions;
+    * Frontend now correctly reflects answer state, controls submit visibility, and triggers next round as expected;
+
+  * Foundation for next phase:
+    * `PuzzleManager` will use landmark rating to guide riddle difficulty;
+    * Full game round stats per user will be collected for future visualization and analysis.
+
 
 
     

@@ -19,118 +19,61 @@ public class User {
 
     private Boolean admin = false;
 
-    private double rating = 0.0; //range += 3 guarenteed by algorithm
-    private double uncertainty = 0.5; // Glicko / CAP style init
-    private double displayRating; //updatable by simple sigmoid
+    private Double rating;
+    // private Double uncertainty;
+    private Double displayRating;
 
-    // timestamp fields
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
-    private LocalDateTime lastGameAt; 
+    private LocalDateTime lastGameAt;
 
-    public User(){}
-    
+    public User() {}
+
     public User(String username, String password) {
         this.username = username;
         this.password = password;
-        this.createdAt = LocalDateTime.now(); // 设置创建时间 (Set creation time)
-        setUserId();
+        this.createdAt = LocalDateTime.now();
+        this.userId = UUID.randomUUID().toString();
     }
 
     public User(String username, String password, Boolean isAdmin) {
-        this.username = username;
-        this.password = password;
-        this.createdAt = LocalDateTime.now(); // 设置创建时间 (Set creation time)
-        setAdmin(isAdmin);
-        setUserId();
+        this(username, password);
+        this.admin = isAdmin;
     }
 
-    public String getUserId() {
-        return userId;
-    }
+    // Getters and Setters
 
-    public void setUserId() {
-        this.userId = UUID.randomUUID().toString();
-    }
-    
-    public String getUsername() {
-        return username;
-    }
-    
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    public String getUserId() { return userId; }
+    public void setUserId(String id) { this.userId = id; }
 
-    public String getPassword() {
-        return password;
-    }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
 
-    public List<Integer> getSolvedLandmarkIds() {
-        return solvedLandmarkIds;
-    }
+    public List<Integer> getSolvedLandmarkIds() { return solvedLandmarkIds; }
+    public void setSolvedLandmarkIds(List<Integer> ids) { this.solvedLandmarkIds = ids; }
 
-    public void setSolvedLandmarkIds(List<Integer> solvedLandmarkIds) {
-        this.solvedLandmarkIds = solvedLandmarkIds;
-    }
+    public Boolean getAdmin() { return admin; }
+    public void setAdmin(Boolean admin) { this.admin = admin; }
 
-    public Boolean getAdmin() {
-        return admin;
-    }
+    public Double getRating() { return rating; }
+    public void setRating(Double rating) { this.rating = rating; }
 
-    public void setAdmin(Boolean admin) {
-        this.admin = admin;
-    }
+    // public Double getUncertainty() { return uncertainty; }
+    // public void setUncertainty(Double uncertainty) { this.uncertainty = uncertainty; }
 
-    public double getRating() {
-        return rating;
-    }
+    public Double getDisplayRating() { return displayRating; }
+    public void setDisplayRating(Double displayRating) { this.displayRating = displayRating; }
 
-    public void setRating(double rating) {
-        this.rating = rating;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public double getUncertainty() {
-        return uncertainty;
-    }
+    public LocalDateTime getLastLoginAt() { return lastLoginAt; }
+    public void setLastLoginAt(LocalDateTime lastLoginAt) { this.lastLoginAt = lastLoginAt; }
 
-    public void setUncertainty(double uncertainty) {
-        this.uncertainty = uncertainty;
-    }
-
-    public double getDisplayRating() {
-        return displayRating;
-    }
-
-    public void setDisplayRating(double displayRating) {
-        this.displayRating = displayRating;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getLastLoginAt() {
-        return lastLoginAt;
-    }
-
-    public void setLastLoginAt(LocalDateTime lastLoginAt) {
-        this.lastLoginAt = lastLoginAt;
-    }
-
-    public LocalDateTime getLastGameAt() {
-        return lastGameAt;
-    }
-
-    public void setLastGameAt(LocalDateTime lastGameAt) {
-        this.lastGameAt = lastGameAt;
-    }
-    
+    public LocalDateTime getLastGameAt() { return lastGameAt; }
+    public void setLastGameAt(LocalDateTime lastGameAt) { this.lastGameAt = lastGameAt; }
 }
+

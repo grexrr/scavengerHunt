@@ -25,7 +25,7 @@ public class GameSession {
     private Map<String, Boolean> solvedLandmarks = new HashMap<>(); // only for frontend rendering
 
     private int maxWrongAnswer = 3;
-    // private int maxRiddleDurationMinutes = 30;
+    private int maxRiddleDurationMinutes = 30;
 
     public GameSession(
         String userId, 
@@ -90,7 +90,7 @@ public class GameSession {
         System.out.println("[Debug] Target pool contents: " + this.targetPool.keySet());
         
         // check finishing time
-        if (riddleSeconds > 1800) {
+        if (riddleSeconds > maxRiddleDurationMinutes * 60L) {
             System.out.println("[Debug] Time limit exceeded (" + riddleSeconds + "s) → auto-fail.");
             return singleTransaction(riddleSeconds, false);
         }
@@ -167,9 +167,6 @@ public class GameSession {
                 Landmark newDetected = this.playerState.getDetectedLandmark();
                 System.out.println("[Debug] New detected landmark: " + (newDetected != null ? newDetected.getName() + " (ID: " + newDetected.getId() + ")" : "null"));
             }
-
-            
-            // puzzleManager.startPuzzleTimer(this.currentTarget);
 
         } else {    
             System.out.println("[Debug] Game is finished, no more targets");
@@ -303,6 +300,7 @@ public class GameSession {
         result.put("id", this.currentTarget.getId());
         result.put("name", this.currentTarget.getName());
         result.put("attemptsLeft", this.targetPool.get(this.currentTarget.getId()));
+        result.put("riddle", this.currentTarget.getRiddle());
         return result;
     }
 

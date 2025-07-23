@@ -24,73 +24,101 @@ public class GameDataRepository {
     }
 
     // ==================== Landmark Operations ====================
-    
-    // Load all landmarks (for MVP version).
+
     public List<Landmark> loadLandmarks() {
         return landmarkRepo.findAll();
     }
 
-    // Get all landmark IDs.
     public List<String> getAllLandmarkIds() {
         return landmarkRepo.findAllId();
     }
 
-    // Load landmark IDs by city
-    public List<String> loadLandmarkIdByCity(String city) {
-        System.out.println("[GameDataRepository] Querying for city: '" + city + "'");
-        List<Landmark> landmarks = landmarkRepo.findByCity(city);
-        List<String> ids = landmarks.stream()
-            .map(landmark -> landmark.getId())
-            .collect(java.util.stream.Collectors.toList());
-        System.out.println("[GameDataRepository] Found " + ids.size() + " landmarks for city: " + city);
-        return ids;
-    }
-
-    // Find landmark by ID.
     public Landmark findLandmarkById(String id) {
         return landmarkRepo.findById(id).orElse(null);
     }
 
-    public void updateLandmarkRating(String landmarkId, double rating){
-        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Rating: " + rating);
-        // implementation empty for now
+    public List<String> loadLandmarkIdByCity(String city) {
+        System.out.println("[GameDataRepository] Querying for city: '" + city + "'");
+        return landmarkRepo.findByCity(city).stream()
+            .map(Landmark::getId)
+            .toList();
     }
 
-    public void updateLandmarkLastAnswered(String landmarkId, LocalDateTime lastAnswered){
-        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Last Answered to: " + lastAnswered.toString());
-        // implementation empty for now
+    public Double getLandmarkRatingById(String landmarkId){
+        Landmark landmark = findLandmarkById(landmarkId);
+    return (landmark != null) ? landmark.getRating() : 0.5;
+    }
+   
+    public void updateLandmarkRating(String landmarkId, Double rating) {
+        Landmark landmark = findLandmarkById(landmarkId);
+        if (landmark != null) {
+            if (landmark.getRating() == null) {
+                landmark.setRating(0.5); // !!!! init default as 0.5 
+            }
+            landmark.setRating(rating);
+            landmarkRepo.save(landmark);
+            System.out.println("[✓] Landmark rating updated: " + rating);
+        }
     }
 
-    public void updateLandmarkUncertainty(String landmarkId, double uncertainty){
-        System.out.println("[GameDataRepository] Update Landmark [" + landmarkId + "] Uncertainty: " + uncertainty);
-        // implementation empty for now
+    // public void updateLandmarkUncertainty(String landmarkId, Double uncertainty) {
+    //     Landmark landmark = findLandmarkById(landmarkId);
+    //     if (landmark != null) {
+    //         if (landmark.getUncertainty() == null) {
+    //             landmark.setUncertainty(0.5);
+    //         }
+    //         landmark.setUncertainty(uncertainty);
+    //         landmarkRepo.save(landmark);
+    //     }
+    // }
+
+    public void updateLandmarkLastAnswered(String landmarkId, LocalDateTime time) {
+        Landmark landmark = findLandmarkById(landmarkId);
+        if (landmark != null) {
+            landmark.setLastAnswered(time);
+            landmarkRepo.save(landmark);
+        }
     }
 
     // ==================== User Operations ====================
 
-    public User getUserById(String id) {
-        return userRepo.findById(id).orElse(null);
+    public User getUserById(String userId) {
+        return userRepo.findById(userId).orElse(null);
     }
 
-    public void updateUserLastGameAt(String uId, LocalDateTime lastGameAt){
-        System.out.println("[GameDataRepository] Update User [" + getUserById(uId).getUserId() + "] Last Game to: " + lastGameAt.toString());
-        // implementation empty for now
+    public void updateUserRating(String userId, Double rating) {
+        User user = getUserById(userId);
+        if (user != null) {
+            if (user.getRating() == null) {
+                user.setRating(0.5);
+            }
+            user.setRating(rating);
+            userRepo.save(user);
+            System.out.println("[✓] User rating updated: " + rating);
+        }
     }
 
-    public void updateUserUncertainty(String uId, double uncertainty){
-        System.out.println("[GameDataRepository] Update User [" + getUserById(uId).getUserId() + "] Uncertainty: " + uncertainty);
-        // implementation empty for now
+    // public void updateUserUncertainty(String userId, Double uncertainty) {
+    //     User user = getUserById(userId);
+    //     if (user != null) {
+    //         if (user.getUncertainty() == null) {
+    //             user.setUncertainty(0.5);
+    //         }
+    //         user.setUncertainty(uncertainty);
+    //         userRepo.save(user);
+    //     }
+    // }
+
+    public void updateUserLastGameAt(String userId, LocalDateTime time) {
+        User user = getUserById(userId);
+        if (user != null) {
+            user.setLastGameAt(time);
+            userRepo.save(user);
+        }
     }
 
+    // ==================== Repositories ====================
 
-    public void updateUserRating(String userId, double rating){
-        System.out.println("[GameDataRepository] Update User [" + userId + "] Rating: " + rating);
-        // implementation empty for now
-    }
-
-
-    // ==================== getters & setters ====================
-    
     public UserRepository getUserRepo() {
         return this.userRepo;
     }

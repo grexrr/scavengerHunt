@@ -286,10 +286,9 @@ function setupInteractions() {
 
 // ======== Game Mechanism ========
 
-function startRound(){
+function startRound() {
   let role = localStorage.getItem('role');
-
-  if(role === 'GUEST') {
+  if (role === 'GUEST') {
     console.log("[Frontend] Please Log in First");
     return;
   }
@@ -301,7 +300,6 @@ function startRound(){
 
   roundStarted = true;
   radiusSlider.disabled = true;
-  document.getElementById('countdown-timer').style.display = 'block';
 
   if (searchCircle){
     INIT_MAP.removeLayer(searchCircle);
@@ -318,31 +316,32 @@ function startRound(){
 
   fetch(LOCAL_HOST + '/api/game/start-round', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json' 
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody)
   })
-    .then(res => {
-      if (!res.ok) throw new Error('[Frontend] Failed to fetch current target');
-      return res.json();
-    })
-    .then(data => {
-      const landmarkName = data.name;
-      const attemptsLeft = data.attemptsLeft;
-    
-      document.getElementById('chances-left').style.display = 'block';
-      document.getElementById('chances-left').innerText = `Remaining Attempts: ${attemptsLeft}`;
-      document.getElementById('target-info').innerText = landmarkName;
-    });
+  .then(res => {
+    if (!res.ok) throw new Error('[Frontend] Failed to fetch current target');
+    return res.json();
+  })
+  .then(data => {
+    document.getElementById('target-info').innerText = data.name;
+    document.getElementById('chances-left').style.display = 'block';
+    document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
+    document.getElementById('riddle-box').innerText = data.riddle ? data.riddle : "(No riddle)";
 
-  console.log("[Frontend] Starting Game!");
-  startCountdown(); 
+    setTimeout(() => {
+      document.getElementById('countdown-timer').style.display = 'block';
+      startCountdown();
+    }, 100);
+  })
+  .catch(err => {
+    console.error("[Frontend] startRound error:", err);
+    alert("Failed to start round.");
+  });
 
-  //updateUI
-  startBtn.disable = true;
+  startBtn.disabled = true;
   startBtn.style.display = 'inline-block';
-  submitBtn.disable = false;
+  submitBtn.disabled = false;
   submitBtn.style.display = 'inline-block';
 }
 
@@ -363,39 +362,41 @@ function submitAnswer() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(requestBody)
   })
-    .then(res => res.json())
-    .then(data => {
-      console.log("[Frontend] Submit result:", data);
+  .then(res => res.json())
+  .then(data => {
+    console.log("[Frontend] Submit result:", data);
+    alert(data.message);
 
-      alert(data.message);
+    if (data.gameFinished) {
+      resetGameToInit();
+      return;
+    }
 
-      // GameFinish
-      if (data.gameFinished) {
-        resetGameToInit();
-        return;
-      }
+    // ===== ipdate target info =====
+    if (data.target) {
+      const newName = data.target.name;
+      const attemptsLeft = data.target.attemptsLeft;
+      const riddle = data.target.riddle;
 
-      // 更新 UI（谜题名称、剩余尝试次数）
-      if (data.target) {
-        const oldName = document.getElementById('target-info').innerText;
-        const newName = data.target.name;
+      document.getElementById('target-info').innerText = newName;
+      document.getElementById('chances-left').style.display = 'block';
+      document.getElementById('chances-left').innerText = `Remaining Attempts: ${attemptsLeft}`;
+      document.getElementById('riddle-box').innerText = riddle ? riddle : "(No riddle)";
 
-        document.getElementById('target-info').innerText = newName;
-        document.getElementById('chances-left').style.display = 'block';
-        document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.target.attemptsLeft}`;
-
-        // ✅ 只有在“答对”或“换题”情况下重启倒计时
-        if (data.isCorrect || oldName !== newName) {
+      // restarting countdown
+      const oldName = document.getElementById('target-info').innerText;
+      if (data.isCorrect || oldName !== newName) {
+        setTimeout(() => {
           startCountdown();
-        }
+        }, 100);  // ensuring UI not stuck
       }
-    })
-    .catch(err => {
-      console.error("[Frontend] Failed to submit answer:", err);
-      alert("❌ Failed to submit answer.");
-    });
+    }
+  })
+  .catch(err => {
+    console.error("[Frontend] Failed to submit answer:", err);
+    alert("Failed to submit answer.");
+  });
 }
-
 
 function resetGameToInit() {
   roundStarted = false;
@@ -432,9 +433,6 @@ function updateTestPlayerPosition(lat, lng, angle) {
     }
   });
 }
-
-
-
   
 // ========== Tool Functions ==========
 

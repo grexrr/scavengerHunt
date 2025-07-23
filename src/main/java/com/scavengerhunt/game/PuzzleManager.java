@@ -1,6 +1,5 @@
 package com.scavengerhunt.game;
 
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.repository.GameDataRepository;
 
 @Component
@@ -36,10 +34,13 @@ public class PuzzleManager {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        Map<String, String> payload = new HashMap<>();
+        Map<String, Object> payload = new HashMap<>();
         payload.put("landmarkId", landmarkId);
+        // put difficulties as well
+        double landmarkRating = gameDataRepo.getLandmarkRatingById(landmarkId);
+        payload.put("difficulty", normalizeRating(landmarkRating, "sigmoid"));
 
-        HttpEntity<Map<String, String>> request = new HttpEntity<>(payload, headers);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
         
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
@@ -59,16 +60,20 @@ public class PuzzleManager {
 
     }
 
-    public void startPuzzleTimer(Landmark currentLandmark){
-        System.out.println("[Puzzle Manager] Start Timing for" + currentLandmark.getName());
-        lastPuzzleStartTime = LocalDateTime.now();
-    }
-
-    public void pausePuzzleTimer(Landmark currentLandmark){
-        System.out.println("[Puzzle Manager] Pausing Timing for" + currentLandmark.getName());
-        long durationSeconds = Duration.between(lastPuzzleStartTime, LocalDateTime.now()).getSeconds();
-        lastPuzzleStartTime = LocalDateTime.now();
-        // add info to the round map
+    private double normalizeRating(Double rating, String mode){
+        if (rating == null || rating.isNaN()) return 50.0; // fallback
+    
+        String m = (mode == null || mode.isEmpty()) ? "default" : mode;
+        double clamppedRating = Math.max(-3.0, Math.min(3.0, rating));
+        
+        if ("default".equals(m)){
+            return (clamppedRating - (-3.0)) / 6.0 * 100.0;
+        } else if ("sigmoid".equals(m)){
+            double normalized = 1.0 / (1.0 + Math.exp(-clamppedRating));
+            return normalized * 100.0;
+        } else {
+            return 50.0;
+        }
     }
 }
 

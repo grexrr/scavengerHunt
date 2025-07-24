@@ -33,12 +33,13 @@ let countdownStartTimestamp = null;
 let roundStarted = false;
 
 let currentTargetCoord = null;
+let currentTargetId = null;
 
 
 
 
-// const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
-const LOCAL_HOST = "https://d30c7f9234cf.ngrok-free.app"  // Ngrok
+const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
+// const LOCAL_HOST = "https://a1b5eb05eeac.ngrok-free.app"  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 
@@ -128,12 +129,18 @@ function initGame(){
       return;
     }
 
+    landmarkMap.forEach(polygon => {
+      INIT_MAP.removeLayer(polygon);
+    });
+    landmarkMap.clear();
+
     data.landmarks.forEach(lm => {
       const polygon = L.polygon(lm.coordinates, {
         color: "grey",
         fillOpacity: 0.3
       }).addTo(INIT_MAP);
 
+      polygon.options.name = lm.name; 
       landmarkMap.set(lm.id, polygon);  
     });
   })
@@ -398,7 +405,7 @@ function startRound() {
 function submitAnswer() {
   const secondsUsed = stopCountdown();
   if (secondsUsed == null) {
-    alert("⏱ Time not running!");
+    alert("Time not running!");
     return;
   }
 
@@ -422,24 +429,24 @@ function submitAnswer() {
       return;
     }
 
+    const currentTargetName = document.getElementById('target-info').innerText;
+    for (const [id, polygon] of landmarkMap.entries()) {
+      if (polygon && polygon.options && polygon.options.name === currentTargetName) {
+        polygon.setStyle({ color: 'blue' });
+        break;
+      }
+    }
+
     // ===== ipdate target info =====
     if (data.target) {
-      const newName = data.target.name;
-      const attemptsLeft = data.target.attemptsLeft;
-      const riddle = data.target.riddle;
-
-      document.getElementById('target-info').innerText = newName;
+      document.getElementById('target-info').innerText = data.target.name;
       document.getElementById('chances-left').style.display = 'block';
-      document.getElementById('chances-left').innerText = `Remaining Attempts: ${attemptsLeft}`;
-      document.getElementById('riddle-box').innerText = riddle ? riddle : "(No riddle)";
+      document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.target.attemptsLeft}`;
+      document.getElementById('riddle-box').innerText = data.target.riddle ? data.target.riddle : "(No riddle)";
 
-      // restarting countdown
-      const oldName = document.getElementById('target-info').innerText;
-      if (data.isCorrect || oldName !== newName) {
-        setTimeout(() => {
-          startCountdown();
-        }, 100);  // ensuring UI not stuck
-      }
+      setTimeout(() => {
+        startCountdown();
+      }, 100);
     }
   })
   .catch(err => {
@@ -473,6 +480,26 @@ function resetGameToInit() {
   countdownSeconds = 1800;
   countdownStartTimestamp = null;
 
+  if (playerMarker) {
+    INIT_MAP.removeLayer(playerMarker);
+    playerMarker = null;
+  }
+
+  if (playerCone) {
+    INIT_MAP.removeLayer(playerCone);
+    playerCone = null;
+  }
+
+  if (searchCircle) {
+    INIT_MAP.removeLayer(searchCircle);
+    searchCircle = null;
+  }
+
+  // landmarkMap.forEach(polygon => {
+  //   INIT_MAP.removeLayer(polygon);
+  // });
+  // landmarkMap.clear();
+
   document.getElementById('countdown-timer').textContent = "";
   document.getElementById('countdown-timer').style.display = 'none';
   document.getElementById('target-info').innerText = "(No target yet)";
@@ -484,6 +511,12 @@ function resetGameToInit() {
   startBtn.innerText = "Start Round";
   startBtn.onclick = startRound;
 
+  // landmarkMap.forEach(polygon => {
+  //   polygon.setStyle({ color: 'darkgrey' });
+  // });
+
+  initMap();
+  updatePlayerViewCone();
   drawRadiusCircle();
 }
 

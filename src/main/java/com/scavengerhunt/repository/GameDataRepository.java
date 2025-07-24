@@ -44,9 +44,10 @@ public class GameDataRepository {
             .toList();
     }
 
-    public Double getLandmarkRatingById(String landmarkId){
+    public double getLandmarkRatingById(String landmarkId){
         Landmark landmark = findLandmarkById(landmarkId);
-    return (landmark != null) ? landmark.getRating() : 0.5;
+        Double rating = (landmark != null) ? landmark.getRating() : null;
+        return (rating != null) ? rating : 0.5;
     }
    
     public void updateLandmarkRating(String landmarkId, Double rating) {

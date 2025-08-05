@@ -42,6 +42,8 @@
     </div>
     <div id="chances-left" style="display: none; margin-left: 10px;"></div>
 
+
+
     <div id="radius-ui" style="display: none; margin-top: 8px;">
       <label for="radius-slider">Search Radius (meters): </label>
       <input type="range" id="radius-slider" min="50" max="300" value="50" />
@@ -58,6 +60,15 @@
     
     <div id="riddle-box" style="margin-top: 8px; font-style: italic; white-space: pre-line;">
       (No riddle yet)
+    </div>
+    
+    <hr />
+    
+    <div id="calibration-status" style="margin-top: 8px;">
+      <b>Device Calibration:</b>
+      <button id="calibration-btn" style="margin-left: 10px; font-size: 12px;">Calibrate</button>
+      <br />
+      <span id="calibration-info">Not calibrated</span>
     </div>
   </div>
 

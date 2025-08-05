@@ -38,12 +38,13 @@ let currentTargetId = null;
 
 let isCalibrating = false;
 let calibrationPoints = [];
+let calibratedAngleOffset = null;  // 校准后的角度偏移量 (Calibrated angle offset)
 
 
 
 
 // const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
-const LOCAL_HOST = "https://6ae7a9bfd381.ngrok-free.app"  // Ngrok
+const LOCAL_HOST = "https://3efed167c322.ngrok-free.app"  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 
@@ -54,6 +55,7 @@ const logoutBtn = document.getElementById('logout-btn');
 const startBtn = document.getElementById('start-round-btn');
 const submitBtn = document.getElementById('submit-answer-btn');
 const radiusSlider = document.getElementById('radius-slider');
+const calibrationBtn = document.getElementById('calibration-btn')
 let sliderRadius = parseFloat(radiusSlider.value);  // Current value of slider
 
 // ========== Init Game Space ==========
@@ -67,6 +69,16 @@ function ensureUserId() {
     localStorage.setItem('role', "GUEST");
     console.log("[Frontend][Init] Generate guest userId: ", userId);
   }
+  
+  // 恢复之前保存的校准角度偏移量 (Restore previously saved calibrated angle offset)
+  const savedCalibration = localStorage.getItem("calibratedAngleOffset");
+  if (savedCalibration && calibratedAngleOffset === null) {
+    calibratedAngleOffset = parseFloat(savedCalibration);
+    console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
+  }
+  
+  // 更新校准状态显示 (Update calibration status display)
+  setTimeout(() => updateCalibrationStatus(), 100);
 }
 
 function updateAuthUI() {
@@ -78,7 +90,10 @@ function updateAuthUI() {
   
   // radiusSlider.disable = roundStarted ? true : false;
   document.getElementById('radius-ui').style.display = isGuest || roundStarted ? 'none' : 'block';
-  startBtn.disabled = isGuest || roundStarted;
+  
+  // Start Round 按钮需要满足：非guest用户 && 未开始游戏 && 已校准
+  const canStartRound = !isGuest && !roundStarted && isCalibrated();
+  startBtn.disabled = !canStartRound;
 }
   
 function initMap() {
@@ -193,7 +208,6 @@ function login(username, password) {
 
     alert('Logged In.');
     updateAuthUI();
-    startCalibration(); 
     // initMap();
     // setupInteractions();
     // initGame();
@@ -281,13 +295,18 @@ function finishCalibration(){
 
   const pathBearing = calculateAbsoluteAngle(a, b);  
 
-  
+  // 保存校准后的角度偏移量到全局变量 (Save calibrated angle offset to global variable)
+  calibratedAngleOffset = pathBearing;
   console.log("[Calibration] Movement-based heading:", pathBearing.toFixed(2));
+  console.log("[Calibration] Saved to global variable calibratedAngleOffset:", calibratedAngleOffset);
 
   alert(`Calibration Success! You are facing around ${Math.round(pathBearing)}°`);
 
+  // 保存到 localStorage 以实现持久化 (Save to localStorage for persistence)
+  localStorage.setItem("calibratedAngleOffset", pathBearing.toString());
 
-  sessionStorage.setItem("calibrationOffsetPending", pathBearing.toString());
+  // 更新界面显示校准状态 (Update UI to show calibration status)
+  updateCalibrationStatus();
 
   isCalibrating = false;
   initMap();
@@ -429,6 +448,11 @@ function startRound() {
   let role = localStorage.getItem('role');
   if (role === 'GUEST') {
     console.log("[Frontend] Please Log in First");
+    return;
+  }
+
+  if (!isCalibrated()) {
+    alert("Please calibrate your device first before starting the round.");
     return;
   }
 
@@ -635,6 +659,53 @@ function updateTestPlayerPosition(lat, lng, angle) {
   });
 }
   
+// ========== Calibration Helper Functions ==========
+
+/**
+ * 获取校准后的角度偏移量 (Get calibrated angle offset)
+ * @returns {number|null} 校准后的角度偏移量，如果未校准则返回null
+ */
+function getCalibratedAngleOffset() {
+  return calibratedAngleOffset;
+}
+
+/**
+ * 检查是否已完成校准 (Check if calibration is completed)
+ * @returns {boolean} 是否已校准
+ */
+function isCalibrated() {
+  return calibratedAngleOffset !== null;
+}
+
+/**
+ * 重置校准数据 (Reset calibration data)
+ */
+function resetCalibration() {
+  calibratedAngleOffset = null;
+  localStorage.removeItem("calibratedAngleOffset");
+  updateCalibrationStatus();
+  console.log("[Frontend] Calibration data reset");
+}
+
+/**
+ * 更新校准状态显示 (Update calibration status display)
+ */
+function updateCalibrationStatus() {
+  const statusElement = document.getElementById('calibration-info');
+  if (statusElement) {
+    if (isCalibrated()) {
+      statusElement.textContent = `Calibrated: ${Math.round(calibratedAngleOffset)}°`;
+      statusElement.style.color = 'green';
+    } else {
+      statusElement.textContent = 'Not calibrated';
+      statusElement.style.color = 'red';
+    }
+  }
+  
+  // 同时更新UI状态，包括Start Round按钮的可用性 (Also update UI state including Start Round button availability)
+  updateAuthUI();
+}
+
 // ========== Tool Functions ==========
 
 function startCountdown() {
@@ -825,6 +896,10 @@ document.addEventListener('DOMContentLoaded', () => {
   submitBtn.addEventListener('click', () => {
     submitAnswer();
   });
+
+  calibrationBtn.addEventListener('click', () => {
+    startCalibration();
+  })
 
   document.getElementById('rotation-toggle').addEventListener('click', () => {
     enableMapRotation = !enableMapRotation;

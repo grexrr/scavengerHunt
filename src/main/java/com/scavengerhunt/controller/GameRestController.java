@@ -191,11 +191,12 @@ public class GameRestController {
         }
 
         // target info: currentTarget or nextTarget
-        Map<String, Object> target = session.getCurrentTarget();
-        if (target != null) {
-            response.put("target", target); // id, name, attemptsLeft
+        if (!gameFinished) {
+            Map<String, Object> target = session.getCurrentTarget();
+            if (target != null) {
+                response.put("target", target);
+            }
         }
-
         return ResponseEntity.ok(response);
     }
 

@@ -9,7 +9,16 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
   <style>
-    #map { height: 100vh; }
+    #map {
+      width: 200vw;
+      height: 200vh;
+      position: absolute;
+      top: -50vh;
+      left: -50vw;
+      /* transform: rotate(90deg); */
+      transform-origin: center center;
+      z-index: 0;
+    }
     .info-box {
       position: absolute;
       top: 10px;

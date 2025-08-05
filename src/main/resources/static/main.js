@@ -9,7 +9,7 @@ let dragStart = null;  // Stores the starting point of mouse drag
 
 let playerCone = null;
 const spanDeg = 30;
-const coneRadiusMeters = 50;
+const coneRadiusMeters = 250;
 
 let playerMarker = null;  // The player's arrow marker on the INIT_MAP
 const icon = L.icon({     // Custom icon for player marker
@@ -38,8 +38,8 @@ let currentTargetId = null;
 
 
 
-const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
-// const LOCAL_HOST = "https://a1b5eb05eeac.ngrok-free.app"  // Ngrok
+// const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
+const LOCAL_HOST = "https://6ae7a9bfd381.ngrok-free.app"  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 
@@ -95,6 +95,7 @@ function initMap() {
     fetchPlayerCoord();
   }
 }
+
 
 function initGame(){
   ensureUserId();
@@ -212,6 +213,8 @@ function fetchPlayerCoord() {
   // reference 
   // Real time location tracker app on leafletjs || HTML5 geolocation || Tekson
   // https://www.youtube.com/watch?v=8KX4_4NK7ZY
+
+  if (localStorage.getItem('role') === 'ADMIN') return;
 
   if (!navigator.geolocation) {
     alert('Geolocation is not supported on this device.');
@@ -368,7 +371,11 @@ function startRound() {
     body: JSON.stringify(requestBody)
   })
   .then(res => {
-    if (!res.ok) throw new Error('[Frontend] Failed to fetch current target');
+    if (res.status === 404) {
+      resetGameToInit();
+      alert("Session expired. Please start a new game.");
+      throw new Error("Session expired");
+    }
     return res.json();
   })
   .then(data => {
@@ -646,18 +653,21 @@ function calculateAngle(start, end) {
 }
 
 function initOrientationListener() {
-  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-    // iOS 
+  if (
+    typeof DeviceOrientationEvent !== 'undefined' &&
+    typeof DeviceOrientationEvent.requestPermission === 'function'
+  ) {
+    // iOS
     DeviceOrientationEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === 'granted') {
-          window.addEventListener('deviceorientation', handleOrientation, true);
+      .then(state => {
+        if (state === 'granted') {
+          window.addEventListener('deviceorientationabsolute', handleOrientation, true);
         }
       })
       .catch(console.error);
   } else {
-    // Android 
-    window.addEventListener('deviceorientation', handleOrientation, true);
+    // Android
+    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
   }
 }
 
@@ -667,8 +677,9 @@ function handleOrientation(event) {
   if (event.webkitCompassHeading !== undefined) {
     heading = event.webkitCompassHeading;
   } else if (event.alpha !== null) {
-    heading = 360 - event.alpha;
-    console.warn("[Frontend][Orientation] Fallback to alpha. May be imprecise.");
+    // ✅ 镜像+修正起点
+    heading = (360 - event.alpha + 90) % 360;
+    console.warn("[Frontend][Orientation] Android compass adjusted heading:", heading);
   }
 
   if (heading !== undefined) {
@@ -676,30 +687,12 @@ function handleOrientation(event) {
 
     if (playerCoord && playerCoord.lat != null) {
       updatePlayerViewCone();
-
-      const role = localStorage.getItem('role');
-      
-      if (playerMarker) {
-        if (role === 'ADMIN') {
-          playerMarker.setRotationAngle(playerAngle);  // ADMIN: marker rotation
-        } else {
-          playerMarker.setRotationAngle(0);  // non ADMIN：marker always up north
-        }
-      }
-
-      // non admin map rotation
-      if (role !== 'ADMIN' && enableMapRotation) {
-        const mapContainer = document.getElementById('map');
-        mapContainer.style.transform = `rotate(-${playerAngle}deg)`;
-        mapContainer.style.transformOrigin = 'center center';
-        mapContainer.style.transition = 'transform 0.1s linear';
-      }
+      if (playerMarker) playerMarker.setRotationAngle(playerAngle);
     }
 
     document.getElementById('angle-display').innerText = `Angle: ${heading.toFixed(2)}°`;
   }
 }
-
 
 // ========== Main ==========
 

@@ -289,11 +289,21 @@ public class GameSession {
             System.out.println("[Debug] Game is finished, returning null for current target");
             return null;
         }
+
+        if (this.targetPool == null || this.targetPool.isEmpty()) {
+            System.out.println("[Debug] Target pool empty. Game should be finished.");
+            return null;
+        }
         
         // If current target is null, try to select next target
         if (this.currentTarget == null) {
             System.out.println("[Debug] Current target is null, attempting to select next target");
             this.currentTarget = selectNextTarget();
+        }
+
+        if (this.currentTarget == null) {
+            System.out.println("[Debug] No current target available.");
+            return null;
         }
 
         Map<String, Object> result = new HashMap<>();

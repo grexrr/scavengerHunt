@@ -36,6 +36,10 @@ let currentTargetCoord = null;
 let currentTargetId = null;
 
 
+let isCalibrating = false;
+let calibrationPoints = [];
+
+
 
 
 // const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
@@ -189,10 +193,11 @@ function login(username, password) {
 
     alert('Logged In.');
     updateAuthUI();
-    initMap();
-    setupInteractions();
-    initGame();
-    drawRadiusCircle(); 
+    startCalibration(); 
+    // initMap();
+    // setupInteractions();
+    // initGame();
+    // drawRadiusCircle(); 
   })
 }
 
@@ -208,6 +213,89 @@ function logout(){
 }
 
 // ========== Player Movement ==========
+
+// ========== Calibration ==========
+
+function calculateAbsoluteAngle(A, B){
+  const dy = B.lat - A.lat;
+  const dx = B.lng - A.lng;
+  const theta = Math.atan2(dx, dy);
+  let angle = theta * (180 / Math.PI);
+  if (angle < 0) angle += 360;
+  return angle; 
+}
+
+function startCalibration() {
+  alert("Starting Calibration! Please lay flat your device. And walk 2~3 meters.");
+  isCalibrating = true;
+  calibrationPoints = [];
+
+  if (geoWatchId !== null) {
+    navigator.geolocation.clearWatch(geoWatchId);
+  }
+
+  geoWatchId = navigator.geolocation.watchPosition(
+    position => {
+      const latlng = L.latLng(position.coords.latitude, position.coords.longitude);
+
+      if (calibrationPoints.length === 0) {
+        calibrationPoints.push(latlng);
+        return;
+      }
+
+      const last = calibrationPoints[calibrationPoints.length - 1];
+      const distance = last.distanceTo(latlng);
+
+      if (distance > 0.4) { // move at least 1 meter
+        calibrationPoints.push(latlng);
+        console.log(`[Calibration] Point ${calibrationPoints.length}:`, latlng);
+
+        if (calibrationPoints.length >= 5) {
+          // stop sampling
+          navigator.geolocation.clearWatch(geoWatchId);
+          geoWatchId = null;
+          finishCalibration();
+        }
+      }
+    },
+    error => {
+      alert("Calibration failed. Please check authority.");
+      console.error("[Calibration] GPS error:", error);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 1000
+    }
+  );
+}
+
+function finishCalibration(){
+  if (calibrationPoints.length < 2){
+    alert("Calibration Fail! Please walk a few more step");
+    startCalibration();
+  }
+
+  const a = calibrationPoints[0];
+  const b = calibrationPoints[calibrationPoints.length - 1];
+
+  const pathBearing = calculateAbsoluteAngle(a, b);  
+
+  
+  console.log("[Calibration] Movement-based heading:", pathBearing.toFixed(2));
+
+  alert(`Calibration Success! You are facing around ${Math.round(pathBearing)}°`);
+
+
+  sessionStorage.setItem("calibrationOffsetPending", pathBearing.toString());
+
+  isCalibrating = false;
+  initMap();
+  setupInteractions();
+  initGame();
+  drawRadiusCircle();
+}
+
 
 function fetchPlayerCoord() {
   // reference 

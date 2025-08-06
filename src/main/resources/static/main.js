@@ -71,11 +71,11 @@ function ensureUserId() {
   }
   
   // 恢复之前保存的校准角度偏移量 (Restore previously saved calibrated angle offset)
-  const savedCalibration = localStorage.getItem("calibratedAngleOffset");
-  if (savedCalibration && calibratedAngleOffset === null) {
-    calibratedAngleOffset = parseFloat(savedCalibration);
-    console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
-  }
+  // const savedCalibration = localStorage.getItem("calibratedAngleOffset");
+  // if (savedCalibration && calibratedAngleOffset === null) {
+  //   calibratedAngleOffset = parseFloat(savedCalibration);
+  //   console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
+  // }
   
   // 更新校准状态显示 (Update calibration status display)
   setTimeout(() => updateCalibrationStatus(), 100);
@@ -230,14 +230,6 @@ function logout(){
 
 // ========== Calibration ==========
 
-function calculateAbsoluteAngle(A, B){
-  const dy = B.lat - A.lat;
-  const dx = B.lng - A.lng;
-  const theta = Math.atan2(dx, dy);
-  let angle = theta * (180 / Math.PI);
-  if (angle < 0) angle += 360;
-  return angle; 
-}
 
 function startCalibration() {
   alert("Starting Calibration! Please lay flat your device. And walk 2~3 meters.");
@@ -293,7 +285,7 @@ function finishCalibration(){
   const a = calibrationPoints[0];
   const b = calibrationPoints[calibrationPoints.length - 1];
 
-  const pathBearing = calculateAbsoluteAngle(a, b);  
+  const pathBearing = calculateAngle(a, b);  
 
   // 保存校准后的角度偏移量到全局变量 (Save calibrated angle offset to global variable)
   calibratedAngleOffset = pathBearing;
@@ -302,10 +294,8 @@ function finishCalibration(){
 
   alert(`Calibration Success! You are facing around ${Math.round(pathBearing)}°`);
 
-  // 保存到 localStorage 以实现持久化 (Save to localStorage for persistence)
-  localStorage.setItem("calibratedAngleOffset", pathBearing.toString());
+  // 这里原本有 localStorage.setItem("calibratedAngleOffset", ...) 的代码，已删除
 
-  // 更新界面显示校准状态 (Update UI to show calibration status)
   updateCalibrationStatus();
 
   isCalibrating = false;
@@ -658,53 +648,7 @@ function updateTestPlayerPosition(lat, lng, angle) {
     }
   });
 }
-  
-// ========== Calibration Helper Functions ==========
 
-/**
- * 获取校准后的角度偏移量 (Get calibrated angle offset)
- * @returns {number|null} 校准后的角度偏移量，如果未校准则返回null
- */
-function getCalibratedAngleOffset() {
-  return calibratedAngleOffset;
-}
-
-/**
- * 检查是否已完成校准 (Check if calibration is completed)
- * @returns {boolean} 是否已校准
- */
-function isCalibrated() {
-  return calibratedAngleOffset !== null;
-}
-
-/**
- * 重置校准数据 (Reset calibration data)
- */
-function resetCalibration() {
-  calibratedAngleOffset = null;
-  localStorage.removeItem("calibratedAngleOffset");
-  updateCalibrationStatus();
-  console.log("[Frontend] Calibration data reset");
-}
-
-/**
- * 更新校准状态显示 (Update calibration status display)
- */
-function updateCalibrationStatus() {
-  const statusElement = document.getElementById('calibration-info');
-  if (statusElement) {
-    if (isCalibrated()) {
-      statusElement.textContent = `Calibrated: ${Math.round(calibratedAngleOffset)}°`;
-      statusElement.style.color = 'green';
-    } else {
-      statusElement.textContent = 'Not calibrated';
-      statusElement.style.color = 'red';
-    }
-  }
-  
-  // 同时更新UI状态，包括Start Round按钮的可用性 (Also update UI state including Start Round button availability)
-  updateAuthUI();
-}
 
 // ========== Tool Functions ==========
 
@@ -767,7 +711,22 @@ function updatePlayerViewCone() {
 
   if (!playerCoord || (playerCoord.lat == null || playerCoord.lng == null)) return;
 
-  let angle = (localStorage.getItem('role') === 'ADMIN') ? testPlayerAngle : playerAngle;
+  // let angle = (localStorage.getItem('role') === 'ADMIN') ? testPlayerAngle : playerAngle;
+
+  let angle;
+  
+  if (localStorage.getItem('role') === 'ADMIN'){
+    angle = testPlayerAngle;
+  } else {
+    if(calibratedAngleOffset !== null){
+      angle = 0;
+      mapRotation = -calibratedAngleOffset;
+    } else {
+      angle = playerAngle;
+      mapRotation = 0;
+    }
+  }
+
   if (angle == null) return;
 
   const resolution = 20;  

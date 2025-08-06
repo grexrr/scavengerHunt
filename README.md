@@ -819,97 +819,30 @@ main.js
 
   * **Validation**: System successfully achieves navigation-like behavior where view cone appears fixed on screen while map rotates to maintain real-world accuracy, enabling intuitive landmark detection gameplay.
 
----
+  * **Critical frontend-backend synchronization fix**: Resolved viewCone display vs detection inconsistency
+    * **Problem**: Frontend showed visual overlap but backend detection failed randomly
+    * **Root cause**: Angle calculation inconsistencies across functions (`initGame` vs `startRound` vs `updateViewCone`)
+    * **Double calibration bug**: `playerAngle = heading - rawAngleAtCalibration` then `angle = calibratedAngleOffset + playerAngle`
+    * **Core issue**: Frontend used real-time angles, backend used stale stored angles from last `startRound`
 
-## Critical Architecture Issue Resolution - ViewCone Frontend/Backend Inconsistency (2024-12-22)
+  * **Solution implementation**:
+    * **Unified angle calculation**: `angle = (calibratedAngleOffset + playerAngle) % 360` everywhere
+    * **Eliminate double calibration**: Store raw `playerAngle = heading` in `handleOrientation`
+    * **Real-time synchronization**: Submit `currentAngle` in answer requests, update backend player state immediately
+    * **Frontend**: `{userId, secondsUsed, currentAngle, latitude, longitude}`
+    * **Backend**: `session.updatePlayerPosition(latitude, longitude, currentAngle)` before detection
 
-### **Problem Description**
-In Player mode, the frontend displayed viewCone visually overlapped with landmarks, but answer submission was judged incorrect by the backend. Same angle positions sometimes succeeded, sometimes failed, while Admin mode worked normally.
+  * **Architectural transformation**:
+    * **From**: Asynchronous angle sync with stored state
+    * **To**: Synchronous real-time angle transmission
+    * **Result**: "What You See Is What You Get" - visual overlap guarantees detection success
+    * **Validation**: Pre-fix `199.5°` vs `128.44°` inconsistency → Post-fix `231.24°` perfect sync
 
-### **Root Cause Analysis**
-
-This issue exposed a critical flaw in the **fixed-map, dynamic-viewcone** architecture: frontend-backend angle state desynchronization.
-
-#### **1. Inconsistent Angle Calculations**
-```javascript
-// Error: Different functions used different angle calculation logic
-initGame():     angle = calibratedAngleOffset + playerAngle         // ✓ Correct
-startRound():   angle = (calibratedAngleOffset + 180) + playerAngle // ❌ Extra +180 degrees
-updateViewCone(): angle = calibratedAngleOffset + playerAngle       // ✓ Correct
-```
-
-#### **2. Double Calibration Problem**
-```javascript
-// Erroneous logic in handleOrientation
-playerAngle = heading - rawAngleAtCalibration;  // First calibration
-// Then when sending to backend
-angle = calibratedAngleOffset + playerAngle;    // Second calibration → Double calibration
-```
-
-#### **3. Angle Desynchronization on Submission (Core Issue)**
-- **Frontend Display**: Uses real-time `calibratedAngleOffset + playerAngle`  
-- **Backend Detection**: Uses stored historical angle (from last startRound)
-- **Submit Request**: Only sends `{userId, secondsUsed}`, excluding current angle
-
-### **Solution Implementation**
-
-#### **1. Unified Angle Calculation**
-```javascript
-// Use identical angle calculation logic everywhere
-if (calibratedAngleOffset !== null) {
-  angle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
-  if (angle < 0) angle += 360;  // Normalize to 0-360 degrees
-}
-```
-
-#### **2. Eliminate Double Calibration**
-```javascript
-// Always store raw angle in handleOrientation
-playerAngle = heading;  // No calibration here
-// Calibration offset applied only when needed (initGame, startRound, updatePlayerViewCone)
-```
-
-#### **3. Real-time Angle Synchronization**
-**Frontend Modification**:
-```javascript
-const requestBody = {
-  userId: localStorage.getItem('userId'),
-  secondsUsed: secondsUsed,
-  currentAngle: currentAngle,        // 🔑 Add current real-time angle
-  latitude: playerCoord?.lat ?? 0.0,
-  longitude: playerCoord?.lng ?? 0.0
-};
-```
-
-**Backend Modification**:
-```java
-// Update player state in submitAnswer API
-if (currentAngleStr != null && latitudeStr != null && longitudeStr != null) {
-    session.updatePlayerPosition(latitude, longitude, currentAngle);  // 🔑 Use real-time state at submission
-}
-boolean isCorrect = session.submitCurrentAnswer(secondsUsed);
-```
-
-### **Architectural Pivot Significance**
-
-This fix represents a crucial architectural transformation:
-
-- **From**: Asynchronous angle synchronization relying on stored state  
-- **To**: Synchronous angle transmission based on real-time state
-
-**Core Value**: Ensures "What You See Is What You Get" — the viewCone users see is exactly the playerCone used for backend detection.
-
-### **Technical Validation**
-- **Pre-fix**: Frontend `199.5°` vs Backend `128.44°` (angle inconsistency)
-- **Post-fix**: Frontend `231.24°` vs Backend `231.24°` (perfect synchronization)
-- **Detection Result**: `Landmark intersects with player cone` ✅
-- **User Experience**: Visual overlap guarantees detection success, eliminating randomness
-
-### **Key Technical Principles**
-1. **Fixed-map, rotating-viewcone** design requires strict frontend-backend angle synchronization
-2. **Post-calibration absolute angle** serves as the system's single source of truth  
-3. **Real-time state transmission** is more reliable than stored state queries
-4. **Angle normalization** must be consistently applied at all calculation points
+  * **First-person view enhancement**: Implemented map rotation to create immersive navigation experience
+    * **Two-phase approach**: First stabilize viewCone-map relationship, then add CSS rotation
+    * **Phase 1**: Ensure calibration accuracy with `coneAngle = (calibratedAngleOffset + playerAngle) % 360`
+    * **Phase 2**: Real-time map rotation with `INIT_MAP.getContainer().style.transform = rotate(-currentAbsoluteAngle)deg`
+    * **Design principle**: Separate functional correctness from visual presentation - maintains detection accuracy while viewCone always points toward phone's top
 
 
 

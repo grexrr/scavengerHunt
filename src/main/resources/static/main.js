@@ -9,7 +9,7 @@ let mapRotation = 0;  // Map rotation angle
 let dragStart = null;  // Stores the starting point of mouse drag
 
 let playerCone = null;
-const spanDeg = 30;
+const spanDeg = 60;
 const coneRadiusMeters = 250;
 
 let playerMarker = null;  // The player's arrow marker on the INIT_MAP
@@ -548,9 +548,8 @@ function startRound() {
   if (localStorage.getItem('role') === 'ADMIN') {
     effectiveAngle = testPlayerAngle ?? 0.0;
   } else if (isCalibrated()) {
-    // Calibrated mode: use calibrated angle + current angle
-    effectiveAngle = calibratedAngleOffset + (playerAngle ?? 0.0);
-  } else {
+    effectiveAngle = (calibratedAngleOffset + 180) + (playerAngle ?? 0.0);
+} else {
     effectiveAngle = playerAngle ?? 0.0;
   }
 

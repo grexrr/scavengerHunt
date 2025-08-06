@@ -36,8 +36,9 @@
   let currentTargetId = null;
 
   let isCalibrating = false;
-let calibrationPoints = [];
-let calibratedAngleOffset = null;  // Calibrated angle offset
+  let calibrationPoints = [];
+  let calibratedAngleOffset = null;  // Calibrated angle offset
+  let currentAbsoluteAngle = 0;  // Current absolute angle for map rotation
 
   // const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
   const LOCAL_HOST = "https://3efed167c322.ngrok-free.app"  // Ngrok
@@ -393,7 +394,8 @@ let calibratedAngleOffset = null;  // Calibrated angle offset
   
       window.addEventListener('deviceorientationabsolute', oneTimeHandler, true);
     }
-  
+    
+
     isCalibrating = false;
     initGame();
     drawRadiusCircle();
@@ -437,6 +439,12 @@ let calibratedAngleOffset = null;  // Calibrated angle offset
       }
   
       updatePlayerViewCone(playerAngle);
+      
+      // Update map rotation for first-person view
+      if (calibratedAngleOffset !== null) {
+        currentAbsoluteAngle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
+        INIT_MAP.getContainer().style.transform = `rotate(${-currentAbsoluteAngle}deg)`;
+      }
   
       if (playerCoord && playerCoord.lat != null) {
         if (playerMarker) {

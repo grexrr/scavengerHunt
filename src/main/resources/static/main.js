@@ -91,8 +91,8 @@ function applyMapRotation(angle) {
 
 // Clean localStorage garbage data function
 function cleanLocalStorage() {
-  // Keep important keys
-  const keysToKeep = ['userId', 'username', 'role'];
+  // Keep important keys including calibration data
+  const keysToKeep = ['userId', 'username', 'role', 'calibratedAngleOffset'];
   const currentValues = {};
   
   // Backup values to keep
@@ -127,11 +127,11 @@ function ensureUserId() {
   }
   
   // Restore previously saved calibrated angle offset
-  // const savedCalibration = localStorage.getItem("calibratedAngleOffset");
-  // if (savedCalibration && calibratedAngleOffset === null) {
-  //   calibratedAngleOffset = parseFloat(savedCalibration);
-  //   console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
-  // }
+  const savedCalibration = localStorage.getItem("calibratedAngleOffset");
+  if (savedCalibration && calibratedAngleOffset === null) {
+    calibratedAngleOffset = parseFloat(savedCalibration);
+    console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
+  }
   
   // Update calibration status display
   setTimeout(() => updateCalibrationStatus(), 100);
@@ -282,12 +282,18 @@ function login(username, password) {
 function logout(){
   localStorage.removeItem('userId');
   localStorage.removeItem('username');
+  localStorage.removeItem('calibratedAngleOffset');  // Clear calibration on logout
   localStorage.setItem('role', "GUEST");
+  
+  // Reset calibration state
+  calibratedAngleOffset = null;
+  isCalibrating = false;
+  
   resetGameToInit(); 
   initMap();
   updateAuthUI(); 
   setupInteractions();
-  alert('Logut successful.')
+  alert('Logout successful.')
 }
 
 // ========== Player Movement ==========
@@ -353,8 +359,9 @@ function finishCalibration(){
 
   const pathBearing = calculateAngle(a, b);  
 
-  // Save calibrated angle offset to global variable
+  // Save calibrated angle offset to global variable and localStorage
   calibratedAngleOffset = pathBearing;
+  localStorage.setItem("calibratedAngleOffset", calibratedAngleOffset.toString());
 
     // Calculate distance to verify movement
   const distance = a.distanceTo(b);
@@ -702,6 +709,11 @@ function resetGameToInit() {
   radiusSlider.disabled = false;
   countdownSeconds = 1800;
   countdownStartTimestamp = null;
+
+  // Reset map rotation to prevent shaking
+  const mapContainer = INIT_MAP.getContainer();
+  mapContainer.style.transform = 'rotate(0deg)';
+  mapRotation = 0;
 
   if (playerMarker) {
     INIT_MAP.removeLayer(playerMarker);

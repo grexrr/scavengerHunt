@@ -61,8 +61,8 @@ public class Player {
         List<Coordinate> coords = new ArrayList<>();
         coords.add(new Coordinate(longitude, latitude)); // lng first, starting with player coord
 
-        double step = this.spanDeg / resolution;
-        double startAngle = angle - this.spanDeg/ 2;
+        double step = spanDeg / resolution;
+        double startAngle = angle - spanDeg / 2;
 
         for (int i = 0; i <= resolution; i++) {
             double theta = Math.toRadians(startAngle + i * step);

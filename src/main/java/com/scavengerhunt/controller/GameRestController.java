@@ -211,6 +211,19 @@ public class GameRestController {
         long secondsUsed = Long.parseLong(request.get("secondsUsed")); 
         System.out.println("[Debug] Seconds used: " + secondsUsed);
 
+        // Update player position with current angle if provided
+        String currentAngleStr = request.get("currentAngle");
+        String latitudeStr = request.get("latitude");
+        String longitudeStr = request.get("longitude");
+        
+        if (currentAngleStr != null && latitudeStr != null && longitudeStr != null) {
+            double currentAngle = Double.parseDouble(currentAngleStr);
+            double latitude = Double.parseDouble(latitudeStr);
+            double longitude = Double.parseDouble(longitudeStr);
+            session.updatePlayerPosition(latitude, longitude, currentAngle);
+            System.out.println("[Debug] Updated player position with current angle: " + currentAngle);
+        }
+
         boolean isCorrect = session.submitCurrentAnswer(secondsUsed);
         boolean gameFinished = session.isGameFinished();
         

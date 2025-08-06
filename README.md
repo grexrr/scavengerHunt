@@ -776,6 +776,49 @@ main.js
     * `PuzzleManager` will use landmark rating to guide riddle difficulty;
     * Full game round stats per user will be collected for future visualization and analysis.
 
+---
+
+#### **Aug. 6 2025**
+
+* **Device orientation calibration system:**
+
+  * **Challenge identification**: Realized that accurate angle measurement requires device to be properly oriented during initialization:
+    * Browser APIs don't support direct access to absolute device orientation
+    * `DeviceOrientationEvent.alpha` provides relative orientation from arbitrary starting position
+    * Without calibration, view cone direction would be incorrect relative to real-world geography
+
+  * **Walking-based calibration mechanism**: Introduced step-based calibration to establish absolute orientation:
+    * User prompted to "lay device flat and walk 2-3 meters" when calibration starts
+    * System collects GPS points during movement (`distance > 0.4m` threshold)
+    * Calculates movement bearing using `calculateAngle(startPoint, endPoint)`
+    * Stores `calibratedAngleOffset` as the absolute direction user was facing during calibration
+
+  * **Map tracking mode implementation**: Post-calibration behavior mimics navigation app experience:
+    * **View cone**: Always points toward screen top (fixed in screen coordinates)
+    * **Map rotation**: Dynamically rotates to maintain correct real-world correspondence
+    * **Formula**: `mapRotation = -(calibratedAngleOffset + currentPlayerAngle)`
+    * **Effect**: Device rotates X degrees → map counter-rotates X degrees, maintaining geographic accuracy
+
+  * **Angle calculation logic**: Unified angle handling across different user modes:
+    * **Admin mode**: Uses `testPlayerAngle` for manual testing
+    * **Calibrated mode**: Uses `calibratedAngleOffset + playerAngle` for accurate real-world mapping  
+    * **Uncalibrated mode**: Falls back to raw `playerAngle` from device orientation
+
+  * **UI/UX improvements**:
+    * Added calibration status display with current offset angle
+    * Real-time angle display for debugging
+    * Start Round button disabled until calibration completed
+    * Automatic localStorage cleanup to prevent data corruption from previous sessions
+
+  * **Technical implementation**:
+    * `startCalibration()`: Initiates GPS tracking and point collection
+    * `finishCalibration()`: Computes bearing and sets global calibration state
+    * `updatePlayerViewCone()`: Handles both cone positioning and map rotation
+    * `applyMapRotation(angle)`: Applies CSS transform to map container
+    * Consistent angle calculation in both `initGame()` and `startRound()` APIs
+
+  * **Validation**: System successfully achieves navigation-like behavior where view cone appears fixed on screen while map rotates to maintain real-world accuracy, enabling intuitive landmark detection gameplay.
+
 
 
     

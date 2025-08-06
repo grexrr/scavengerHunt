@@ -354,10 +354,17 @@ function finishCalibration(){
 
   // Save calibrated angle offset to global variable
   calibratedAngleOffset = pathBearing;
-  console.log("[Calibration] Movement-based heading:", pathBearing.toFixed(2));
-  console.log("[Calibration] Saved to global variable calibratedAngleOffset:", calibratedAngleOffset);
 
-  alert(`Calibration Success! You are facing around ${Math.round(pathBearing)}°`);
+    // Calculate distance to verify movement
+  const distance = a.distanceTo(b);
+  
+  alert(`Calibration Success!
+  Points collected: ${calibrationPoints.length}
+  Distance moved: ${distance.toFixed(1)}m
+  Start: ${a.lat.toFixed(6)}, ${a.lng.toFixed(6)}
+  End: ${b.lat.toFixed(6)}, ${b.lng.toFixed(6)}
+  Calculated angle: ${Math.round(pathBearing)}°
+  Math details: dy=${(b.lat-a.lat).toFixed(8)}, dx=${(b.lng-a.lng).toFixed(8)}`);
 
   // Update calibration status display
   updateCalibrationStatus();
@@ -407,6 +414,14 @@ function fetchPlayerCoord() {
       if (firstUpdate) {
         INIT_MAP.setView(playerCoord, 17);
         firstUpdate = false;
+        
+        // Initialize game session for regular players after first location update
+        if (localStorage.getItem('role') === 'PLAYER') {
+          setTimeout(() => {
+            console.log("[Frontend] Initializing game session for player at:", playerCoord);
+            initGame();
+          }, 500);
+        }
       } else {
         // pan always follows player
         INIT_MAP.panTo(playerCoord);
@@ -555,9 +570,15 @@ function startRound() {
   })
   .then(res => {
     if (res.status === 404) {
-      resetGameToInit();
-      alert("Session expired. Please start a new game.");
-      throw new Error("Session expired");
+      return res.text().then(errorText => {
+        resetGameToInit();
+        if (errorText.includes("No target available")) {
+          alert("No landmarks found in the selected area. Try increasing your search radius or move to a different location.");
+        } else {
+          alert("Session expired. Please start a new game.");
+        }
+        throw new Error(errorText);
+      });
     }
     return res.json();
   })
@@ -806,15 +827,15 @@ function updatePlayerViewCone() {
       const currentPlayerAngle = playerAngle || 0;
       
       // Map rotation: base rotation + real-time device rotation compensation
-      // Base rotation: make real north (0°) correspond to screen top
+      // Base rotation: make calibrated direction correspond to screen top
       // Real-time compensation: device rotates x degrees, map rotates -x degrees
-      mapRotationAngle = -calibratedAngleOffset - currentPlayerAngle;
+      mapRotationAngle = -(calibratedAngleOffset + 180) - currentPlayerAngle;
       
       // viewCone angle: to always point upward on screen, need to counteract map rotation effect
-      // In map coordinate system, viewCone needs to point to (calibratedAngleOffset + currentPlayerAngle) direction
-      coneAngle = calibratedAngleOffset + currentPlayerAngle;
+      // In map coordinate system, viewCone needs to point opposite to map rotation
+      coneAngle = (calibratedAngleOffset + 180) + currentPlayerAngle;
       
-      console.log(`[Map Tracking] Calibrated offset: ${calibratedAngleOffset.toFixed(1)}°, Current angle: ${currentPlayerAngle.toFixed(1)}°, Cone angle: ${coneAngle.toFixed(1)}°, Map rotation: ${mapRotationAngle.toFixed(1)}°`);
+
     } else {
       // Uncalibrated mode: cone follows device angle, map doesn't rotate
       coneAngle = playerAngle || 0;
@@ -871,7 +892,6 @@ function calculateAngle(start, end) {
   // Ensure angle is in 0-360 degree range
   if (angle < 0) angle += 360;
   
-  console.log(`[calculateAngle] From ${start.lat.toFixed(6)}, ${start.lng.toFixed(6)} to ${end.lat.toFixed(6)}, ${end.lng.toFixed(6)} = ${angle.toFixed(2)}°`);
   return angle;
 }
 

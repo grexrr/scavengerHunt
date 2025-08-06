@@ -4,7 +4,7 @@ let city = 'Cork';
 
 let geoWatchId = null;
 let enableMapRotation = true;  // map behavior
-let mapRotation = 0;  // 地图旋转角度 (Map rotation angle)
+let mapRotation = 0;  // Map rotation angle
 
 let dragStart = null;  // Stores the starting point of mouse drag
 
@@ -39,7 +39,7 @@ let currentTargetId = null;
 
 let isCalibrating = false;
 let calibrationPoints = [];
-let calibratedAngleOffset = null;  // 校准后的角度偏移量 (Calibrated angle offset)
+let calibratedAngleOffset = null;  // Calibrated angle offset
 
 
 
@@ -61,12 +61,12 @@ let sliderRadius = parseFloat(radiusSlider.value);  // Current value of slider
 
 // ========== Helper Functions ==========
 
-// 校准状态检查函数 (Calibration status check function)
+// Calibration status check function
 function isCalibrated() {
   return calibratedAngleOffset !== null;
 }
 
-// 更新校准状态显示函数 (Update calibration status display function)
+// Update calibration status display function
 function updateCalibrationStatus() {
   const statusElement = document.getElementById('calibration-info');
   if (statusElement) {
@@ -80,13 +80,38 @@ function updateCalibrationStatus() {
   }
 }
 
-// 应用地图旋转函数 (Apply map rotation function)
+// Apply map rotation function
 function applyMapRotation(angle) {
   if (!enableMapRotation) return;
   
   const mapContainer = INIT_MAP.getContainer();
   mapContainer.style.transform = `rotate(${angle}deg)`;
   mapContainer.style.transformOrigin = 'center';
+}
+
+// Clean localStorage garbage data function
+function cleanLocalStorage() {
+  // Keep important keys
+  const keysToKeep = ['userId', 'username', 'role'];
+  const currentValues = {};
+  
+  // Backup values to keep
+  keysToKeep.forEach(key => {
+    const value = localStorage.getItem(key);
+    if (value !== null) {
+      currentValues[key] = value;
+    }
+  });
+  
+  // Clear localStorage
+  localStorage.clear();
+  
+  // Restore important values
+  Object.keys(currentValues).forEach(key => {
+    localStorage.setItem(key, currentValues[key]);
+  });
+  
+  console.log("[Frontend] LocalStorage cleaned, kept:", Object.keys(currentValues));
 }
 
 // ========== Init Game Space ==========
@@ -101,14 +126,14 @@ function ensureUserId() {
     console.log("[Frontend][Init] Generate guest userId: ", userId);
   }
   
-  // 恢复之前保存的校准角度偏移量 (Restore previously saved calibrated angle offset)
+  // Restore previously saved calibrated angle offset
   // const savedCalibration = localStorage.getItem("calibratedAngleOffset");
   // if (savedCalibration && calibratedAngleOffset === null) {
   //   calibratedAngleOffset = parseFloat(savedCalibration);
   //   console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
   // }
   
-  // 更新校准状态显示 (Update calibration status display)
+  // Update calibration status display
   setTimeout(() => updateCalibrationStatus(), 100);
 }
 
@@ -122,7 +147,7 @@ function updateAuthUI() {
   // radiusSlider.disable = roundStarted ? true : false;
   document.getElementById('radius-ui').style.display = isGuest || roundStarted ? 'none' : 'block';
   
-  // Start Round 按钮需要满足：非guest用户 && 未开始游戏 && 已校准
+  // Start Round button requirements: non-guest user && game not started && calibrated
   const canStartRound = !isGuest && !roundStarted && isCalibrated();
   startBtn.disabled = !canStartRound;
 }
@@ -152,6 +177,9 @@ function initGame(){
   let angle;
   if (localStorage.getItem('role') === 'ADMIN') {
     angle = testPlayerAngle;
+  } else if (isCalibrated()) {
+    // Calibrated mode: use calibrated angle + current angle
+    angle = calibratedAngleOffset + (playerAngle ?? 0.0);
   } else {
     angle = playerAngle;
   }
@@ -214,6 +242,8 @@ function register(username, password){
   })
   .then(msg => {
     console.log('[Frontend][Registration]: Register successful: ', msg);
+    // Also clean localStorage after successful registration
+    cleanLocalStorage();
     login(username, password)
   })
   .catch(err => {
@@ -233,16 +263,18 @@ function login(username, password) {
     return res.json()
   })
   .then(userInfo => {
+    // Clean localStorage garbage data on successful login
+    cleanLocalStorage();
+    
     localStorage.setItem('userId', userInfo.userId);
     localStorage.setItem('username', userInfo.username);
     localStorage.setItem('role', userInfo.role);
 
     alert('Logged In.');
     updateAuthUI();
-    // initMap();
-    // setupInteractions();
-    // initGame();
-    // drawRadiusCircle(); 
+    
+    // Reset game state
+    resetGameToInit();
   })
 }
 
@@ -265,7 +297,8 @@ function logout(){
 function startCalibration() {
   alert("Starting Calibration! Please lay flat your device. And walk 2~3 meters.");
   isCalibrating = true;
-  calibrationPoints = [];
+  calibrationPoints = [];  // Reset calibration points array
+  calibratedAngleOffset = null;  // Reset previous calibration result
 
   if (geoWatchId !== null) {
     navigator.geolocation.clearWatch(geoWatchId);
@@ -319,14 +352,14 @@ function finishCalibration(){
 
   const pathBearing = calculateAngle(a, b);  
 
-  // 保存校准后的角度偏移量到全局变量 (Save calibrated angle offset to global variable)
+  // Save calibrated angle offset to global variable
   calibratedAngleOffset = pathBearing;
   console.log("[Calibration] Movement-based heading:", pathBearing.toFixed(2));
   console.log("[Calibration] Saved to global variable calibratedAngleOffset:", calibratedAngleOffset);
 
   alert(`Calibration Success! You are facing around ${Math.round(pathBearing)}°`);
 
-  // 更新校准状态显示 (Update calibration status display)
+  // Update calibration status display
   updateCalibrationStatus();
 
   isCalibrating = false;
@@ -482,6 +515,10 @@ function startRound() {
     return;
   }
 
+  // Ensure game is initialized
+  console.log("[Frontend] Ensuring game is initialized before starting round...");
+  initGame();
+
   roundStarted = true;
   radiusSlider.disabled = true;
 
@@ -490,13 +527,26 @@ function startRound() {
     searchCircle = null;
   }
 
+  // Calculate correct angle: use calibrated angle in calibrated mode
+  let effectiveAngle;
+  if (localStorage.getItem('role') === 'ADMIN') {
+    effectiveAngle = testPlayerAngle ?? 0.0;
+  } else if (isCalibrated()) {
+    // Calibrated mode: use calibrated angle + current angle
+    effectiveAngle = calibratedAngleOffset + (playerAngle ?? 0.0);
+  } else {
+    effectiveAngle = playerAngle ?? 0.0;
+  }
+
   const requestBody = {
     userId: localStorage.getItem('userId'),
     latitude: playerCoord?.lat ?? 0.0,
     longitude: playerCoord?.lng ?? 0.0,
-    angle: playerAngle ?? 0.0,
+    angle: effectiveAngle,
     radiusMeters: sliderRadius
   };
+
+  console.log("[Frontend] startRound request:", requestBody);
 
   fetch(LOCAL_HOST + '/api/game/start-round', {
     method: 'POST',
@@ -742,26 +792,31 @@ function updatePlayerViewCone() {
 
   if (!playerCoord || (playerCoord.lat == null || playerCoord.lng == null)) return;
 
-  let coneAngle;  // 视野锥在地图坐标系中的角度 (Cone angle in map coordinate system)
-  let mapRotationAngle = 0;  // 地图旋转角度 (Map rotation angle)
+  let coneAngle;  // Cone angle in map coordinate system
+  let mapRotationAngle = 0;  // Map rotation angle
   
   if (localStorage.getItem('role') === 'ADMIN'){
-    // 管理员模式：视野锥跟随testPlayerAngle，地图不旋转
+    // Admin mode: cone follows testPlayerAngle, map doesn't rotate
     coneAngle = testPlayerAngle;
     mapRotationAngle = 0;
   } else {
     if(calibratedAngleOffset !== null){
-      // 校准模式：viewCone永远指向手机上方（屏幕坐标），对应真实的calibratedAngleOffset方向
-      // 在地图坐标系中，viewCone应该指向calibratedAngleOffset方向
-      coneAngle = calibratedAngleOffset;
+      // Calibrated mode: viewCone always points to phone top (screen coordinates)
+      // To make viewCone point upward on screen, need to compensate for map rotation in map coordinate system
+      const currentPlayerAngle = playerAngle || 0;
       
-      // 地图旋转：让真实北方(0°)对应到屏幕上方
-      // 需要将地图逆时针旋转calibratedAngleOffset度
-      mapRotationAngle = -calibratedAngleOffset;
+      // Map rotation: base rotation + real-time device rotation compensation
+      // Base rotation: make real north (0°) correspond to screen top
+      // Real-time compensation: device rotates x degrees, map rotates -x degrees
+      mapRotationAngle = -calibratedAngleOffset - currentPlayerAngle;
       
-      console.log(`[Map Tracking] Calibrated offset: ${calibratedAngleOffset.toFixed(1)}°, Cone angle: ${coneAngle.toFixed(1)}°, Map rotation: ${mapRotationAngle.toFixed(1)}°`);
+      // viewCone angle: to always point upward on screen, need to counteract map rotation effect
+      // In map coordinate system, viewCone needs to point to (calibratedAngleOffset + currentPlayerAngle) direction
+      coneAngle = calibratedAngleOffset + currentPlayerAngle;
+      
+      console.log(`[Map Tracking] Calibrated offset: ${calibratedAngleOffset.toFixed(1)}°, Current angle: ${currentPlayerAngle.toFixed(1)}°, Cone angle: ${coneAngle.toFixed(1)}°, Map rotation: ${mapRotationAngle.toFixed(1)}°`);
     } else {
-      // 未校准模式：视野锥跟随设备角度，地图不旋转
+      // Uncalibrated mode: cone follows device angle, map doesn't rotate
       coneAngle = playerAngle || 0;
       mapRotationAngle = 0;
     }
@@ -769,7 +824,7 @@ function updatePlayerViewCone() {
 
   if (coneAngle == null) return;
 
-  // 应用地图旋转
+  // Apply map rotation
   applyMapRotation(mapRotationAngle);
 
   const resolution = 20;  
@@ -805,11 +860,18 @@ function updatePlayerViewCone() {
 }
 
 function calculateAngle(start, end) {
-  const dy = end.lat - start.lat;
-  const dx = end.lng - start.lng;
+  const dy = end.lat - start.lat;  // latitude difference
+  const dx = end.lng - start.lng;  // longitude difference
+  
+  // Calculate bearing: measured clockwise from north
+  // Math.atan2(dx, dy) gives angle from north
   const theta = Math.atan2(dx, dy);
   let angle = theta * (180 / Math.PI);
+  
+  // Ensure angle is in 0-360 degree range
   if (angle < 0) angle += 360;
+  
+  console.log(`[calculateAngle] From ${start.lat.toFixed(6)}, ${start.lng.toFixed(6)} to ${end.lat.toFixed(6)}, ${end.lng.toFixed(6)} = ${angle.toFixed(2)}°`);
   return angle;
 }
 
@@ -840,7 +902,7 @@ function handleOrientation(event) {
     heading = event.webkitCompassHeading;
   } else if (event.alpha !== null) {
     // Android: calculate from alpha (device orientation around z-axis)
-    // 镜像+修正起点 (Mirror + adjust starting point)
+    // Mirror + adjust starting point
     heading = (360 - event.alpha + 90) % 360;
   }
 
@@ -850,16 +912,16 @@ function handleOrientation(event) {
     if (playerCoord && playerCoord.lat != null) {
       updatePlayerViewCone();
       
-      // 在非校准模式下，更新playerMarker的旋转角度 (In uncalibrated mode, update playerMarker rotation angle)
+      // In uncalibrated mode, update playerMarker rotation angle
       if (playerMarker && !isCalibrated()) {
         playerMarker.setRotationAngle(playerAngle);
       } else if (playerMarker && isCalibrated()) {
-        // 在校准模式下，playerMarker应该始终指向上方 (In calibrated mode, playerMarker should always point upward)
+        // In calibrated mode, playerMarker should always point upward
         playerMarker.setRotationAngle(0);
       }
     }
 
-    // 更新角度显示 (Update angle display)
+    // Update angle display
     const angleDisplay = document.getElementById('angle-display');
     if (angleDisplay) {
       angleDisplay.innerText = `Angle: ${heading.toFixed(2)}°`;
@@ -870,8 +932,12 @@ function handleOrientation(event) {
 // ========== Main ==========
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  window.cleanLocalStorage = cleanLocalStorage;
+
+  
   ensureUserId();
-  updateAuthUI();  // 确保初始化时更新UI状态 (Ensure UI state is updated on initialization)
+  updateAuthUI();  // Ensure UI state is updated on initialization
   setupInteractions();
   
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {

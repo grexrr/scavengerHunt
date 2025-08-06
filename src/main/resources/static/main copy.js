@@ -648,20 +648,15 @@ function submitAnswer() {
       return;
     }
 
-    // Only color the landmark if it was solved (correct answer) OR if target changed (meaning previous target was exhausted)
     const currentTargetName = document.getElementById('target-info').innerText;
-    const shouldColorLandmark = data.isCorrect || (data.target && data.target.name !== currentTargetName);
-    
-    if (shouldColorLandmark) {
-      for (const [id, polygon] of landmarkMap.entries()) {
-        if (polygon && polygon.options && polygon.options.name === currentTargetName) {
-          polygon.setStyle({ color: 'blue' });
-          break;
-        }
+    for (const [id, polygon] of landmarkMap.entries()) {
+      if (polygon && polygon.options && polygon.options.name === currentTargetName) {
+        polygon.setStyle({ color: 'blue' });
+        break;
       }
     }
 
-    // ===== update target info =====
+    // ===== ipdate target info =====
     if (data.target) {
       document.getElementById('target-info').innerText = data.target.name;
       document.getElementById('chances-left').style.display = 'block';

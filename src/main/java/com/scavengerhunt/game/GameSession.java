@@ -54,14 +54,9 @@ public class GameSession {
         double lat = this.playerState.getPlayer().getLatitude();
         double lng = this.playerState.getPlayer().getLongitude();
         
-        System.out.println("[Debug] Starting new round at position: " + lat + ", " + lng + " with radius: " + radiusMeters);
-        System.out.println("[Debug] Game finished state before reset: " + this.playerState.isGameFinished());
-        
         // clear currentTarget!
         this.playerState.resetGame();
         this.currentTarget = null;
-        
-        System.out.println("[Debug] Game finished state after reset: " + this.playerState.isGameFinished());
         
         // init candidate map
         this.landmarkManager.getRoundLandmarksIdWithinRadius(lat, lng, radiusMeters);

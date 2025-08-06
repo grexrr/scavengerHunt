@@ -16,7 +16,7 @@ public class PlayerStateManager {
     private LandmarkManager landmarkManager;
     private GameDataRepository gameDataRepository;
 
-    private boolean isGameFinish = true;
+    private boolean isGameFinish = false;
     
     private Landmark detectedLandmark;
     // private Map<String, Boolean> solvedLandmarksId = new HashMap<>(); // for frontend to render into diff color

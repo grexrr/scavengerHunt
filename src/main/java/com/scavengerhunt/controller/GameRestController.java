@@ -71,11 +71,41 @@ public class GameRestController {
     }
 
     @PostMapping("/init-game")
-    public ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
+    public synchronized ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
         
         System.out.println("[InitGame] Request from user: " + request.getUserId());
         System.out.println("[InitGame] city: " + request.getCity());
 
+        String userId = request.getUserId();
+        
+        // Check if there's already an active session for this user
+        GameSession existingSession = sessionMap.get(userId);
+        if (existingSession != null && !existingSession.isGameFinished()) {
+            System.out.println("[InitGame] Active session exists for user " + userId + ", updating position only");
+            existingSession.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
+            
+            // Still return landmarks for consistency
+            List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(request.getCity());
+            List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
+
+            for (Landmark lm : landmarks) {
+                List<List<Double>> coords = new ArrayList<>();
+                Coordinate[] polygon = GeoUtils.convertToJtsPolygon(lm.getGeometry()).getCoordinates();
+                for (Coordinate coord : polygon) {
+                    coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
+                }
+
+                LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), coords);
+                frontendLandmarks.add(dto);
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("landmarks", frontendLandmarks);
+            return ResponseEntity.ok(response);
+        }
+
+        // Create new session only if no active session exists
+        System.out.println("[InitGame] Creating new session for user: " + userId);
         Player player = new Player(
             request.getLatitude(),
             request.getLongitude(),
@@ -87,7 +117,6 @@ public class GameRestController {
         LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
         PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
-        String userId = request.getUserId();
         GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
         sessionMap.put(userId, session);
         //responding landmark coord for frontend rendering
@@ -136,7 +165,7 @@ public class GameRestController {
     }
 
     @PostMapping("/start-round")
-    public ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
+    public synchronized ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
 
         if (request.getUserId().startsWith("guest-")) {
             return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
@@ -147,6 +176,12 @@ public class GameRestController {
 
         if (session.getUserId() == null) {
             return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
+        }
+        
+        // Check if game is already finished to prevent starting new round on finished session
+        if (session.isGameFinished()) {
+            System.out.println("[StartRound] Cannot start round - game already finished for user: " + request.getUserId());
+            return ResponseEntity.status(400).body("[Backend][API] Game already finished. Please initialize a new game.");
         }
 
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
@@ -160,10 +195,13 @@ public class GameRestController {
     }
 
     @PostMapping("/submit-answer")
-    public ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
+    public synchronized ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
         String userId = request.get("userId");
+        System.out.println("[Debug] Submit answer request from user: " + userId);
+        
         GameSession session = sessionMap.get(userId);
         if (session == null) {
+            System.out.println("[Error] Session not found for user: " + userId);
             return ResponseEntity.status(404).body(Map.of(
                 "status", "error",
                 "message", "Session not found"
@@ -171,9 +209,12 @@ public class GameRestController {
         }
 
         long secondsUsed = Long.parseLong(request.get("secondsUsed")); 
+        System.out.println("[Debug] Seconds used: " + secondsUsed);
 
         boolean isCorrect = session.submitCurrentAnswer(secondsUsed);
         boolean gameFinished = session.isGameFinished();
+        
+        System.out.println("[Debug] Submit answer result: isCorrect=" + isCorrect + ", gameFinished=" + gameFinished);
 
         Map<String, Object> response = new HashMap<>();
         response.put("isCorrect", isCorrect);
@@ -181,12 +222,16 @@ public class GameRestController {
 
         // message
         if (gameFinished && isCorrect) {
+            System.out.println("[Debug] Game finished with correct answer - success message");
             response.put("message", "Congratulations! You've completed all targets in this round.");
         } else if (gameFinished) {
+            System.out.println("[Debug] Game finished with incorrect answer - failure message");
             response.put("message", "Game over. You've exhausted all attempts for the available targets.");
         } else if (isCorrect) {
+            System.out.println("[Debug] Correct answer, game continues");
             response.put("message", "Correct! Next target selected.");
         } else {
+            System.out.println("[Debug] Incorrect answer, game continues");
             response.put("message", "Incorrect. Try again or check your position.");
         }
 

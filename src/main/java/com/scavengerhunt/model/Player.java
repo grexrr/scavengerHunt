@@ -21,7 +21,7 @@ public class Player {
     
     //playerCone
     private Polygon playerCone;
-    private double spanDeg = 30;
+    private double spanDeg = 60;
     private double radiusMeters = 250;
     private int resolution = 50;
 

@@ -43,7 +43,7 @@ public class AuthController {
         .map(user -> {
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("userId", user.getUserId());
-            userInfo.put("userName", user.getUsername());
+            userInfo.put("username", user.getUsername());  // Changed from userName to username
             userInfo.put("role", user.getAdmin() ? "ADMIN": "PLAYER");
             return ResponseEntity.ok(userInfo);
         })

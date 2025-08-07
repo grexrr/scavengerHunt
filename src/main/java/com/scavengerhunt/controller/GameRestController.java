@@ -74,9 +74,12 @@ public class GameRestController {
     public synchronized ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
         
         System.out.println("[InitGame] Request from user: " + request.getUserId());
-        System.out.println("[InitGame] city: " + request.getCity());
+        // System.out.println("[InitGame] city: " + request.getCity());
 
         String userId = request.getUserId();
+        double lat = request.getLatitude();
+        double lng = request.getLongitude();
+        String city = gameDataRepo.initLandmarkDataFromPosition(lat, lng);
         
         // Check if there's already an active session for this user
         GameSession existingSession = sessionMap.get(userId);
@@ -85,7 +88,7 @@ public class GameRestController {
             existingSession.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
             
             // Still return landmarks for consistency
-            List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(request.getCity());
+            List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
             List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
 
             for (Landmark lm : landmarks) {
@@ -119,33 +122,8 @@ public class GameRestController {
 
         GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
         sessionMap.put(userId, session);
-        //responding landmark coord for frontend rendering
         
-        
-        // List<Landmark> landmarks= gameDataRepo.getLandmarkRepo().findByCity(request.getCity());
-        // Map<String, Object> response = new HashMap<>();
-        // List<Map<String, Object>> frontendLandmarks = new ArrayList<>();
-
-        // for (Landmark lm : landmarks) {
-        //     Map<String, Object> oneLandmark = new HashMap<>();
-        //     oneLandmark.put("name", lm.getName());
-        //     oneLandmark.put("id", lm.getId());
-
-        //     List<List<Double>> coords = new ArrayList<>();
-        //     Coordinate[] polygon = GeoUtils.convertToJtsPolygon(lm.getGeometry()).getCoordinates();
-        //     for (Coordinate coord : polygon) {
-        //         coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
-        //     }
-
-        //     oneLandmark.put("coordinates", coords);
-        //     frontendLandmarks.add(oneLandmark);
-        // }
-
-        // response.put("landmarks", frontendLandmarks);
-        // return ResponseEntity.ok(response);
-
-        // switch to using encapsulated landmarkDTO
-        List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(request.getCity());
+        List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
         List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
 
         for (Landmark lm : landmarks) {

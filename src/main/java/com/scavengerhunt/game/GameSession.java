@@ -145,7 +145,7 @@ public class GameSession {
 
     public Landmark selectNextTarget() {
         // select Nearest for MVP
-        if (!isGameFinished()) {
+        if (!this.playerState.isGameFinished()) {  // 这里原来是 !isGameFinished()
             // Check if target pool is empty
             if (getUnsolvedLandmarks().isEmpty()) {
                 System.out.println("[Debug] Target pool is empty, marking game as finished");
@@ -162,7 +162,6 @@ public class GameSession {
             if (last == null){
                 double playerLat = playerState.getPlayer().getLatitude();
                 double playerLng = playerState.getPlayer().getLongitude();
-
                 this.currentTarget = selectNearestTo(playerLat, playerLng);
             } else {
                 this.currentTarget = selectNearestTo(last.getLatitude(), last.getLongitude());
@@ -181,16 +180,16 @@ public class GameSession {
                 Landmark newDetected = this.playerState.getDetectedLandmark();
                 System.out.println("[Debug] New detected landmark: " + (newDetected != null ? newDetected.getName() + " (ID: " + newDetected.getId() + ")" : "null"));
             }
-
+    
         } else {    
             System.out.println("[Debug] Game is finished, no more targets");
-            
             // puzzleManager.pausePuzzleTimer(currentTarget);
             this.currentTarget = null;
         }
-
+    
         return this.currentTarget;
     }
+    
 
     private boolean singleTransaction(long riddleSeconds, Boolean isCorrect){
         // Only proceed if game has not finished (i.e., game is active)
@@ -288,11 +287,7 @@ public class GameSession {
         if (this.playerState.isGameFinished()) {
             return true;
         }
-        if (this.targetPool != null && this.targetPool.isEmpty()) {
-            checkAndHandleGameEnd();
-            return true;
-        }
-        return false;
+        return this.targetPool != null && this.targetPool.isEmpty();
     }
 
     // ==================== Getters & Setters ====================

@@ -22,7 +22,7 @@ public class Player {
     //playerCone
     private Polygon playerCone;
     private double spanDeg = 60;
-    private double radiusMeters = 150;
+    private double radiusMeters = 50;
     private int resolution = 50;
 
     private String playerId;

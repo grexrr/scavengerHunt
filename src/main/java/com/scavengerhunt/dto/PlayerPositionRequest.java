@@ -7,7 +7,7 @@ public class PlayerPositionRequest {
 
     private double spanDeg = 30;
     private double coneRadiusMeters = 50;
-    private String city = "Cork";
+    // private String city = "Cork";
   
     private String userId;
     
@@ -59,10 +59,10 @@ public class PlayerPositionRequest {
         this.coneRadiusMeters = coneRadiusMeters;
     }
 
-    public String getCity() {
-        return city;
-    }
-    public void setCity(String city) {
-        this.city = city;
-    }
+    // public String getCity() {
+    //     return city;
+    // }
+    // public void setCity(String city) {
+    //     this.city = city;
+    // }
 }

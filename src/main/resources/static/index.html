@@ -46,6 +46,53 @@
       top: 50%;
       left: 50%;
     }
+    @media only screen and (max-width: 600px) {
+    .info-box {
+      font-size: 12px;
+      padding: 6px;
+      max-width: 90vw;
+      width: 90vw;
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(2px);  
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    label, input, button {
+      font-size: 12px !important;
+    }
+
+    #radius-ui,
+    #customize-ui,
+    #target-display,
+    #calibration-status {
+      margin-top: 4px;
+    }
+
+    #start-round-btn,
+    #submit-answer-btn,
+    #calibration-btn {
+      padding: 4px 6px;
+      font-size: 12px;
+    }
+
+    #radius-slider {
+      width: 100%;
+    }
+
+    #auth-controls {
+      font-size: 12px;
+      padding: 4px;
+    }
+
+    #auth-controls {
+      background: rgba(255, 255, 255, 0.65);
+      backdrop-filter: blur(2px);
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+  }
+
   </style>
 </head>
 <body>
@@ -63,7 +110,7 @@
     <div id="radius-ui" style="display: none; margin-top: 8px;">
       <label for="radius-slider">Search Radius (meters): </label>
       <input type="range" id="radius-slider" min="50" max="300" value="50" />
-      <span id="radius-value">100</span> m
+      <span id="radius-value">100</span>
       <br />
       <button id="start-round-btn">Start Round</button>
       <button id="submit-answer-btn" style="display: none; margin-left: 10px;">Submit Answer</button>
@@ -97,8 +144,6 @@
       <span id="calibration-info">Not calibrated</span>
     </div>
   </div>
-
-  
 
   <div id="auth-controls" style="position: absolute; top: 10px; right: 10px; background: white; padding: 8px; font-family: monospace; z-index: 1000;">
     <button id="register-btn">Register</button>

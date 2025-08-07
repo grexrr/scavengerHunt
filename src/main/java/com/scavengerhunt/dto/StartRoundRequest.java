@@ -6,7 +6,26 @@ public class StartRoundRequest {
     private double longitude;
     private double angle;
     private double radiusMeters;
+    private String language;
+    private String style;
+
     
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public String getStyle() {
+        return style;
+    }
+
+    public void setStyle(String style) {
+        this.style = style;
+    }
+
     public double getAngle() {
         return angle;
     }

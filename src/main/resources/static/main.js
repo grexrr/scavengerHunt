@@ -11,11 +11,12 @@
   const spanDeg = 60;
   const coneRadiusMeters = 250;
 
-  let playerMarker = null;  // The player's arrow marker on the INIT_MAP
-  const icon = L.icon({     // Custom icon for player marker
-    iconUrl: 'arrow.png',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16]
+  let playerMarker = null;  // The player's circle marker on the INIT_MAP
+  const icon = L.divIcon({     // Custom circle icon for player marker
+    className: 'player-circle-marker',
+    html: '<div class="circle-dot"></div>',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
   });
 
   const landmarkMap = new Map();
@@ -25,6 +26,7 @@
   let testPlayerAngle = null;   // Test Player facing angle
 
   let searchCircle = null;  // Circle representing search radius
+  let accuracyCircle = null;  // Circle representing GPS accuracy
 
   let countdownSeconds = 1800; // 30 minutes
   let countdownInterval = null;
@@ -77,10 +79,53 @@
     }
   }
 
+  // Complete map cleanup function for logout/refresh scenarios
+  function completeMapCleanup() {
+    console.log("[Frontend] Performing complete map cleanup...");
+    
+    // Clear all known map layers
+    if (playerMarker) {
+      INIT_MAP.removeLayer(playerMarker);
+      playerMarker = null;
+    }
+    
+    if (playerCone) {
+      INIT_MAP.removeLayer(playerCone);
+      playerCone = null;
+    }
+    
+    if (searchCircle) {
+      INIT_MAP.removeLayer(searchCircle);
+      searchCircle = null;
+    }
+    
+    if (accuracyCircle) {
+      INIT_MAP.removeLayer(accuracyCircle);
+      accuracyCircle = null;
+    }
+    
+    // Clear landmark polygons
+    landmarkMap.forEach(polygon => {
+      INIT_MAP.removeLayer(polygon);
+    });
+    landmarkMap.clear();
+    
+    // Reset map rotation
+    INIT_MAP.getContainer().style.transform = '';
+    
+    // Stop any active geolocation watching
+    if (geoWatchId !== null) {
+      navigator.geolocation.clearWatch(geoWatchId);
+      geoWatchId = null;
+    }
+    
+    console.log("[Frontend] Complete map cleanup finished");
+  }
+
   // Clean localStorage garbage data function
   function cleanLocalStorage() {
-    // Keep important keys including calibration data
-    const keysToKeep = ['userId', 'username', 'role', 'calibratedAngleOffset'];
+    // Keep important keys including calibration data and saved settings
+    const keysToKeep = ['userId', 'username', 'role', 'calibratedAngleOffset', 'savedLanguage', 'savedStyle'];
     const currentValues = {};
     
     // Backup values to keep
@@ -126,21 +171,31 @@
   }
 
   function updateAuthUI() {
-    const isGuest = localStorage.getItem('role') === 'GUEST';
-
+    const role = localStorage.getItem('role');
+    const isGuest = role === 'GUEST';
+    const isAdmin = role === 'ADMIN';
+    const isPlayer = role === 'PLAYER';
+  
     loginBtn.style.display = isGuest ? 'inline-block' : 'none';
     registerBtn.style.display = isGuest ? 'inline-block' : 'none';
     logoutBtn.style.display = isGuest ? 'none' : 'inline-block';
-    
-    // radiusSlider.disable = roundStarted ? true : false;
+  
     document.getElementById('radius-ui').style.display = isGuest || roundStarted ? 'none' : 'block';
-    
-    // Start Round button requirements: non-guest user && game not started && (calibrated OR admin)
-    const isAdmin = localStorage.getItem('role') === 'ADMIN';
+    document.getElementById('customize-ui').style.display = isGuest || roundStarted ? 'none' : 'block';
+  
+    const targetDisplay = document.getElementById('target-display');
+    if (targetDisplay) {
+      if (isAdmin || isPlayer) {
+        targetDisplay.style.display = 'block';
+      } else {
+        targetDisplay.style.display = 'none';
+      }
+    }
+  
     const canStartRound = !isGuest && !roundStarted && (calibratedAngleOffset !== null || isAdmin);
     startBtn.disabled = !canStartRound;
   }
-    
+   
   function initMap() {
     const userRole = localStorage.getItem('role');
     updateAuthUI();
@@ -159,7 +214,6 @@
       fetchPlayerCoord();
     }
   }
-
 
   function initGame(){
     ensureUserId();
@@ -282,6 +336,9 @@
     // Reset calibration state
     calibratedAngleOffset = null;
     isCalibrating = false;
+    
+    // Perform complete map cleanup
+    completeMapCleanup();
     
     resetGameToInit(); 
     initMap();
@@ -448,7 +505,7 @@
   
       if (playerCoord && playerCoord.lat != null) {
         if (playerMarker) {
-          playerMarker.setRotationAngle(calibratedAngleOffset !== null ? 0 : playerAngle);
+          // Circle marker doesn't need rotation - direction is shown by the view cone
         }
       }
   
@@ -485,6 +542,8 @@
 
     roundStarted = true;
     radiusSlider.disabled = true;
+    document.getElementById('language-input').disabled = true;
+    document.getElementById('style-input').disabled = true;
 
     if (searchCircle){
       INIT_MAP.removeLayer(searchCircle);
@@ -504,12 +563,17 @@
       effectiveAngle = playerAngle ?? 0.0;  
     }
 
+    const language = document.getElementById('language-input').value || 'English';
+    const style = document.getElementById('style-input').value || 'Medieval';
+
     const requestBody = {
       userId: localStorage.getItem('userId'),
       latitude: playerCoord?.lat ?? 0.0,
       longitude: playerCoord?.lng ?? 0.0,
       angle: effectiveAngle,
-      radiusMeters: sliderRadius
+      radiusMeters: sliderRadius,
+      language: language,
+      style: style
     };
 
     console.log("[Frontend] startRound request:", requestBody);
@@ -540,7 +604,19 @@
         searchCircle = null;
       }
 
-      document.getElementById('target-info').innerText = data.name;
+      const riddle = data.riddle;
+    
+      // if (typeof riddle !== 'undefined') {
+      //   if (!riddle || riddle.trim() === "" || riddle === "No riddle generated") {
+      //     alert("Riddle generation failed. Please try again.");
+      //     resetGameToInit();
+      //     return;
+      //   }
+      // }
+
+      if(localStorage.getItem('role')==='ADMIN'){
+        document.getElementById('target-info').innerText = data.name;
+      }
       document.getElementById('chances-left').style.display = 'block';
       document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
       document.getElementById('riddle-box').innerText = data.riddle ? data.riddle : "(No riddle)";
@@ -561,6 +637,7 @@
       console.error("[Frontend] startRound error:", err);
       alert("Failed to start round.");
       drawRadiusCircle();
+      resetGameToInit();
       
       // Reset button state on failure
       roundStarted = false;
@@ -614,10 +691,14 @@
       }
 
       // Only color the landmark if it was solved (correct answer) OR if target changed (meaning previous target was exhausted)
-      const currentTargetName = document.getElementById('target-info').innerText;
+      let currentTargetName = null;
+      if(localStorage.getItem('role')==='ADMIN'){
+        currentTargetName = document.getElementById('target-info').innerText;
+      }
+      
       const shouldColorLandmark = data.isCorrect || (data.target && data.target.name !== currentTargetName);
       
-      if (shouldColorLandmark) {
+      if (shouldColorLandmark && currentTargetName) {
         for (const [id, polygon] of landmarkMap.entries()) {
           if (polygon && polygon.options && polygon.options.name === currentTargetName) {
             polygon.setStyle({ color: 'blue' });
@@ -628,7 +709,10 @@
 
       // ===== update target info =====
       if (data.target) {
-        document.getElementById('target-info').innerText = data.target.name;
+        if(localStorage.getItem('role')==='ADMIN'){
+          document.getElementById('target-info').innerText = data.target.name;
+        }
+        
         document.getElementById('chances-left').style.display = 'block';
         document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.target.attemptsLeft}`;
         document.getElementById('riddle-box').innerText = data.target.riddle ? data.target.riddle : "(No riddle)";
@@ -669,6 +753,21 @@
     countdownSeconds = 1800;
     countdownStartTimestamp = null;
 
+    document.getElementById('countdown-timer').textContent = "";
+    document.getElementById('countdown-timer').style.display = 'none';
+  
+    if (localStorage.getItem('role') === 'ADMIN') {
+      document.getElementById('target-info').innerText = "(No target yet)";
+    } else {
+      document.getElementById('target-info').innerText = "";
+    }
+    document.getElementById('chances-left').style.display = 'none';
+    document.getElementById('chances-left').innerText = "";
+  
+    document.getElementById('riddle-box').innerText = "";
+
+    document.getElementById('language-input').disabled = false;
+    document.getElementById('style-input').disabled = false;
 
     if (playerMarker) {
       INIT_MAP.removeLayer(playerMarker);
@@ -685,14 +784,22 @@
       searchCircle = null;
     }
 
+    if (accuracyCircle) {
+      INIT_MAP.removeLayer(accuracyCircle);
+      accuracyCircle = null;
+    }
+
+    // Reset map rotation
+    INIT_MAP.getContainer().style.transform = '';
+
     // landmarkMap.forEach(polygon => {
     //   INIT_MAP.removeLayer(polygon);
     // });
     // landmarkMap.clear();
 
-    document.getElementById('countdown-timer').textContent = "";
-    document.getElementById('countdown-timer').style.display = 'none';
-    document.getElementById('target-info').innerText = "(No target yet)";
+    
+    
+
     document.getElementById('chances-left').style.display = 'none';
     document.getElementById('riddle-box').innerText = "";
 
@@ -700,14 +807,19 @@
     startBtn.disabled = false;
     startBtn.innerText = "Start Round";
     startBtn.onclick = startRound;
+    document.getElementById('language-input').disabled = false;
+    document.getElementById('style-input').disabled = false;
 
+    // Save language and style settings before reload
+    const language = document.getElementById('language-input').value;
+    const style = document.getElementById('style-input').value;
+    if (language) localStorage.setItem('savedLanguage', language);
+    if (style) localStorage.setItem('savedStyle', style);
+    
     // landmarkMap.forEach(polygon => {
     //   polygon.setStyle({ color: 'darkgrey' });
     // });
-
-    initMap();
-    updatePlayerViewCone(playerAngle || 0);
-    drawRadiusCircle();
+    window.location.reload();
   }
 
   // ========== Test Player Movement ==========
@@ -792,7 +904,7 @@
 
     if (!playerCoord || (playerCoord.lat == null || playerCoord.lng == null)) return;
 
-    let coneAngle;  // Cone angle in map coordinate system (地图坐标系中的锥形角度)
+    let coneAngle;  // Cone angle in map coordinate system 
     
     if (localStorage.getItem('role') === 'ADMIN'){
       // Admin mode: cone follows testPlayerAngle, map doesn't rotate
@@ -806,6 +918,11 @@
       } else {
         // Uncalibrated mode: cone follows device angle directly
         coneAngle = playerAngle || 0;
+        if (playerCone) {
+          INIT_MAP.removeLayer(playerCone);
+          playerCone = null;
+        }
+        return;  // Don't display viewCone until calibrated
       }
     }
 
@@ -865,7 +982,6 @@
     }
 
     let firstUpdate = true;
-    let accuracyCircle = null;
 
     geoWatchId = navigator.geolocation.watchPosition(
       position => {
@@ -938,20 +1054,16 @@
 
         if (!playerMarker) {
           playerMarker = L.marker(dragStart, {
-            icon: icon,
-            rotationAngle: 0,
-            rotationOrigin: 'center center'
+            icon: icon
           }).addTo(INIT_MAP);
         } else {
           playerMarker.setLatLng(dragStart);
-          playerMarker.setRotationAngle(0);
         }
       });
 
       INIT_MAP.on('mousemove', function(e) {
         if (!dragStart || !playerMarker) return;
-        const angle = calculateAngle(dragStart, e.latlng);
-        playerMarker.setRotationAngle(angle);
+        // Circle marker doesn't need rotation updates during drag
       });
 
       INIT_MAP.on('mouseup', function(e) {
@@ -1003,10 +1115,26 @@
   document.addEventListener('DOMContentLoaded', () => {
 
     window.cleanLocalStorage = cleanLocalStorage;
+    window.completeMapCleanup = completeMapCleanup;  // Expose for debugging
+    
+    // Ensure clean state on page load
+    console.log("[Frontend] Page loaded, ensuring clean map state...");
 
     ensureUserId();
     updateAuthUI();  // Ensure UI state is updated on initialization
     setupInteractions();
+    
+    // Restore saved language and style settings
+    const savedLanguage = localStorage.getItem('savedLanguage');
+    const savedStyle = localStorage.getItem('savedStyle');
+    if (savedLanguage) {
+      document.getElementById('language-input').value = savedLanguage;
+      localStorage.removeItem('savedLanguage'); // Clean up after restoring
+    }
+    if (savedStyle) {
+      document.getElementById('style-input').value = savedStyle;
+      localStorage.removeItem('savedStyle'); // Clean up after restoring
+    }
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap'

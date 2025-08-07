@@ -18,6 +18,14 @@ public class GameSession {
     private PlayerStateManager playerState;
     private LandmarkManager landmarkManager;
     private PuzzleManager puzzleManager;
+    public PuzzleManager getPuzzleManager() {
+        return puzzleManager;
+    }
+
+    public void setPuzzleManager(PuzzleManager puzzleManager) {
+        this.puzzleManager = puzzleManager;
+    }
+
     private EloCalculator eloCalculator;
 
     private Landmark currentTarget;
@@ -164,7 +172,7 @@ public class GameSession {
             
             //Generate Riddle only if target is found
             if (this.currentTarget != null) {
-                String riddle = puzzleManager.getRiddleForLandmark(this.currentTarget.getId());
+                String riddle = this.puzzleManager.getRiddleForLandmark(this.currentTarget.getId());
                 this.currentTarget.setRiddle(riddle);
                 
                 // Force update detected landmark when target changes

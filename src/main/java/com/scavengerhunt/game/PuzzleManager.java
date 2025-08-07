@@ -1,9 +1,9 @@
 package com.scavengerhunt.game;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -16,44 +16,48 @@ import com.scavengerhunt.repository.GameDataRepository;
 
 @Component
 public class PuzzleManager {
-    
-    private final RestTemplate restTemplate;
-    private GameDataRepository gameDataRepo;
 
-    private LocalDateTime sessionTimeId;
-    private Map<String, ?> gameRoundStdMap;
-    private LocalDateTime lastPuzzleStartTime;
-  
+    private final RestTemplate restTemplate;
+    private final GameDataRepository gameDataRepo;
+
+    private final String language;
+    private final String style;
+
+    @Autowired
     public PuzzleManager(GameDataRepository gameDataRepo) {
+        this(gameDataRepo, "English", "Medieval");
+    }
+
+    public PuzzleManager(GameDataRepository gameDataRepo, String language, String style) {
         this.restTemplate = new RestTemplate();
-        this.gameDataRepo = gameDataRepo; 
+        this.gameDataRepo = gameDataRepo;
+        this.language = language != null ? language : "English";
+        this.style = style != null ? style : "Medieval";
     }
 
     public String getRiddleForLandmark(String landmarkId) {
         String url = "http://localhost:5001/generate-riddle";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-
+    
         Map<String, Object> payload = new HashMap<>();
         payload.put("landmarkId", landmarkId);
-        // put difficulties as well
-        // 考虑处理 user rating差值
-        double landmarkRating = gameDataRepo.getLandmarkRatingById(landmarkId);
-        payload.put("difficulty", normalizeRating(landmarkRating, "sigmoid"));
-
+        payload.put("difficulty", normalizeRating(gameDataRepo.getLandmarkRatingById(landmarkId), "sigmoid"));
+        payload.put("language", language != null ? language : "English");
+        payload.put("style", style != null ? style : "Medieval");
+    
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-        
+    
         try {
             ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 return (String) response.getBody().get("riddle");
             } else {
                 return null;
             }
         } catch (Exception e) {
-            System.out.println("[PuzzleManager] Python backend not available, returning null: " + e.getMessage());
-            return null;
+            System.out.println("[PuzzleManager] Python backend not available: " + e.getMessage());
+            return "Default Riddle";
         }
     }
 

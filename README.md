@@ -844,6 +844,42 @@ main.js
     * **Phase 2**: Real-time map rotation with `INIT_MAP.getContainer().style.transform = rotate(-currentAbsoluteAngle)deg`
     * **Design principle**: Separate functional correctness from visual presentation - maintains detection accuracy while viewCone always points toward phone's top
 
+---
+
+#### **Aug. 7 2025**
+
+* **User customization system for riddle generation:**
+
+  * **Language and style personalization**: Extended puzzle generation to support user-defined preferences:
+    * **Dynamic language selection**: Users can specify riddle language (English, Chinese, etc.) via `language-input` field
+    * **Style customization**: Multiple riddle styles available (Medieval, Modern, Poetic, etc.) through `style-input` field
+    * **Real-time preference application**: Settings applied immediately when starting new rounds
+
+  * **Frontend implementation**:
+    * **UI enhancement**: Added `customize-ui` section with language and style input fields
+    * **State persistence**: Settings automatically saved to localStorage and restored after page refresh
+    * **Cleanup mechanism**: `savedLanguage` and `savedStyle` cleared after restoration to prevent data accumulation
+    * **Integration with game flow**: Preferences passed to backend in `startRound()` request body
+
+  * **Backend integration with PuzzleManager**:
+    * **Constructor flexibility**: `PuzzleManager(gameDataRepo, language, style)` accepts custom parameters
+    * **API payload enhancement**: `getRiddleForLandmark()` includes user preferences in Python backend request
+    * **Fallback handling**: Maintains "English" and "Medieval" defaults when preferences not specified
+    * **Request structure**: `{landmarkId, difficulty, language, style}` sent to Python riddle generator
+
+  * **Session management improvements**:
+    * **Preference validation**: Empty or null values fall back to default settings
+    * **UI state control**: Customization options disabled during active rounds to prevent mid-game changes
+    * **Clean state restoration**: Settings properly restored after `resetGameToInit()` and page reload
+
+  * **Technical implementation details**:
+    * **Frontend**: `language = document.getElementById('language-input').value || 'English'`
+    * **Backend**: `payload.put("language", language != null ? language : "English")`
+    * **Persistence**: `localStorage.setItem('savedLanguage', language)` before page reload
+    * **Restoration**: Automatic value assignment on `DOMContentLoaded` with cleanup
+
+  * **User experience enhancement**: Players can now personalize their gaming experience with preferred language and riddle style, making the scavenger hunt more engaging and accessible to diverse user preferences.
+
 
 
     

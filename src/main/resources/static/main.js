@@ -520,128 +520,128 @@
 
   // ======== Game Mechanism ========
 
-  function startRound() {
-    let role = localStorage.getItem('role');
-    if (role === 'GUEST') {
-      console.log("[Frontend] Please Log in First");
-      return;
-    }
+  // function startRound() {
+  //   let role = localStorage.getItem('role');
+  //   if (role === 'GUEST') {
+  //     console.log("[Frontend] Please Log in First");
+  //     return;
+  //   }
 
-    if (calibratedAngleOffset === null && role !== 'ADMIN') {
-      alert("Please calibrate your device first before starting the round.");
-      return;
-    }
+  //   if (calibratedAngleOffset === null && role !== 'ADMIN') {
+  //     alert("Please calibrate your device first before starting the round.");
+  //     return;
+  //   }
 
-    if (!playerCoord) {
-      alert("Waiting for location... Please allow GPS or wait a few seconds.");
-      return;
-    }
+  //   if (!playerCoord) {
+  //     alert("Waiting for location... Please allow GPS or wait a few seconds.");
+  //     return;
+  //   }
 
-    // Ensure game is initialized
-    console.log("[Frontend] Ensuring game is initialized before starting round...");
-    initGame();
+  //   // Ensure game is initialized
+  //   console.log("[Frontend] Ensuring game is initialized before starting round...");
+  //   initGame();
 
-    roundStarted = true;
-    radiusSlider.disabled = true;
-    document.getElementById('language-input').disabled = true;
-    document.getElementById('style-input').disabled = true;
+  //   roundStarted = true;
+  //   radiusSlider.disabled = true;
+  //   document.getElementById('language-input').disabled = true;
+  //   document.getElementById('style-input').disabled = true;
 
-    if (searchCircle){
-      INIT_MAP.removeLayer(searchCircle);
-      searchCircle = null;
-    }
+  //   if (searchCircle){
+  //     INIT_MAP.removeLayer(searchCircle);
+  //     searchCircle = null;
+  //   }
 
-    // Calculate correct angle: use calibrated angle in calibrated mode
-    let effectiveAngle;
-    if (localStorage.getItem('role') === 'ADMIN') {
-      effectiveAngle = testPlayerAngle ?? 0.0;
-    } else if (calibratedAngleOffset !== null) {
-      // Calibrated mode: send absolute angle (same as ViewCone angle)
-      effectiveAngle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
-      // Ensure angle is in 0-360 range
-      if (effectiveAngle < 0) effectiveAngle += 360;
-    } else {
-      effectiveAngle = playerAngle ?? 0.0;  
-    }
+  //   // Calculate correct angle: use calibrated angle in calibrated mode
+  //   let effectiveAngle;
+  //   if (localStorage.getItem('role') === 'ADMIN') {
+  //     effectiveAngle = testPlayerAngle ?? 0.0;
+  //   } else if (calibratedAngleOffset !== null) {
+  //     // Calibrated mode: send absolute angle (same as ViewCone angle)
+  //     effectiveAngle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
+  //     // Ensure angle is in 0-360 range
+  //     if (effectiveAngle < 0) effectiveAngle += 360;
+  //   } else {
+  //     effectiveAngle = playerAngle ?? 0.0;  
+  //   }
 
-    const language = document.getElementById('language-input').value || 'English';
-    const style = document.getElementById('style-input').value || 'Medieval';
+  //   const language = document.getElementById('language-input').value || 'English';
+  //   const style = document.getElementById('style-input').value || 'Medieval';
 
-    const requestBody = {
-      userId: localStorage.getItem('userId'),
-      latitude: playerCoord?.lat ?? 0.0,
-      longitude: playerCoord?.lng ?? 0.0,
-      angle: effectiveAngle,
-      radiusMeters: sliderRadius,
-      language: language,
-      style: style
-    };
+  //   const requestBody = {
+  //     userId: localStorage.getItem('userId'),
+  //     latitude: playerCoord?.lat ?? 0.0,
+  //     longitude: playerCoord?.lng ?? 0.0,
+  //     angle: effectiveAngle,
+  //     radiusMeters: sliderRadius,
+  //     language: language,
+  //     style: style
+  //   };
 
-    console.log("[Frontend] startRound request:", requestBody);
+  //   console.log("[Frontend] startRound request:", requestBody);
 
-    fetch(LOCAL_HOST + '/api/game/start-round', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody)
-    })
-    .then(res => {
-      if (res.status === 404) {
-        return res.text().then(errorText => {
-          resetGameToInit();
-          if (errorText.includes("No target available")) {
-            alert("No landmarks found in the selected area. Try increasing your search radius or move to a different location.");
-          } else {
-            alert("Session expired. Please start a new game.");
-          }
-          throw new Error(errorText);
-        });
-      }
-      return res.json();
-    })
-    .then(data => {
+  //   fetch(LOCAL_HOST + '/api/game/start-round', {
+  //     method: 'POST',
+  //     headers: { 'Content-Type': 'application/json' },
+  //     body: JSON.stringify(requestBody)
+  //   })
+  //   .then(res => {
+  //     if (res.status === 404) {
+  //       return res.text().then(errorText => {
+  //         resetGameToInit();
+  //         if (errorText.includes("No target available")) {
+  //           alert("No landmarks found in the selected area. Try increasing your search radius or move to a different location.");
+  //         } else {
+  //           alert("Session expired. Please start a new game.");
+  //         }
+  //         throw new Error(errorText);
+  //       });
+  //     }
+  //     return res.json();
+  //   })
+  //   .then(data => {
 
-      if (searchCircle){
-        INIT_MAP.removeLayer(searchCircle);
-        searchCircle = null;
-      }
+  //     if (searchCircle){
+  //       INIT_MAP.removeLayer(searchCircle);
+  //       searchCircle = null;
+  //     }
 
-      // const riddle = data.riddle;
+  //     // const riddle = data.riddle;
 
       
 
-      if(localStorage.getItem('role')==='ADMIN'){
-        document.getElementById('target-info').innerText = data.name;
-      }
-      document.getElementById('chances-left').style.display = 'block';
-      document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
-      document.getElementById('riddle-box').innerText = data.riddle ? data.riddle : "(No riddle)";
+  //     if(localStorage.getItem('role')==='ADMIN'){
+  //       document.getElementById('target-info').innerText = data.name;
+  //     }
+  //     document.getElementById('chances-left').style.display = 'block';
+  //     document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
+  //     document.getElementById('riddle-box').innerText = data.riddle ? data.riddle : "(No riddle)";
 
-      setTimeout(() => {
-        document.getElementById('countdown-timer').style.display = 'block';
-        startCountdown();
-      }, 100);
+  //     setTimeout(() => {
+  //       document.getElementById('countdown-timer').style.display = 'block';
+  //       startCountdown();
+  //     }, 100);
       
-      // Only change button state after successful round start
-      startBtn.style.display = 'inline-block';
-      startBtn.innerText = "Finish Round";
-      startBtn.onclick = finishRound; 
-      submitBtn.disabled = false;
-      submitBtn.style.display = 'inline-block';
-    })
-    .catch(err => {
-      console.error("[Frontend] startRound error:", err);
-      alert("Failed to start round.");
-      drawRadiusCircle();
-      resetGameToInit();
+  //     // Only change button state after successful round start
+  //     startBtn.style.display = 'inline-block';
+  //     startBtn.innerText = "Finish Round";
+  //     startBtn.onclick = finishRound; 
+  //     submitBtn.disabled = false;
+  //     submitBtn.style.display = 'inline-block';
+  //   })
+  //   .catch(err => {
+  //     console.error("[Frontend] startRound error:", err);
+  //     alert("Failed to start round.");
+  //     drawRadiusCircle();
+  //     resetGameToInit();
       
-      // Reset button state on failure
-      roundStarted = false;
-      radiusSlider.disabled = false;
-      startBtn.innerText = "Start Round";
-      startBtn.onclick = startRound;
-      submitBtn.disabled = true;
-    });
-  }
+  //     // Reset button state on failure
+  //     roundStarted = false;
+  //     radiusSlider.disabled = false;
+  //     startBtn.innerText = "Start Round";
+  //     startBtn.onclick = startRound;
+  //     submitBtn.disabled = true;
+  //   });
+  // }
 
   function submitAnswer() {
     const secondsUsed = stopCountdown();
@@ -723,167 +723,6 @@
     });
   }
 
-  function finishRound() {
-    fetch(LOCAL_HOST + '/api/game/finish-round', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: localStorage.getItem('userId')
-      })
-    })
-    .then(res => res.json())
-    .then(data => {
-      alert(data.message);
-      resetGameToInit();
-    })
-    .catch(err => {
-      console.error("[Frontend] Failed to finish round:", err);
-      alert("Finish round failed.");
-    });
-  }
-
-  // function startRound() {
-  //   let role = localStorage.getItem('role');
-  //   if (role === 'GUEST') {
-  //     console.log("[Frontend] Please Log in First");
-  //     return;
-  //   }
-  
-  //   if (calibratedAngleOffset === null && role !== 'ADMIN') {
-  //     alert("Please calibrate your device first before starting the round.");
-  //     return;
-  //   }
-  
-  //   if (!playerCoord) {
-  //     alert("Waiting for location... Please allow GPS or wait a few seconds.");
-  //     return;
-  //   }
-  
-  //   // Ensure game is initialized
-  //   console.log("[Frontend] Ensuring game is initialized before starting round...");
-  //   initGame();
-  
-  //   roundStarted = true;
-  //   radiusSlider.disabled = true;
-  //   document.getElementById('language-input').disabled = true;
-  //   document.getElementById('style-input').disabled = true;
-  
-  //   if (searchCircle){
-  //     INIT_MAP.removeLayer(searchCircle);
-  //     searchCircle = null;
-  //   }
-  
-  //   // Calculate correct angle: use calibrated angle in calibrated mode
-  //   let effectiveAngle;
-  //   if (localStorage.getItem('role') === 'ADMIN') {
-  //     effectiveAngle = testPlayerAngle ?? 0.0;
-  //   } else if (calibratedAngleOffset !== null) {
-  //     // Calibrated mode: send absolute angle (same as ViewCone angle)
-  //     effectiveAngle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
-  //     // Ensure angle is in 0-360 range
-  //     if (effectiveAngle < 0) effectiveAngle += 360;
-  //   } else {
-  //     effectiveAngle = playerAngle ?? 0.0;  
-  //   }
-  
-  //   const language = document.getElementById('language-input').value || 'English';
-  //   const style = document.getElementById('style-input').value || 'Medieval';
-  
-  //   const requestBody = {
-  //     userId: localStorage.getItem('userId'),
-  //     latitude: playerCoord?.lat ?? 0.0,
-  //     longitude: playerCoord?.lng ?? 0.0,
-  //     angle: effectiveAngle,
-  //     radiusMeters: sliderRadius,
-  //     language: language,
-  //     style: style
-  //   };
-  
-  //   console.log("[Frontend] startRound request:", requestBody);
-  
-  //   fetch(LOCAL_HOST + '/api/game/start-round', {
-  //     method: 'POST',
-  //     headers: { 'Content-Type': 'application/json' },
-  //     body: JSON.stringify(requestBody)
-  //   })
-  //   .then(res => {
-  //     if (res.status === 404) {
-  //       return res.text().then(errorText => {
-  //         resetGameToInit();
-  //         if (errorText.includes("No target available")) {
-  //           alert("No landmarks found in the selected area. Try increasing your search radius or move to a different location.");
-  //         } else {
-  //           alert("Session expired. Please start a new game.");
-  //         }
-  //         throw new Error(errorText);
-  //       });
-  //     }
-  //     return res.json();
-  //   })
-  //   .then(data => {
-  
-  //     if (searchCircle){
-  //       INIT_MAP.removeLayer(searchCircle);
-  //       searchCircle = null;
-  //     }
-  
-  //     if(localStorage.getItem('role')==='ADMIN'){
-  //       document.getElementById('target-info').innerText = data.name;
-  //     }
-  //     document.getElementById('chances-left').style.display = 'block';
-  //     document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
-  //     document.getElementById('riddle-box').innerText = data.riddle ? data.riddle : "(No riddle)";
-  
-  //     setTimeout(() => {
-  //       document.getElementById('countdown-timer').style.display = 'block';
-  //       startCountdown();
-  //     }, 100);
-  
-  //     // —— 仅保留需要的控件 —— //
-  //     // 不要隐藏父容器，否则按钮一起没了
-  //     document.getElementById('radius-ui').style.display = 'block';
-
-  //     // 隐藏滑块相关（保留 Finish 按钮所在容器）
-  //     const radiusLabel = document.querySelector('label[for="radius-slider"]');
-  //     if (radiusLabel) radiusLabel.style.display = 'none';
-  //     radiusSlider.style.display = 'none';
-  //     const radiusValue = document.getElementById('radius-value');
-  //     if (radiusValue) radiusValue.style.display = 'none';
-  //     const brInRadius = document.getElementById('radius-ui').querySelector('br');
-  //     if (brInRadius) brInRadius.style.display = 'none';
-
-  //     // 隐藏语言/风格
-  //     document.getElementById('customize-ui').style.display = 'none';
-
-  //     // 显示谜语区块 + 倒计时 + 剩余次数
-  //     document.getElementById('target-display').style.display = 'block';
-  //     document.getElementById('countdown-timer').style.display = 'block';
-  //     document.getElementById('chances-left').style.display = 'block';
-  //     document.getElementById('riddle-box').style.display = 'block';
-
-  //     // 保留并切换按钮
-  //     startBtn.style.display = 'inline-block';
-  //     startBtn.innerText = "Finish Round";
-  //     startBtn.onclick = finishRound;
-  //     submitBtn.disabled = false;
-  //     submitBtn.style.display = 'inline-block';
-
-  //   })
-  //   .catch(err => {
-  //     console.error("[Frontend] startRound error:", err);
-  //     alert("Failed to start round.");
-  //     drawRadiusCircle();
-  //     resetGameToInit();
-      
-  //     // Reset button state on failure
-  //     roundStarted = false;
-  //     radiusSlider.disabled = false;
-  //     startBtn.innerText = "Start Round";
-  //     startBtn.onclick = startRound;
-  //     submitBtn.disabled = true;
-  //   });
-  // }
-  
   // function finishRound() {
   //   fetch(LOCAL_HOST + '/api/game/finish-round', {
   //     method: 'POST',
@@ -895,21 +734,6 @@
   //   .then(res => res.json())
   //   .then(data => {
   //     alert(data.message);
-  
-  //     const radiusLabel = document.querySelector('label[for="radius-slider"]');
-  //     if (radiusLabel) radiusLabel.style.display = '';
-  //     radiusSlider.style.display = '';
-  //     const radiusValue = document.getElementById('radius-value');
-  //     if (radiusValue) radiusValue.style.display = '';
-  //     const brInRadius = document.getElementById('radius-ui').querySelector('br');
-  //     if (brInRadius) brInRadius.style.display = '';
-
-  //     // 恢复语言/风格面板
-  //     document.getElementById('customize-ui').style.display = 'block';
-
-  //     // 隐藏谜语区块（结束回到初始）
-  //     document.getElementById('target-display').style.display = 'none';
-
   //     resetGameToInit();
   //   })
   //   .catch(err => {
@@ -917,6 +741,182 @@
   //     alert("Finish round failed.");
   //   });
   // }
+
+  function startRound() {
+    let role = localStorage.getItem('role');
+    if (role === 'GUEST') {
+      console.log("[Frontend] Please Log in First");
+      return;
+    }
+  
+    if (calibratedAngleOffset === null && role !== 'ADMIN') {
+      alert("Please calibrate your device first before starting the round.");
+      return;
+    }
+  
+    if (!playerCoord) {
+      alert("Waiting for location... Please allow GPS or wait a few seconds.");
+      return;
+    }
+  
+    // Ensure game is initialized
+    console.log("[Frontend] Ensuring game is initialized before starting round...");
+    initGame();
+  
+    roundStarted = true;
+    radiusSlider.disabled = true;
+    document.getElementById('language-input').disabled = true;
+    document.getElementById('style-input').disabled = true;
+  
+    if (searchCircle){
+      INIT_MAP.removeLayer(searchCircle);
+      searchCircle = null;
+    }
+  
+    // Calculate correct angle: use calibrated angle in calibrated mode
+    let effectiveAngle;
+    if (localStorage.getItem('role') === 'ADMIN') {
+      effectiveAngle = testPlayerAngle ?? 0.0;
+    } else if (calibratedAngleOffset !== null) {
+      // Calibrated mode: send absolute angle (same as ViewCone angle)
+      effectiveAngle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
+      // Ensure angle is in 0-360 range
+      if (effectiveAngle < 0) effectiveAngle += 360;
+    } else {
+      effectiveAngle = playerAngle ?? 0.0;  
+    }
+  
+    const language = document.getElementById('language-input').value || 'English';
+    const style = document.getElementById('style-input').value || 'Medieval';
+  
+    const requestBody = {
+      userId: localStorage.getItem('userId'),
+      latitude: playerCoord?.lat ?? 0.0,
+      longitude: playerCoord?.lng ?? 0.0,
+      angle: effectiveAngle,
+      radiusMeters: sliderRadius,
+      language: language,
+      style: style
+    };
+  
+    console.log("[Frontend] startRound request:", requestBody);
+  
+    fetch(LOCAL_HOST + '/api/game/start-round', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+    .then(res => {
+      if (res.status === 404) {
+        return res.text().then(errorText => {
+          resetGameToInit();
+          if (errorText.includes("No target available")) {
+            alert("No landmarks found in the selected area. Try increasing your search radius or move to a different location.");
+          } else {
+            alert("Session expired. Please start a new game.");
+          }
+          throw new Error(errorText);
+        });
+      }
+      return res.json();
+    })
+    .then(data => {
+  
+      if (searchCircle){
+        INIT_MAP.removeLayer(searchCircle);
+        searchCircle = null;
+      }
+  
+      if(localStorage.getItem('role')==='ADMIN'){
+        document.getElementById('target-info').innerText = data.name;
+      }
+      document.getElementById('chances-left').style.display = 'block';
+      document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.attemptsLeft}`;
+      document.getElementById('riddle-box').innerText = data.riddle ? data.riddle : "(No riddle)";
+  
+      setTimeout(() => {
+        document.getElementById('countdown-timer').style.display = 'block';
+        startCountdown();
+      }, 100);
+  
+      // —— 仅保留需要的控件 —— //
+      // 不要隐藏父容器，否则按钮一起没了
+      document.getElementById('radius-ui').style.display = 'block';
+
+      // 隐藏滑块相关（保留 Finish 按钮所在容器）
+      const radiusLabel = document.querySelector('label[for="radius-slider"]');
+      if (radiusLabel) radiusLabel.style.display = 'none';
+      radiusSlider.style.display = 'none';
+      const radiusValue = document.getElementById('radius-value');
+      if (radiusValue) radiusValue.style.display = 'none';
+      const brInRadius = document.getElementById('radius-ui').querySelector('br');
+      if (brInRadius) brInRadius.style.display = 'none';
+
+      // 隐藏语言/风格
+      document.getElementById('customize-ui').style.display = 'none';
+
+      // 显示谜语区块 + 倒计时 + 剩余次数
+      document.getElementById('target-display').style.display = 'block';
+      document.getElementById('countdown-timer').style.display = 'block';
+      document.getElementById('chances-left').style.display = 'block';
+      document.getElementById('riddle-box').style.display = 'block';
+
+      // 保留并切换按钮
+      startBtn.style.display = 'inline-block';
+      startBtn.innerText = "Finish Round";
+      startBtn.onclick = finishRound;
+      submitBtn.disabled = false;
+      submitBtn.style.display = 'inline-block';
+
+    })
+    .catch(err => {
+      console.error("[Frontend] startRound error:", err);
+      alert("Failed to start round.");
+      drawRadiusCircle();
+      resetGameToInit();
+      
+      // Reset button state on failure
+      roundStarted = false;
+      radiusSlider.disabled = false;
+      startBtn.innerText = "Start Round";
+      startBtn.onclick = startRound;
+      submitBtn.disabled = true;
+    });
+  }
+  
+  function finishRound() {
+    fetch(LOCAL_HOST + '/api/game/finish-round', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: localStorage.getItem('userId')
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message);
+  
+      const radiusLabel = document.querySelector('label[for="radius-slider"]');
+      if (radiusLabel) radiusLabel.style.display = '';
+      radiusSlider.style.display = '';
+      const radiusValue = document.getElementById('radius-value');
+      if (radiusValue) radiusValue.style.display = '';
+      const brInRadius = document.getElementById('radius-ui').querySelector('br');
+      if (brInRadius) brInRadius.style.display = '';
+
+      // 恢复语言/风格面板
+      document.getElementById('customize-ui').style.display = 'block';
+
+      // 隐藏谜语区块（结束回到初始）
+      document.getElementById('target-display').style.display = 'none';
+
+      resetGameToInit();
+    })
+    .catch(err => {
+      console.error("[Frontend] Failed to finish round:", err);
+      alert("Finish round failed.");
+    });
+  }
   
 
   function resetGameToInit() {

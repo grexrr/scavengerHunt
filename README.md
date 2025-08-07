@@ -852,7 +852,6 @@ main.js
 
   * **Language and style personalization**: Extended puzzle generation to support user-defined preferences:
     * **Dynamic language selection**: Users can specify riddle language (English, Chinese, etc.) via `language-input` field
-    * **Style customization**: Multiple riddle styles available (Medieval, Modern, Poetic, etc.) through `style-input` field
     * **Real-time preference application**: Settings applied immediately when starting new rounds
 
   * **Frontend implementation**:

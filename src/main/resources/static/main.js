@@ -9,7 +9,7 @@
 
   let playerCone = null;
   const spanDeg = 60;
-  const coneRadiusMeters = 250;
+  const coneRadiusMeters = 150;
 
   let playerMarker = null;  // The player's circle marker on the INIT_MAP
   const icon = L.divIcon({     // Custom circle icon for player marker
@@ -41,6 +41,7 @@
   let calibrationPoints = [];
   let calibratedAngleOffset = null;  // Calibrated angle offset
   let currentAbsoluteAngle = 0;  // Current absolute angle for map rotation
+  let showViewCone = false;  // 添加这个变量控制 viewCone 显示
 
   // const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
   const LOCAL_HOST = "https://3efed167c322.ngrok-free.app"  // Ngrok
@@ -456,6 +457,7 @@
     isCalibrating = false;
     initGame();
     drawRadiusCircle();
+    showViewCone = true;  // 校准完成后才显示 viewCone
   }
   
 
@@ -792,6 +794,11 @@
     // Reset map rotation
     INIT_MAP.getContainer().style.transform = '';
 
+    // Clear calibration state on reset/refresh
+    calibratedAngleOffset = null;
+    localStorage.removeItem('calibratedAngleOffset');
+    updateCalibrationStatus();
+
     // landmarkMap.forEach(polygon => {
     //   INIT_MAP.removeLayer(polygon);
     // });
@@ -819,6 +826,7 @@
     // landmarkMap.forEach(polygon => {
     //   polygon.setStyle({ color: 'darkgrey' });
     // });
+    showViewCone = false;  // 重置时隐藏 viewCone
     window.location.reload();
   }
 
@@ -910,7 +918,7 @@
       // Admin mode: cone follows testPlayerAngle, map doesn't rotate
       coneAngle = testPlayerAngle;
     } else {
-      if(calibratedAngleOffset !== null){
+      if(calibratedAngleOffset !== null && showViewCone){  // 添加 showViewCone 条件
         coneAngle = (calibratedAngleOffset + playerAngle) % 360;
         // Ensure angle is in 0-360 range
         if (coneAngle < 0) coneAngle += 360;

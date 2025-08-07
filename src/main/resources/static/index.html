@@ -28,6 +28,24 @@
       font-family: monospace;
       z-index: 1000;
     }
+    
+    /* Player circle marker styles */
+    .player-circle-marker {
+      background: transparent;
+      border: none;
+    }
+    .circle-dot {
+      width: 16px;
+      height: 16px;
+      background: #3388ff;
+      border: 2px solid white;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      transform: translate(-50%, -50%);
+      position: relative;
+      top: 50%;
+      left: 50%;
+    }
   </style>
 </head>
 <body>
@@ -42,8 +60,6 @@
     </div>
     <div id="chances-left" style="display: none; margin-left: 10px;"></div>
 
-
-
     <div id="radius-ui" style="display: none; margin-top: 8px;">
       <label for="radius-slider">Search Radius (meters): </label>
       <input type="range" id="radius-slider" min="50" max="300" value="50" />
@@ -52,14 +68,24 @@
       <button id="start-round-btn">Start Round</button>
       <button id="submit-answer-btn" style="display: none; margin-left: 10px;">Submit Answer</button>
     </div>
+
+    <div id="customize-ui" style="margin-top: 8px;">
+      <label for="language-input">Preferred Language:</label><br>
+      <input id="language-input" type="text" placeholder="e.g. English, Japanese" /><br><br>
+      
+      <label for="style-input">Preferred Style:</label><br>
+      <input id="style-input" type="text" placeholder="e.g. Medieval, Haiku, Modern" />
+    </div>
     
     <hr />
     
-    <b>Current Target:</b><br />
-    <div id="target-info">(No target yet)</div>
-    
-    <div id="riddle-box" style="margin-top: 8px; font-style: italic; white-space: pre-line;">
-      (No riddle yet)
+    <div id="target-display" style="display: none;">
+      <b>Current Target:</b><br />
+      <div id="target-info">(No target yet)</div>
+      
+      <div id="riddle-box" style="margin-top: 8px; font-style: italic; white-space: pre-line;">
+        (No riddle yet)
+      </div>
     </div>
     
     <hr />

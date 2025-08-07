@@ -183,7 +183,9 @@ public class GameRestController {
             System.out.println("[StartRound] Cannot start round - game already finished for user: " + request.getUserId());
             return ResponseEntity.status(400).body("[Backend][API] Game already finished. Please initialize a new game.");
         }
-
+        
+        PuzzleManager pm = new PuzzleManager(gameDataRepo, request.getLanguage(), request.getStyle());
+        session.setPuzzleManager(pm);
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
         session.startNewRound(request.getRadiusMeters());
 

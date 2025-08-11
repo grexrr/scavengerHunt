@@ -37,18 +37,20 @@ public class Player {
 
     public Player(){}
 
-    public Player(double latitude, double longitude, double angle) {
+    public Player(double latitude, double longitude, double angle, String city) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.angle = angle;
+        this.city = city;
         this.playerCone = setPlayerViewCone(latitude, longitude, angle, this.spanDeg, this.radiusMeters, this.resolution);
         acquireCity(); // MVP as "Cork"
     }
     
-    public Player(double latitude, double longitude, double angle, double spanDeg, double radiusMeters) {
+    public Player(double latitude, double longitude, double angle, String city, double spanDeg, double radiusMeters) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.angle = angle;
+        this.city = city;
         this.playerCone = setPlayerViewCone(latitude, longitude, angle, spanDeg, radiusMeters, this.resolution);
         acquireCity(); // MVP as "Cork"
     }
@@ -92,7 +94,9 @@ public class Player {
     }
 
     public void acquireCity(){
-        this.city = "Cork";
+        // this.city = "Cork";
+        String resolveCityUrl = "http://localhost:5002/resolve-city";
+        
     }
 
     public void setCity(String city){

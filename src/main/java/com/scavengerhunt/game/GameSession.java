@@ -29,7 +29,7 @@ public class GameSession {
     private EloCalculator eloCalculator;
 
     private Landmark currentTarget;
-    private Map<String, Integer> targetPool; 
+    private Map<String, Integer> attemptsByLandmarkId; 
     private Map<String, Boolean> solvedLandmarks = new HashMap<>(); // only for frontend rendering
 
     private int maxWrongAnswer = 3;
@@ -82,10 +82,10 @@ public class GameSession {
         }
 
         // map the current answer counter (starts from 3, decreases to 0)
-        this.targetPool = candidateLandmarks.stream()
+        this.attemptsByLandmarkId = candidateLandmarks.stream()
             .collect(Collectors.toMap(landmark -> landmark.getId(), landmark -> maxWrongAnswer));
 
-        System.out.println("[Debug] Target pool created with " + this.targetPool.size() + " landmarks");
+        System.out.println("[Debug] Target pool created with " + this.attemptsByLandmarkId.size() + " landmarks");
 
         // select the first target & set round start time
         selectNextTarget();
@@ -100,8 +100,8 @@ public class GameSession {
         };
 
         System.out.println("[Debug] Current target: " + this.currentTarget.getName() + " (ID: " + this.currentTarget.getId() + ")");
-        System.out.println("[Debug] Target pool size: " + this.targetPool.size());
-        System.out.println("[Debug] Target pool contents: " + this.targetPool.keySet());
+        System.out.println("[Debug] Target pool size: " + this.attemptsByLandmarkId.size());
+        System.out.println("[Debug] Target pool contents: " + this.attemptsByLandmarkId.keySet());
         
         // check finishing time
         if (riddleSeconds > maxRiddleDurationMinutes * 60L) {
@@ -123,12 +123,12 @@ public class GameSession {
             return singleTransaction(riddleSeconds,false);
         }
         
-        //if detected landmark is not within TargetPool
-        if (detectedLandmark != null && !this.targetPool.containsKey(detectedLandmark.getId())) {
+        //if detected landmark is not within attemptsByLandmarkId
+        if (detectedLandmark != null && !this.attemptsByLandmarkId.containsKey(detectedLandmark.getId())) {
             System.out.println("[Debug] Detected landmark not in target pool, wrong count + 1");
             return singleTransaction(riddleSeconds,false);
         } else {
-            //if it's within TargetPool
+            //if it's within attemptsByLandmarkId
             System.out.println("[Debug] Detected landmark is in target pool, checking if correct...");
             if (answerCorrect(detectedLandmark)){
                 //if correct
@@ -145,7 +145,7 @@ public class GameSession {
 
     public Landmark selectNextTarget() {
         // select Nearest for MVP
-        if (!this.playerState.isGameFinished()) {  // 这里原来是 !isGameFinished()
+        if (!this.playerState.isGameFinished()) { 
             // Check if target pool is empty
             if (getUnsolvedLandmarks().isEmpty()) {
                 System.out.println("[Debug] Target pool is empty, marking game as finished");
@@ -199,23 +199,23 @@ public class GameSession {
         }
         
         if (isCorrect == false){
-            this.targetPool.put(this.currentTarget.getId(), this.targetPool.get(this.currentTarget.getId()) - 1);
-            System.out.println("[Debug] Current target attempts remaining: " + this.targetPool.get(this.currentTarget.getId()));
+            this.attemptsByLandmarkId.put(this.currentTarget.getId(), this.attemptsByLandmarkId.get(this.currentTarget.getId()) - 1);
+            System.out.println("[Debug] Current target attempts remaining: " + this.attemptsByLandmarkId.get(this.currentTarget.getId()));
             
             // Check if current target has reached 0 attempts
-            if (this.targetPool.get(this.currentTarget.getId()) <= 0) {
+            if (this.attemptsByLandmarkId.get(this.currentTarget.getId()) <= 0) {
                 System.out.println("[Debug] Current target has reached 0 attempts remaining");
 
                 //pool removal and update rating (User & currentTarget)
                 String lmid = this.currentTarget.getId();
-                this.targetPool.remove(lmid);
+                this.attemptsByLandmarkId.remove(lmid);
                 eloCalculator.updateRating(lmid, riddleSeconds, isCorrect);
 
                 // add to solved landmark as wrong
                 this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
                 
-                System.out.println("[Debug] Target pool after removing current target: " + this.targetPool.keySet());
-                System.out.println("[Debug] Target pool size after removal: " + this.targetPool.size());
+                System.out.println("[Debug] Target pool after removing current target: " + this.attemptsByLandmarkId.keySet());
+                System.out.println("[Debug] Target pool size after removal: " + this.attemptsByLandmarkId.size());
                 
                 // Check if this was the last target
                 if (checkAndHandleGameEnd()) {
@@ -227,14 +227,14 @@ public class GameSession {
             return isCorrect;
         } else {
             System.out.println("[Debug] Answer is correct!");
-            System.out.println("[Debug] Target pool before removal: " + this.targetPool.keySet());
+            System.out.println("[Debug] Target pool before removal: " + this.attemptsByLandmarkId.keySet());
             
             //pool removal and update rating (User & currentTarget)
             String lmid = this.currentTarget.getId();
-            this.targetPool.remove(lmid);
+            this.attemptsByLandmarkId.remove(lmid);
             eloCalculator.updateRating(lmid, riddleSeconds, isCorrect);
             
-            System.out.println("[Debug] Target pool after removal: " + this.targetPool.keySet());
+            System.out.println("[Debug] Target pool after removal: " + this.attemptsByLandmarkId.keySet());
             this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
             
             // Check if this was the last target
@@ -248,7 +248,7 @@ public class GameSession {
 
     private boolean checkAndHandleGameEnd() {
         // Only handle game end if game is active (not already finished)
-        if (this.targetPool.isEmpty()) {
+        if (this.attemptsByLandmarkId.isEmpty()) {
             System.out.println("[Debug] Target pool is empty - game finished");
             this.playerState.setGameFinished();
             this.currentTarget = null;
@@ -287,7 +287,7 @@ public class GameSession {
         if (this.playerState.isGameFinished()) {
             return true;
         }
-        return this.targetPool != null && this.targetPool.isEmpty();
+        return this.attemptsByLandmarkId != null && this.attemptsByLandmarkId.isEmpty();
     }
 
     // ==================== Getters & Setters ====================
@@ -299,7 +299,7 @@ public class GameSession {
             return null;
         }
 
-        if (this.targetPool == null || this.targetPool.isEmpty()) {
+        if (this.attemptsByLandmarkId == null || this.attemptsByLandmarkId.isEmpty()) {
             System.out.println("[Debug] Target pool empty. Game should be finished.");
             return null;
         }
@@ -318,7 +318,7 @@ public class GameSession {
         Map<String, Object> result = new HashMap<>();
         result.put("id", this.currentTarget.getId());
         result.put("name", this.currentTarget.getName());
-        result.put("attemptsLeft", this.targetPool.get(this.currentTarget.getId()));
+        result.put("attemptsLeft", this.attemptsByLandmarkId.get(this.currentTarget.getId()));
         result.put("riddle", this.currentTarget.getRiddle());
         return result;
     }
@@ -332,7 +332,7 @@ public class GameSession {
     }
 
     public Map<String, Integer> getUnsolvedLandmarks() {
-        return this.targetPool;
+        return this.attemptsByLandmarkId;
     }
 }
 

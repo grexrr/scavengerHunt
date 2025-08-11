@@ -50,7 +50,11 @@ public class GameRestController {
         // create session for whatever user type
         GameSession session = sessionMap.get(request.getUserId());
         if (session == null) {
-            Player player = new Player(request.getLatitude(), request.getLongitude(), request.getAngle(), request.getSpanDeg(), request.getConeRadiusMeters());
+            double latitude = request.getLatitude();
+            double longitude = request.getLongitude();
+            String city = gameDataRepo.initLandmarkDataFromPosition(latitude, longitude);
+
+            Player player = new Player(latitude, longitude, request.getAngle(), city, request.getSpanDeg(), request.getConeRadiusMeters());
             LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
             PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
@@ -109,10 +113,12 @@ public class GameRestController {
 
         // Create new session only if no active session exists
         System.out.println("[InitGame] Creating new session for user: " + userId);
+        
         Player player = new Player(
             request.getLatitude(),
             request.getLongitude(),
             request.getAngle(),
+            city,
             request.getSpanDeg(),
             request.getConeRadiusMeters()
         );

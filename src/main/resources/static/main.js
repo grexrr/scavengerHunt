@@ -1,6 +1,6 @@
   // ========== Global Variables ==========
   let userId = null;
-  let city = 'Cork';
+  // let city = 'Cork';
 
   let geoWatchId = null
 
@@ -856,7 +856,7 @@
       document.getElementById('customize-ui').style.display = 'none';
 
       // 显示谜语区块 + 倒计时 + 剩余次数
-      document.getElementById('target-display').style.display = 'block';
+      // document.getElementById('target-display').style.display = 'block';
       document.getElementById('countdown-timer').style.display = 'block';
       document.getElementById('chances-left').style.display = 'block';
       document.getElementById('riddle-box').style.display = 'block';
@@ -1011,7 +1011,7 @@
     .then(res => res.text())
     .then(msg => {
       console.log("[Frontend] Position updated", msg);
-      if (localStorage.getItem('role"') === 'GUEST') {
+      if (localStorage.getItem('role') === 'GUEST') {
         console.log("[Frontend] Guest user - position updated but no session created");
       }
     });

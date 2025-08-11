@@ -33,9 +33,6 @@ public class LandmarkManager {
         this.currentCity = city;
         this.allLocalLandmarkIds = this.gameDataRepo.loadLandmarkIdByCity(city); // mvp style, expandable
         System.out.println("[LandmarkManager] Initialized for city: " + city + " with " + this.allLocalLandmarkIds.size() + " local landmarks");
-        for (String id : this.allLocalLandmarkIds) {
-            System.out.println("[LandmarkManager] - Local landmark ID: " + id);
-        }
     }
 
     public void getRoundLandmarksIdWithinRadius(double lat, double lng, double radiusMeters) {

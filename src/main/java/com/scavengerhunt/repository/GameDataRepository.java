@@ -31,7 +31,7 @@ public class GameDataRepository {
         this.restTemplate = new RestTemplate();
     }
 
-    // ==================== Landmark Operations ====================
+    // ==================== Landmark Operations ====================    
     
     public String initLandmarkDataFromPosition(double lat, double lng) {
         String resolveCityUrl = "http://localhost:5002/resolve-city";

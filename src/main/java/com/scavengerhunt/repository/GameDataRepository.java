@@ -51,11 +51,11 @@ public class GameDataRepository {
                 Object cityRaw = resolveResp.getBody().get("city");
                 if (cityRaw instanceof String resolvedCity && !resolvedCity.isEmpty()) {
                     city = resolvedCity;
-                    System.out.println("[GameDataRepo] Resolved city: " + city);
+                    System.out.println("[Landmark Processor] Resolved city: " + city);
                 }
             }
         } catch (Exception e) {
-            System.err.println("[GameDataRepo] resolve-city call failed: " + e.getMessage());
+            System.err.println("[Landmark Processor] resolve-city call failed: " + e.getMessage());
         }
     
         // Step 2: fallback if resolution failed
@@ -67,24 +67,24 @@ public class GameDataRepository {
         // Step 3: try database first
         List<Landmark> landmarks = landmarkRepo.findByCity(city);
         if (landmarks.size() >= 10) {
-            System.out.println("[GameDataRepo] Using cached landmarks for city: " + city + " (" + landmarks.size() + ")");
+            System.out.println("[Landmark Processor] Using cached landmarks for city: " + city + " (" + landmarks.size() + ")");
             return city;
         }
     
         // Step 4: fetch if needed
         try {
-            System.out.println("[GameDataRepo] Landmark data insufficient (" + landmarks.size() + "), triggering fetch...");
+            System.out.println("[Landmark Processor] Landmark data insufficient (" + landmarks.size() + "), triggering fetch...");
             Map<String, String> cityPayload = Map.of("latitude", String.valueOf(lat), "longitude", String.valueOf(lng));
             HttpEntity<Map<String, String>> fetchEntity = new HttpEntity<>(cityPayload, headers);
             ResponseEntity<Map> fetchResp = restTemplate.postForEntity(fetchLandmarkUrl, fetchEntity, Map.class);
     
             if (fetchResp.getStatusCode().is2xxSuccessful()) {
-                System.out.println("[GameDataRepo] Fetch succeeded from Flask.");
+                System.out.println("[Landmark Processor] Fetch succeeded from Flask.");
             } else {
-                System.err.println("[GameDataRepo] Fetch returned non-200: " + fetchResp.getStatusCode());
+                System.err.println("[Landmark Processor] Fetch returned non-200: " + fetchResp.getStatusCode());
             }
         } catch (Exception e) {
-            System.err.println("[GameDataRepo] Fetch from Flask failed: " + e.getMessage());
+            System.err.println("[Landmark Processor] Fetch from Flask failed: " + e.getMessage());
         }
     
         return city;

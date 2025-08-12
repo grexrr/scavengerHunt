@@ -18,13 +18,6 @@ public class GameSession {
     private PlayerStateManager playerState;
     private LandmarkManager landmarkManager;
     private PuzzleManager puzzleManager;
-    public PuzzleManager getPuzzleManager() {
-        return puzzleManager;
-    }
-
-    public void setPuzzleManager(PuzzleManager puzzleManager) {
-        this.puzzleManager = puzzleManager;
-    }
 
     private EloCalculator eloCalculator;
 
@@ -39,17 +32,17 @@ public class GameSession {
         String userId, 
         GameDataRepository gameDataRepository, 
         PlayerStateManager playerState, 
-        LandmarkManager landmarkManager, 
-        PuzzleManager puzzleManager,
+        LandmarkManager landmarkManager,
         int maxRiddleDurationMinutes
-        ){
+    ) {
         this.userId = userId;
         this.gameDataRepository = gameDataRepository;
         this.playerState = playerState;
         this.landmarkManager = landmarkManager;
-        this.puzzleManager = puzzleManager;
+        this.puzzleManager = new PuzzleManager(gameDataRepository, null, null, null, null); // ✅ 直接 new
         this.eloCalculator = new EloCalculator(userId, gameDataRepository, maxRiddleDurationMinutes);
     }
+
 
     // ==================== Core Functions ====================
 
@@ -59,6 +52,9 @@ public class GameSession {
     }
 
     public void startNewRound(double radiusMeters) {
+        this.puzzleManager.setTargetPool(this.landmarkManager.getAllRouLandmark());
+        this.puzzleManager.setSessionId(this.userId);
+
         double lat = this.playerState.getPlayer().getLatitude();
         double lng = this.playerState.getPlayer().getLongitude();
         
@@ -171,6 +167,7 @@ public class GameSession {
             
             //Generate Riddle only if target is found
             if (this.currentTarget != null) {
+                
                 String riddle = this.puzzleManager.getRiddleForLandmark(this.currentTarget.getId());
                 this.currentTarget.setRiddle(riddle);
                 
@@ -253,6 +250,8 @@ public class GameSession {
             this.playerState.setGameFinished();
             this.currentTarget = null;
             this.puzzleManager.storeUserGameRoundStatistics();
+            this.puzzleManager.resetPuzzleSession();
+
             return true; // Game finished
         } else {
             System.out.println("[Debug] Target pool not empty, selecting next target");
@@ -321,6 +320,14 @@ public class GameSession {
         result.put("attemptsLeft", this.attemptsByLandmarkId.get(this.currentTarget.getId()));
         result.put("riddle", this.currentTarget.getRiddle());
         return result;
+    }
+
+    public PuzzleManager getPuzzleManager() {
+        return puzzleManager;
+    }
+
+    public void setPuzzleManager(PuzzleManager puzzleManager) {
+        this.puzzleManager = puzzleManager;
     }
 
     public String getUserId() {

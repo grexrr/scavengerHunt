@@ -20,7 +20,6 @@ import com.scavengerhunt.dto.StartRoundRequest;
 import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.LandmarkManager;
 import com.scavengerhunt.game.PlayerStateManager;
-import com.scavengerhunt.game.PuzzleManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
@@ -35,8 +34,8 @@ public class GameRestController {
     @Autowired
     private GameDataRepository gameDataRepo;
 
-    @Autowired
-    private PuzzleManager puzzleManager;
+    // @Autowired
+    // private PuzzleManager puzzleManager;
     
     // EloCalculator is created dynamically in GameSession, not as a Spring bean
 
@@ -60,7 +59,7 @@ public class GameRestController {
 
             String userId = request.getUserId();
             
-            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
+            session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, 30);
             sessionMap.put(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
@@ -126,7 +125,7 @@ public class GameRestController {
         LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
         PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
 
-        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
+        GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, 30);
         sessionMap.put(userId, session);
         
         List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
@@ -168,8 +167,6 @@ public class GameRestController {
             return ResponseEntity.status(400).body("[Backend][API] Game already finished. Please initialize a new game.");
         }
         
-        PuzzleManager pm = new PuzzleManager(gameDataRepo, request.getLanguage(), request.getStyle());
-        session.setPuzzleManager(pm);
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
         session.startNewRound(request.getRadiusMeters());
 

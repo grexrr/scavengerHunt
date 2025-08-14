@@ -10,7 +10,7 @@ public class PlayerTest {
 
     @Test
     void testPlayerInitialization() {
-        // Player player = new Player(51.0, -8.5, 90.0);
+        Player player = new Player(51.0, -8.5, 90.0);
 
         assertEquals(51.0, player.getLatitude());
         assertEquals(-8.5, player.getLongitude());

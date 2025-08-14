@@ -52,8 +52,6 @@ public class GameSession {
     }
 
     public void startNewRound(double radiusMeters) {
-        this.puzzleManager.setTargetPool(this.landmarkManager.getAllRouLandmark());
-        this.puzzleManager.setSessionId(this.userId);
 
         double lat = this.playerState.getPlayer().getLatitude();
         double lng = this.playerState.getPlayer().getLongitude();
@@ -62,9 +60,13 @@ public class GameSession {
         this.playerState.resetGame();
         this.currentTarget = null;
         
+        
         // init candidate map
         this.landmarkManager.getRoundLandmarksIdWithinRadius(lat, lng, radiusMeters);
         List<Landmark> candidateLandmarks = this.landmarkManager.getAllRouLandmark();
+
+        this.puzzleManager.setTargetPool(candidateLandmarks);
+        this.puzzleManager.setSessionId(this.userId);
 
         System.out.println("[Debug] Candidate landmarks found: " + candidateLandmarks.size());
         for (Landmark lm : candidateLandmarks) {
@@ -259,6 +261,8 @@ public class GameSession {
             return false; // Continue with next target
         }
     }
+
+    
 
     private Landmark selectNearestTo(double refLat, double refLng) {
         System.out.println("[Debug] Trying to select from: " + getUnsolvedLandmarks().keySet());

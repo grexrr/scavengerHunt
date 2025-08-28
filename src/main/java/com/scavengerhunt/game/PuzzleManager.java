@@ -110,6 +110,10 @@ public class PuzzleManager {
     }
 
     private double normalizeRating(Double rating, String mode){
+        //needs to be change to log 
+        // Delta = q_{player} - q_{landmark}
+        // d = 100 / (1 + e^(-Delta))
+        
         if (rating == null || rating.isNaN()) return 50.0; // fallback
     
         String m = (mode == null || mode.isEmpty()) ? "default" : mode;

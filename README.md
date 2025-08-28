@@ -46,7 +46,6 @@ scavenger_hunt/                        # Project root directory (Java backend)
     ├── local_riddle_loader.py         # Loads riddles from local JSON
     ├── utils.py                       # Prompt templates and format helpers
     └── config.py                      # OpenAI keys, model settings, and flags
-
 ```
 
 This module demonstrates full-stack coordination between a Java desktop application and a lightweight Python server using RESTful APIs, with a strong focus on geospatial interaction and puzzle-solving mechanics.

@@ -1,10 +1,17 @@
 # scavengerHunt
 
-![General Pipeline Overview](./images/general_activity.png)
-
 **UrbanQuest** is an interactive Java-based location puzzle game enhanced by a Python backend. The game challenges players to find real-world landmarks based on riddles. Players navigate a rendered map, receive clues, and interact using keyboard and mouse controls. The system evaluates user actions and determines success based on spatial accuracy and orientation.
 
+### Features
+
+### Stack
+
+## Quickstart (Local)
+
+
 ### Module Overview (Updating)
+
+![General Pipeline Overview](./images/general_activity.png)
 
 ```perl
 scavenger_hunt/                        # Project root directory (Java backend)
@@ -49,6 +56,7 @@ scavenger_hunt/                        # Project root directory (Java backend)
 ```
 
 This module demonstrates full-stack coordination between a Java desktop application and a lightweight Python server using RESTful APIs, with a strong focus on geospatial interaction and puzzle-solving mechanics.
+
 
 
 ### Dev Log

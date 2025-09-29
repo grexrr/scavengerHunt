@@ -23,6 +23,9 @@ import com.scavengerhunt.utils.GeoUtils;
  * - Provide helpers to select next suitable target
  */
 public class LandmarkManager {
+    // 静态配置读取
+    private static final String LANDMARK_PROCESSOR_URL = 
+        System.getProperty("landmark.processor.url", "http://landmark-processor:5000");
 
     private GameDataRepository gameDataRepo;
     private String currentCity;
@@ -76,7 +79,7 @@ public class LandmarkManager {
         
         if(ids.isEmpty()) return;
 
-        final String fetchMetaUrl = "http://localhost:5002/generate-landmark-meta";
+        final String fetchMetaUrl = LANDMARK_PROCESSOR_URL + "/generate-landmark-meta";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 

@@ -16,11 +16,10 @@ import com.scavengerhunt.model.User;
 
 @Repository
 public class GameDataRepository {
-    /**
-     * Centralized repository for game data operations.
-     * Manages all data access for PlayerStateManager and LandmarkManager.
-     */
-
+    // 静态配置读取
+    private static final String LANDMARK_PROCESSOR_URL = 
+        System.getProperty("landmark.processor.url", "http://landmark-processor:5000");
+    
     private final LandmarkRepository landmarkRepo;
     private final UserRepository userRepo;
     private final RestTemplate restTemplate;
@@ -34,8 +33,8 @@ public class GameDataRepository {
     // ==================== Landmark Operations ====================    
     
     public String initLandmarkDataFromPosition(double lat, double lng) {
-        String resolveCityUrl = "http://localhost:5002/resolve-city";
-        String fetchLandmarkUrl = "http://localhost:5002/fetch-landmark";
+        String resolveCityUrl = LANDMARK_PROCESSOR_URL + "/resolve-city";
+        String fetchLandmarkUrl = LANDMARK_PROCESSOR_URL + "/fetch-landmark";
     
         Map<String, Object> payload = Map.of("latitude", lat, "longitude", lng);
         HttpHeaders headers = new HttpHeaders();

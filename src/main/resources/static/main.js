@@ -43,7 +43,7 @@
   let showViewCone = false;  // 添加这个变量控制 viewCone 显示
 
   // const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
-  const LOCAL_HOST = "https://43f358fe7f5f.ngrok-free.app"  // Ngrok
+  const LOCAL_HOST = "https://e614bf5eca15.ngrok-free.app"  // Ngrok
   const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
   const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
 

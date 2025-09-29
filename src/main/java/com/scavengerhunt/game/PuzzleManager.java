@@ -16,7 +16,9 @@ import com.scavengerhunt.repository.GameDataRepository;
 
 // @Component
 public class PuzzleManager {
-   
+    // 静态配置读取
+    private static final String PUZZLE_AGENT_URL = 
+        System.getProperty("puzzle.agent.url", "http://puzzle-agent:5000");
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final GameDataRepository gameDataRepo;
@@ -36,7 +38,7 @@ public class PuzzleManager {
     }
 
     public String getRiddleForLandmark(String landmarkId) {
-        String url = "http://localhost:5001/generate-riddle";
+        String url = PUZZLE_AGENT_URL + "/generate-riddle";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
     
@@ -89,7 +91,7 @@ public class PuzzleManager {
     public void resetPuzzleSession() {
         try {
             RestTemplate restTemplate = new RestTemplate();
-            String url = "http://localhost:5001/reset-session";
+            String url = PUZZLE_AGENT_URL + "/reset-session";
             
             Map<String, String> payload = new HashMap<>();
             payload.put("session_id", this.sessionId);

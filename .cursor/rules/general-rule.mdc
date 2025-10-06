@@ -1,0 +1,119 @@
+---
+alwaysApply: true
+name: scavengerHunt Global Rules
+description: Shared project requirements, tech constraints, and communication preferences for this repo.
+tags:
+  - backend
+  - microservices
+  - observability
+  - ci-cd
+  - frontend
+  - mobile
+  - llm-rag
+priority: high
+audience:
+  - assistant
+  - user
+scope:
+  - repository
+  - conversations
+---
+
+## Communication
+- Language: Chinese/English bilingual; default to concise responses in user's current language.
+- Style: Instructor mindset (teach the approach, then provide the solution when asked).
+- Formatting: Use Markdown sparingly; code blocks only for code/commands; use backticks for file/dir/function names.
+
+## Developer Environment
+- Machine: Apple Silicon ARM64 (M2). Prefer multi-arch Docker images and native ARM builds.
+- Shell: /bin/zsh on macOS 14 (Darwin 24.x).
+
+## Project Goals (Definition of Scope)
+1. Contract Testing + OpenAPI (Spring)
+   - springdoc-openapi + Swagger UI; export versioned openapi.yaml
+   - Consumer-driven contracts (Spring Cloud Contract or Pact)
+2. Observability (Actuator + Prometheus)
+   - Expose /actuator/health, /actuator/metrics, /actuator/prometheus
+   - Optional Grafana dashboards via docker-compose
+3. CI/CD (GitHub Actions preferred; Jenkins optional)
+   - CI: build, test, contract verify, OpenAPI export, image build (multi-arch)
+   - CD: push to GHCR/Docker Hub, optional compose deploy
+4. Web Shell (React + Vite + TS)
+   - Minimal UI to call auth/game APIs; uses generated client SDK
+5. Mobile Shell (React Native + Expo)
+   - Reuse shared TypeScript client from shared/client
+6. LLM/RAG Extraction & Validation
+   - Extract/clean landmark metadata; riddle QA checks (length, safety, solvability)
+   - Optional vector index for retrieval (faiss/qdrant)
+7. Repository Layout + Makefile
+   - Top-level Makefile: init/build/test/lint/run/compose/docs
+   - Folders: backend/, frontend/, mobile/, shared/client/, llm/, ops/
+8. Definition of Done (DoD)
+   - Docs: README with setup/ports/env; OpenAPI visible
+   - Quality: unit + contract tests on critical paths; CI green
+   - Security: secrets via GitHub Secrets; optional image scan
+   - Ops: health/metrics; local compose for Java + Flask x2 + Mongo + Prometheus (+ Grafana optional)
+   - Delivery: Web + Mobile shells run end-to-end; images published; rollback noted
+   - LLM/RAG: batch QA script outputs report with pass thresholds
+
+## Technical Conventions
+- Java Backend:
+  - Inject microservice URLs via JVM props: -Dpuzzle.agent.url, -Dlandmark.processor.url
+  - Keep Spring Boot Actuator enabled; Micrometer Prometheus registry
+  - Avoid catching errors without handling; prefer early returns
+- Python Microservices (Flask):
+  - Health endpoints /health must return 200 OK
+  - Use env: OPENAI_API_KEY, MONGO_URL, MONGO_DB, FLASK_HOST, FLASK_PORT
+- OpenAPI/SDK:
+  - Generate openapi.yaml in CI and publish as artifact
+  - Use openapi-typescript to generate shared/client SDK
+
+## CI Expectations
+- On PR: unit tests, contract tests, lint, OpenAPI generation, build (ARM64), artifact upload
+- On main: build & push images; optionally run compose deploy job
+
+## Execution Order (Guidance)
+1) OpenAPI + Contract testing → 2) shared/client SDK → 3) Web shell → 4) Actuator/Prometheus (+ compose) → 5) CI/CD → 6) Mobile shell → 7) LLM/RAG → 8) DoD polish
+
+## Non-Goals (for now)
+- Full production Kubernetes manifests; keep local docker-compose sufficient
+- Complex auth providers beyond current username/password MVP
+
+## Architecture Overview & Component Tracking
+
+### Core Components (3-Tier Architecture)
+1. **Java Backend** (`backend/`)
+   - Spring Boot 3.4.4 + MongoDB
+   - Controllers: `GameRestController`, `AuthController`, `AdminController`
+   - Game Logic: `GameSession`, `LandmarkManager`, `PuzzleManager`, `PlayerStateManager`
+   - Key Files: `backend/src/main/java/com/scavengerhunt/`
+
+2. **LandmarkProcessor** (Flask Microservice)
+   - Container: `landmark-processor:local` (port 5000/5002)
+   - APIs: `/resolve-city`, `/fetch-landmark`, `/generate-landmark-meta`, `/health`
+   - Environment: `OPENAI_API_KEY`, `MONGO_URL`, `MONGO_DB`, `FLASK_HOST`, `FLASK_PORT`
+   - Status: External service (not yet in repo)
+
+3. **PuzzleAgent** (Flask Microservice)
+   - Container: `puzzle-agent:local` (port 5000/5001)
+   - APIs: `/generate-riddle`, `/reset-session`, `/health`
+   - Environment: `OPENAI_API_KEY`, `MONGO_URL`, `FLASK_HOST`, `FLASK_PORT`
+   - Status: External service (not yet in repo)
+
+### Integration Points
+- Java Backend → LandmarkProcessor: `LandmarkManager.ensureLandmarkMeta()`
+- Java Backend → PuzzleAgent: `PuzzleManager.getRiddleForLandmark()`
+- All services → MongoDB: `mongodb://mongo-scavenger:27017/scavengerhunt`
+
+### Monitoring Requirements
+- Track changes in `backend/src/main/java/com/scavengerhunt/game/LandmarkManager.java`
+- Track changes in `backend/src/main/java/com/scavengerhunt/game/PuzzleManager.java`
+- Monitor microservice health endpoints: `/health`
+- Watch for new Python files or Dockerfiles that might indicate microservice code addition
+
+### Future Microservice Integration
+- When microservice code is added to repo, create:
+  - `landmark-processor/` directory with Flask app
+  - `puzzle-agent/` directory with Flask app
+  - Update docker-compose.yml to include all services
+  - Add health checks and monitoring for all three components

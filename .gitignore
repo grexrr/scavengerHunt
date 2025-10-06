@@ -1,0 +1,53 @@
+# ===== Python 相关 =====
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ===== Java/Maven 相关 =====
+target/
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven wrapper
+mvnw
+mvnw.cmd
+.mvn/
+
+# ===== IDE =====
+.cursor/
+.vscode/
+.idea/
+*.iml
+.DS_Store
+
+# ===== 项目文件 =====
+*.pptx
+*.pdf
+
+# ===== Spring Boot 配置 =====
+application.properties
+!src/main/resources/application.properties
+keystore.p12
+
+# ===== 日志 =====
+*.log
+
+# ===== 环境变量 =====
+.env
+.env.local

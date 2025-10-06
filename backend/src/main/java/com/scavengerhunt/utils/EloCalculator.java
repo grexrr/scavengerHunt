@@ -48,16 +48,16 @@ public class EloCalculator {
         if (Double.isNaN(userNewRating)) userNewRating = 0.5;
         if (Double.isNaN(landmarkNewRating)) landmarkNewRating = 0.5;
     
-        // ======= Logs =======
-        System.out.println("====== [EloCalc] Rating Update ======");
-        System.out.println("[EloCalc] Target Landmark: " + landmark.getName() + " (ID: " + landmark.getId() + ")");
-        System.out.println("[EloCalc] User ID: " + user.getUserId());
-        System.out.println("[EloCalc] Time used: " + riddleSeconds + " seconds");
-        System.out.println("[EloCalc] Answer correct? " + isCorrect);
-        System.out.printf("[EloCalc] Current User Rating: %.4f → %.4f (K=%.5f)\n", userRating, userNewRating, userK);
-        System.out.printf("[EloCalc] Current Landmark Rating: %.4f → %.4f (K=%.5f)\n", landmarkRating, landmarkNewRating, landmarkK);
-        System.out.printf("[EloCalc] Delta: %.4f, hshs: %.4f, expected: %.4f\n", delta, hshs, expectation);
-        System.out.println("==================================");
+        // // ======= Logs =======
+        // System.out.println("====== [EloCalc] Rating Update ======");
+        // System.out.println("[EloCalc] Target Landmark: " + landmark.getName() + " (ID: " + landmark.getId() + ")");
+        // System.out.println("[EloCalc] User ID: " + user.getUserId());
+        // System.out.println("[EloCalc] Time used: " + riddleSeconds + " seconds");
+        // System.out.println("[EloCalc] Answer correct? " + isCorrect);
+        // System.out.printf("[EloCalc] Current User Rating: %.4f → %.4f (K=%.5f)\n", userRating, userNewRating, userK);
+        // System.out.printf("[EloCalc] Current Landmark Rating: %.4f → %.4f (K=%.5f)\n", landmarkRating, landmarkNewRating, landmarkK);
+        // System.out.printf("[EloCalc] Delta: %.4f, hshs: %.4f, expected: %.4f\n", delta, hshs, expectation);
+        // System.out.println("==================================");
     
 
         gameDataRepo.updateUserRating(this.user.getUserId(), userNewRating);

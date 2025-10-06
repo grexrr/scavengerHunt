@@ -6,8 +6,53 @@
 
 ### Stack
 
-## Quickstart (Local)
+### Quickstart (Local)
+```ngrok http http://localhost:8443```
 
+#### Service Port Configuration
+
+##### Main Application (Spring Boot / Container)
+
+- Image/Container: spring-backend:local (container name: spring-backend, joined scavenger-net)
+- Port: 8080 inside container; host mapping 8443:8080 → access http://localhost:8443/
+- Frontend: resources/static/index.html served from same origin, frontend requests use relative paths /api/...
+- Microservice URLs (inter-container communication): injected via JVM system properties
+  -Dpuzzle.agent.url=http://puzzle-agent:5000
+  -Dlandmark.processor.url=http://landmark-processor:5000
+- Mongo connection: mongodb://mongo-scavenger:27017/scavengerhunt
+
+Run command:
+```
+docker run -d --name spring-backend --network scavenger-net -p 8443:8080 -e JAVA_TOOL_OPTIONS="-Dpuzzle.agent.url=http://puzzle-agent:5000 -Dlandmark.processor.url=http://landmark-processor:5000" spring-backend:local
+```
+
+##### Microservice A (PuzzleAgent / Flask)
+
+- Image/Container: puzzle-agent:local (container name: puzzle-agent, joined scavenger-net)
+- Listening: 0.0.0.0:5000 inside container; host mapping 5001:5000 (local testing: http://127.0.0.1:5001)
+- Environment variables (injected at container runtime):
+  - OPENAI_API_KEY=<fill in by deployer>
+  - MONGO_URL=mongodb://mongo-scavenger:27017
+  - FLASK_HOST=0.0.0.0, FLASK_PORT=5000 (code starts according to env)
+  - (Optional) LM Studio related, e.g. LMSTUDIO_BASE_URL=http://host.docker.internal:1234/v1
+- Health/Verification: /health OK; example business interface /generate-riddle OK
+
+##### Microservice B (LandmarkProcessor / Flask)
+
+- Image/Container: landmark-processor:local (container name: landmark-processor, joined scavenger-net)
+- Listening: 0.0.0.0:5000 inside container; host mapping 5002:5000 (local testing: http://127.0.0.1:5002)
+- Environment variables:
+  - OPENAI_API_KEY=<fill in by deployer>
+  - MONGO_URL=mongodb://mongo-scavenger:27017
+  - MONGO_DB=scavengerhunt
+  - FLASK_HOST=0.0.0.0, FLASK_PORT=5000
+- Health/Verification: /health OK; batch metadata interface available (e.g. /generate-landmark-meta)
+
+##### Mongo (Container)
+
+- Image/Container: mongo-scavenger (container name: mongo-scavenger, on scavenger-net)
+- Port: 27017 (if need to expose to host: -p 27017:27017)
+- Hostname accessed within container: mongo-scavenger
 
 ### Module Overview (Updating)
 

@@ -1,9 +1,0 @@
-{
-    "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "automatic",
-    "java.project.sourcePaths": ["backend/src/main/java"],
-    "java.project.outputPath": "backend/target/classes",
-    "java.project.referencedLibraries": [
-        "backend/target/**/*.jar"
-    ]
-}

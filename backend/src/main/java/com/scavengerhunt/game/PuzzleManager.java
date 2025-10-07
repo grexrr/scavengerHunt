@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,8 +18,10 @@ import com.scavengerhunt.repository.GameDataRepository;
 // @Component
 public class PuzzleManager {
     // 静态配置读取
-    private static final String PUZZLE_AGENT_URL = 
-        System.getProperty("puzzle.agent.url", "http://puzzle-agent:5000");
+    // private static final String puzzleAgentBaseUrl = 
+    //     System.getProperty("puzzle.agent.url", "http://puzzle-agent:5000");
+    
+    @Value("${puzzle.agent.url}") private String puzzleAgentBaseUrl;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final GameDataRepository gameDataRepo;
@@ -38,7 +41,7 @@ public class PuzzleManager {
     }
 
     public String getRiddleForLandmark(String landmarkId) {
-        String url = PUZZLE_AGENT_URL + "/generate-riddle";
+        String url = puzzleAgentBaseUrl + "/generate-riddle";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
     
@@ -91,7 +94,7 @@ public class PuzzleManager {
     public void resetPuzzleSession() {
         try {
             RestTemplate restTemplate = new RestTemplate();
-            String url = PUZZLE_AGENT_URL + "/reset-session";
+            String url = puzzleAgentBaseUrl + "/reset-session";
             
             Map<String, String> payload = new HashMap<>();
             payload.put("session_id", this.sessionId);

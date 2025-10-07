@@ -29,3 +29,6 @@ echo "📍 Access points:"
 echo "   Swagger UI: http://localhost:8443/swagger-ui.html"
 echo "   OpenAPI:    http://localhost:8443/api-docs"
 echo "   Health:     http://localhost:8443/actuator/health"
+
+
+docker network connect scavenger-net spring-backend

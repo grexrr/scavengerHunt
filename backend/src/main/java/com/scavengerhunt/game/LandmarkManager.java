@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -24,9 +25,11 @@ import com.scavengerhunt.utils.GeoUtils;
  */
 public class LandmarkManager {
     // 静态配置读取
-    private static final String LANDMARK_PROCESSOR_URL = 
-        System.getProperty("landmark.processor.url", "http://landmark-processor:5000");
+    // private static final String landmarkProcessorBaseUrl = 
+    //     System.getProperty("landmark.processor.url", "http://landmark-processor:5000");
 
+    @Value("${landmark.processor.url}") 
+    private String landmarkProcessorBaseUrl;
     private GameDataRepository gameDataRepo;
     private String currentCity;
 
@@ -79,7 +82,7 @@ public class LandmarkManager {
         
         if(ids.isEmpty()) return;
 
-        final String fetchMetaUrl = LANDMARK_PROCESSOR_URL + "/generate-landmark-meta";
+        final String fetchMetaUrl = landmarkProcessorBaseUrl + "/generate-landmark-meta";
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 

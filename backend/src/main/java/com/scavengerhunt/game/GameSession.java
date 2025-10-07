@@ -33,13 +33,14 @@ public class GameSession {
         GameDataRepository gameDataRepository, 
         PlayerStateManager playerState, 
         LandmarkManager landmarkManager,
+        PuzzleManager puzzleManager,
         int maxRiddleDurationMinutes
     ) {
         this.userId = userId;
         this.gameDataRepository = gameDataRepository;
         this.playerState = playerState;
         this.landmarkManager = landmarkManager;
-        this.puzzleManager = new PuzzleManager(gameDataRepository, null, null, null, null); // ✅ 直接 new
+        this.puzzleManager = puzzleManager;
         this.eloCalculator = new EloCalculator(userId, gameDataRepository, maxRiddleDurationMinutes);
     }
 
@@ -65,8 +66,10 @@ public class GameSession {
         this.landmarkManager.getRoundLandmarksIdWithinRadius(lat, lng, radiusMeters);
         List<Landmark> candidateLandmarks = this.landmarkManager.getAllRouLandmark();
 
-        this.puzzleManager.setTargetPool(candidateLandmarks);
-        this.puzzleManager.setSessionId(this.userId);
+        this.puzzleManager.initialize(this.userId, candidateLandmarks, null, null);
+        
+        // Reset PuzzleAgent session to start fresh
+        this.puzzleManager.resetPuzzleSession();
 
         System.out.println("[Debug] Candidate landmarks found: " + candidateLandmarks.size());
         for (Landmark lm : candidateLandmarks) {

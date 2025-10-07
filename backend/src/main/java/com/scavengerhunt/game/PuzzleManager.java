@@ -4,36 +4,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
-
+import com.scavengerhunt.client.PuzzleAgentClient;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.repository.GameDataRepository;
 
-// @Component
 public class PuzzleManager {
-    // 静态配置读取
-    // private static final String puzzleAgentBaseUrl = 
-    //     System.getProperty("puzzle.agent.url", "http://puzzle-agent:5000");
-    
-    @Value("${puzzle.agent.url}") private String puzzleAgentBaseUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
     private final GameDataRepository gameDataRepo;
+    private final PuzzleAgentClient puzzleAgentClient;
     
     private String sessionId;
-    private final String language;
-    private final String style;
+    private String language;
+    private String style;
     private List<Landmark> targetPool; 
 
-
-    public PuzzleManager(GameDataRepository gameDataRepo, String sessionId, List<Landmark> targetPool, String language, String style) {
+    public PuzzleManager(GameDataRepository gameDataRepo, PuzzleAgentClient puzzleAgentClient) {
         this.gameDataRepo = gameDataRepo;
+        this.puzzleAgentClient = puzzleAgentClient;
+        this.language = "English";
+        this.style = "Medieval";
+    }
+
+    public void initialize(String sessionId, List<Landmark> targetPool, String language, String style) {
         this.sessionId = sessionId;
         this.targetPool = targetPool;
         this.language = language != null ? language : "English";
@@ -41,10 +33,6 @@ public class PuzzleManager {
     }
 
     public String getRiddleForLandmark(String landmarkId) {
-        String url = puzzleAgentBaseUrl + "/generate-riddle";
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-    
         List<String> poolIds = null;
         if (this.targetPool != null) {
             poolIds = this.targetPool.stream()
@@ -55,7 +43,6 @@ public class PuzzleManager {
         System.out.println("[Debug] Sending puzzlePool: " + poolIds);
         
         Map<String, Object> payload = new HashMap<>();
-        
         if (this.sessionId != null && !this.sessionId.isEmpty()) {
             payload.put("sessionId", this.sessionId);
         }
@@ -64,27 +51,9 @@ public class PuzzleManager {
         payload.put("language", this.language);
         payload.put("style", this.style);
         payload.put("puzzlePool", poolIds);
-    
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-    
+
         try {
-            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-    
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                return "Default Riddle";
-            }
-    
-            Map body = response.getBody();
-    
-            // Object sid = body.get("session_id");
-            // if (sid instanceof String s && (this.sessionId == null || !this.sessionId.equals(s))) {
-            //     this.sessionId = s;
-            //     System.out.println("[PuzzleManager] New Python session_id: " + this.sessionId);
-            // }
-    
-            Object r = body.get("riddle");
-            return (r instanceof String) ? (String) r : "Default Riddle";
-    
+            return puzzleAgentClient.generateRiddle(payload);
         } catch (Exception e) {
             System.out.println("[PuzzleManager] Python backend not available: " + e.getMessage());
             return "Default Riddle";
@@ -93,19 +62,8 @@ public class PuzzleManager {
     
     public void resetPuzzleSession() {
         try {
-            RestTemplate restTemplate = new RestTemplate();
-            String url = puzzleAgentBaseUrl + "/reset-session";
-            
-            Map<String, String> payload = new HashMap<>();
-            payload.put("session_id", this.sessionId);
-            
-            ResponseEntity<String> response = restTemplate.postForEntity(url, payload, String.class);
-            
-            System.out.println("[Debug] Reset PuzzleAgent session: " + this.sessionId);
-            System.out.println("[Debug] Reset API response: " + response.getStatusCode() + " -> " + response.getBody());
-            
-        } catch (Exception e) {
-            System.out.println("[Warn] Failed to reset PuzzleAgent session: " + e.getMessage());
+            puzzleAgentClient.resetSession(this.sessionId);
+        } catch (Exception ignored) {
         }
     }
     

@@ -13,11 +13,17 @@ docker stop spring-backend 2>/dev/null || true
 docker rm spring-backend 2>/dev/null || true
 
 echo "🚀 Starting new container..."
-docker run -d \
-  --name spring-backend \
+# docker run -d \
+#   --name spring-backend \
+#   -p 8443:8080 \
+#   -e SPRING_DATA_MONGODB_URI=mongodb://mongo-scavenger:27017/scavengerhunt \
+#   --link mongo-scavenger:mongo-scavenger \
+#   spring-backend:local
+
+docker run -d --name spring-backend \
+  --network scavenger-net \
   -p 8443:8080 \
   -e SPRING_DATA_MONGODB_URI=mongodb://mongo-scavenger:27017/scavengerhunt \
-  --link mongo-scavenger:mongo-scavenger \
   spring-backend:local
 
 echo "✅ Deployment complete! Checking logs..."

@@ -933,8 +933,62 @@ main.js
 
   * **User experience enhancement**: Players can now personalize their gaming experience with preferred language and riddle style, making the scavenger hunt more engaging and accessible to diverse user preferences.
 
+---
 
+#### **Oct. 7 2025**
 
+##### Contract Testing + Microservice Communication Refactoring
+
+Today's main objective was to implement contract testing between the Java backend and microservices. During this process, we modified URL configuration to use `@Value("${puzzle.agent.url}")` for better externalization. However, we discovered a critical issue:
+
+**Root Cause**: When using `new PuzzleManager()` in `GameSession`, Spring's `@Value` injection doesn't work, resulting in empty URLs and "URI is not absolute" errors.
+
+**Solution**: Stateless Client Pattern
+To maintain session state in `GameSession` while making external service calls stateless and injectable, we implemented the **Stateless Client Pattern**:
+
+**Key Changes Made**
+
+**1. Created PuzzleAgentClient (Stateless HTTP Client)**
+- **Purpose**: Single responsibility - handle HTTP communication with PuzzleAgent microservice
+- **Pattern**: `@Component` singleton that reads `puzzle.agent.url` via `@Value`
+- **Implementation**: Uses `RestTemplate` to send requests to `/generate-riddle` and `/reset-session`
+- **Benefits**: 
+  - URL configuration managed by Spring
+  - No session state contamination
+  - Reusable across multiple GameSessions
+
+**2. Refactored PuzzleManager (Stateful Session Manager)**
+- **Removed**: `@Value` URL injection and direct HTTP calls
+- **Added**: Dependency on `PuzzleAgentClient` via constructor injection
+- **Retained**: Session-specific state (`sessionId`, `language`, `style`, `targetPool`)
+- **Pattern**: Delegates HTTP calls to stateless client while maintaining session context
+
+**3. Updated GameSession Integration**
+- **Modified**: Constructor to accept `PuzzleManager` instance
+- **Updated**: `GameRestController` to create `PuzzleManager(gameDataRepo, puzzleAgentClient)`
+- **Result**: Each GameSession gets its own PuzzleManager instance with shared client
+
+**Architecture Benefits**
+- **Session Isolation**: Each GameSession maintains independent puzzle state
+- **Configuration Management**: URLs centrally managed via Spring properties
+- **Contract Testing Ready**: Stateless clients can be easily mocked/tested
+- **Microservice Communication**: Clean separation between session logic and HTTP calls
+
+**Next Steps**
+
+```bash
+AttributeError: 'NoneType' object has no attribute 'get'
+File "/app/riddle_generator.py", line 37, in generateRiddle
+meta = self.meta.get("meta", {})
+```
+
+Obviously, since I havn't impelmented the same fix for the `landmark manager`, while `puzzle agent` attempts to generate a riddle for certain landmark which does not have metadata, `riddle_generator.loadMetaFromDB(landmark_id)` will return `None`, since `self.meta.get("meta", {})` in `PuzzleAgent.py` will crash. 
+
+Fundamentally, `ensureLandmarkMeta()` did not successfully call the landmark-processor to generate metadata. 
+
+**Fix**
+- Apply the same pattern to `LandmarkManager` for `LandmarkProcessor` communication
+- Implement Pact contract tests for both PuzzleAgent and LandmarkProcessor clients
     
 
 

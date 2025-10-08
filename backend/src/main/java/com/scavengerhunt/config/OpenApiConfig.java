@@ -22,7 +22,7 @@ public class OpenApiConfig {
                         .description("RESTful API for the Scavenger Hunt location-based game")
                         .contact(new Contact()
                                 .name("Scavenger Hunt Team")
-                                .email("support@scavengerhunt.com")))
+                                .email("wyatt_h.w@protonmail.com")))
                 .servers(List.of(
                         new Server().url("http://localhost:8080").description("Local Development"),
                         new Server().url("http://0.0.0.0:8080").description("Docker Container")

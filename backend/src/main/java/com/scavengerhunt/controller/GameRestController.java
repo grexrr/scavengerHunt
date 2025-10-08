@@ -36,6 +36,9 @@ public class GameRestController {
 
     @Autowired
     private com.scavengerhunt.client.PuzzleAgentClient puzzleAgentClient;
+
+    @Autowired
+    private com.scavengerhunt.client.LandmarkProcessorClient landmarkProcessorClient;
     
     // EloCalculator is created dynamically in GameSession, not as a Spring bean
 
@@ -54,7 +57,7 @@ public class GameRestController {
             String city = gameDataRepo.initLandmarkDataFromPosition(latitude, longitude);
 
             Player player = new Player(latitude, longitude, request.getAngle(), city, request.getSpanDeg(), request.getConeRadiusMeters());
-            LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
+            LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, landmarkProcessorClient, player.getCity());
             PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
             com.scavengerhunt.game.PuzzleManager puzzleManager = new com.scavengerhunt.game.PuzzleManager(gameDataRepo, puzzleAgentClient);
 
@@ -123,7 +126,7 @@ public class GameRestController {
             request.getConeRadiusMeters()
         );
 
-        LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, player.getCity());
+        LandmarkManager landmarkManager = new LandmarkManager(gameDataRepo, landmarkProcessorClient, player.getCity());
         PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
         com.scavengerhunt.game.PuzzleManager puzzleManager = new com.scavengerhunt.game.PuzzleManager(gameDataRepo, puzzleAgentClient);
 

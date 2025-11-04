@@ -94,6 +94,24 @@ scavengerHunt/
 - 玩家位置标记（实时更新）
 - View Cone 扇形覆盖（60度，50米半径）
 - 搜索半径圆圈（开始回合前显示）
+- **第一人称视角支持**（优先实现）
+- **第三人称视角支持**（可选，类似导航软件）
+
+**视角模式**:
+
+1. **第一人称视角（First-Person View）** - 默认模式，优先实现：
+   - 地图根据设备朝向（heading）旋转，模拟导航应用体验
+   - 玩家位置固定在屏幕中心（通常是底部中心）
+   - View Cone 固定指向屏幕顶部（视角固定）
+   - 地图旋转公式：`mapRotation = -(calibratedAngleOffset + currentPlayerAngle)`
+   - 使用 `react-native-maps` 的 `camera` prop 设置 `heading` 角度
+   - 实现效果：设备转向时，地图反向旋转，保持地理方向准确性，View Cone 始终指向屏幕顶部
+
+2. **第三人称视角（Third-Person View）** - 可选功能：
+   - 地图不旋转，保持北向上（North-up）
+   - 玩家位置可在地图上移动
+   - View Cone 根据设备朝向在地图上旋转
+   - 支持通过 UI 按钮切换视角模式
 
 **GeoJSON 处理**:
 
@@ -108,6 +126,16 @@ scavengerHunt/
 const convertCoordinates = (coords: number[][]): {latitude: number, longitude: number}[] => {
   return coords.map(([lat, lng]) => ({ latitude: lat, longitude: lng }));
 };
+
+// 第一人称模式：地图旋转
+<MapView
+  camera={{
+    center: { latitude: playerLat, longitude: playerLng },
+    heading: -currentAbsoluteAngle, // 负值，与Web端一致
+    pitch: 0,
+    zoom: 18
+  }}
+/>
 ```
 
 ### 3. 定位服务 (`services/location/`)
@@ -123,7 +151,11 @@ const convertCoordinates = (coords: number[][]): {latitude: number, longitude: n
 
 - 使用 `expo-sensors` 的 `Magnetometer` 或 `DeviceMotion`
 - 计算设备朝向角度（0-360度，0=北）
-- 移除校准逻辑，直接使用绝对方向
+- 支持校准机制（类似 Web 端的 walking-based calibration）
+  - 可选：实现设备方向校准，通过行走校准建立绝对方向基准
+  - 校准角度：`calibratedAngleOffset`，用于计算绝对地图角度
+  - 绝对角度计算：`currentAbsoluteAngle = (calibratedAngleOffset + playerAngle) % 360`
+- 未校准时可直接使用设备原始方向（作为降级方案）
 
 **Hooks**:
 
@@ -230,12 +262,33 @@ interface SubmitAnswerResponse {
 }
 ```
 
+## 视角模式实现说明
+
+### 第一人称视角（优先实现）
+
+**核心逻辑**（参考 Web 端实现）：
+- 地图容器根据设备朝向动态旋转
+- View Cone 固定指向屏幕顶部（屏幕坐标系）
+- 玩家位置固定在屏幕中心（地图自动居中）
+- 角度计算：`currentAbsoluteAngle = (calibratedAngleOffset + playerAngle) % 360`
+- 地图旋转：`camera.heading = -currentAbsoluteAngle`（负值实现反向旋转）
+
+**实现方式**：
+- 使用 `react-native-maps` 的 `camera` prop 实时更新 `heading`
+- 通过 `useHeading` Hook 获取设备方向变化
+- 玩家位置更新时，地图自动跟随（`camera.center` 更新）
+
+### 第三人称视角（可选功能）
+
+- 地图保持北向上（`heading: 0` 或不设置）
+- View Cone 在地图坐标系中旋转（跟随设备朝向）
+- 支持手动拖拽和缩放
+- 通过设置/UI 按钮切换视角模式
+
 ## 移除的功能
 
 1. **Admin 模式**: 移除所有 Admin 相关代码和测试功能
-2. **设备校准**: 移除 `startCalibration()` / `finishCalibration()` 逻辑
-3. **地图旋转**: 移除第一人称视角的地图旋转（移动端不适用）
-4. **手动拖拽**: 移除地图点击/拖拽移动玩家位置的功能
+2. **手动拖拽**（仅在第一人称模式下禁用）: 第一人称模式时禁用地图点击/拖拽移动玩家位置，第三人称模式可启用
 
 ## 实现步骤
 
@@ -274,6 +327,15 @@ interface SubmitAnswerResponse {
 3. 实现坐标转换工具函数
 4. 渲染地标多边形（从 `init-game` 响应）
 5. 添加玩家位置标记和实时更新
+6. **实现第一人称视角模式**：
+   - 集成 `camera` prop 控制地图旋转
+   - 根据 `heading` 实时更新 `camera.heading`
+   - 玩家位置固定逻辑（地图自动居中）
+   - View Cone 固定指向屏幕顶部
+7. **（可选）实现第三人称视角模式**：
+   - 添加视角切换按钮/设置
+   - 第三人称模式下禁用地图旋转
+   - View Cone 在地图坐标系中旋转
 
 ### Phase 6: View Cone 和游戏逻辑
 
@@ -345,6 +407,14 @@ interface SubmitAnswerResponse {
 
 5. **网络**: 实现离线检测和重试机制
 
+6. **第一人称视角实现要点**:
+   - `react-native-maps` 的 `camera` prop 支持动态更新 `heading`
+   - 使用 `Animated` API 平滑过渡地图旋转（可选）
+   - View Cone 计算需考虑地图旋转后的坐标转换
+   - 确保角度计算与后端保持一致（`calibratedAngleOffset + playerAngle`）
+
+7. **视角切换**: 如果实现双模式，需要状态管理保存当前视角模式，并在切换时平滑过渡
+
 ### To-dos
 
 - [ ] 初始化 Expo 项目：创建 mobile/ 目录，运行 create-expo-app，配置 TypeScript
@@ -362,7 +432,9 @@ interface SubmitAnswerResponse {
 - [ ] 实现坐标转换工具：utils/geoUtils.ts，将后端坐标格式转换为地图组件格式
 - [ ] 实现地标多边形渲染：components/LandmarkPolygon.tsx，支持坐标转换和样式
 - [ ] 实现玩家位置标记：components/PlayerMarker.tsx，实时更新位置
-- [ ] 实现 View Cone 扇形：components/ViewCone.tsx，基于 heading 和位置计算扇形区域
+- [ ] 实现第一人称视角模式：地图根据 heading 旋转，玩家位置固定，View Cone 指向屏幕顶部
+- [ ] 实现 View Cone 扇形：components/ViewCone.tsx，基于 heading 和位置计算扇形区域（考虑第一人称/第三人称模式差异）
+- [ ] （可选）实现视角切换功能：第一人称/第三人称模式切换按钮和状态管理
 - [ ] 实现游戏会话 Hook：hooks/useGameSession.ts，管理游戏状态和 API 调用
 - [ ] 实现游戏信息覆盖层：components/GameHUD.tsx，显示目标、谜题、倒计时
 - [ ] 实现倒计时组件：components/CountdownTimer.tsx，30分钟倒计时逻辑

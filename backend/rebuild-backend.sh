@@ -37,4 +37,4 @@ echo "   OpenAPI:    http://localhost:8443/api-docs"
 echo "   Health:     http://localhost:8443/actuator/health"
 
 
-docker network connect scavenger-net spring-backend
+# docker network connect scavenger-net spring-backend

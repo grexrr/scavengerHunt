@@ -23,13 +23,16 @@ import com.scavengerhunt.game.PlayerStateManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
+import com.scavengerhunt.service.GameSessionService;
 import com.scavengerhunt.utils.GeoUtils;
 
 @RestController
 @RequestMapping("/api/game")
 public class GameRestController {
 
-    private Map<String, GameSession> sessionMap = new HashMap<>();
+    @Autowired
+    private GameSessionService gameSessionService; 
+
 
     @Autowired
     private GameDataRepository gameDataRepo;
@@ -50,7 +53,7 @@ public class GameRestController {
         }
         
         // create session for whatever user type
-        GameSession session = sessionMap.get(request.getUserId());
+        GameSession session = gameSessionService.getSession(request.getUserId());
         if (session == null) {
             double latitude = request.getLatitude();
             double longitude = request.getLongitude();
@@ -64,7 +67,7 @@ public class GameRestController {
             String userId = request.getUserId();
             
             session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
-            sessionMap.put(userId, session);
+            gameSessionService.putSession(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
 
@@ -89,7 +92,7 @@ public class GameRestController {
         String city = gameDataRepo.initLandmarkDataFromPosition(lat, lng);
         
         // Check if there's already an active session for this user
-        GameSession existingSession = sessionMap.get(userId);
+        GameSession existingSession = gameSessionService.getSession(userId);
         if (existingSession != null && !existingSession.isGameFinished()) {
             System.out.println("[InitGame] Active session exists for user " + userId + ", updating position only");
             existingSession.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
@@ -131,7 +134,7 @@ public class GameRestController {
         com.scavengerhunt.game.PuzzleManager puzzleManager = new com.scavengerhunt.game.PuzzleManager(gameDataRepo, puzzleAgentClient);
 
         GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
-        sessionMap.put(userId, session);
+        gameSessionService.putSession(userId, session);
         
         List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
         List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
@@ -159,7 +162,7 @@ public class GameRestController {
             return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
         }
         
-        GameSession session = sessionMap.get(request.getUserId());
+        GameSession session = gameSessionService.getSession(request.getUserId());
         if (session == null) return ResponseEntity.status(404).body("[Backend][API] Session Not Found.");
 
         if (session.getUserId() == null) {
@@ -187,7 +190,7 @@ public class GameRestController {
         String userId = request.get("userId");
         System.out.println("[Debug] Submit answer request from user: " + userId);
         
-        GameSession session = sessionMap.get(userId);
+        GameSession session = gameSessionService.getSession(userId);
         if (session == null) {
             System.out.println("[Error] Session not found for user: " + userId);
             return ResponseEntity.status(404).body(Map.of(
@@ -254,7 +257,7 @@ public class GameRestController {
             return ResponseEntity.badRequest().body("Missing userId.");
         }
 
-        sessionMap.remove(userId);  
+        gameSessionService.removeSession(userId);  
         System.out.println("[Backend][API] Session cleared for user: " + userId);
 
         Map<String, Object> res = new HashMap<>();
@@ -265,7 +268,7 @@ public class GameRestController {
 
     // @GetMapping("/get-current-target")
     // public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {
-    //     GameSession session = sessionMap.get(userId);
+    //     GameSession session = gameSessionService.getSession(userId);
     //     if (session == null) return ResponseEntity.status(404).body("Session not found");
         
     //     Landmark target = session.getCurrentTarget();

@@ -15,6 +15,11 @@ public class User {
 
     private String username;
     private String password;
+    private String email = null;
+
+    private String preferred_language = "english";
+    private String preferred_style = "medieval";
+
     private List<Integer> solvedLandmarkIds = new ArrayList<>();
 
     private Boolean admin = false;
@@ -36,6 +41,14 @@ public class User {
         this.userId = UUID.randomUUID().toString();
     }
 
+    public User(String username, String password, String email) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+        this.createdAt = LocalDateTime.now();
+        this.userId = UUID.randomUUID().toString();
+    }
+
     public User(String username, String password, Boolean isAdmin) {
         this(username, password);
         this.admin = isAdmin;
@@ -52,6 +65,15 @@ public class User {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPreferred_language() { return preferred_language; }
+    public void setPreferred_language(String preferred_language) { this.preferred_language = preferred_language; }
+
+    public String getPreferred_style() { return preferred_style; }
+    public void setPreferred_style(String preferred_style) { this.preferred_style = preferred_style; }
+
     public List<Integer> getSolvedLandmarkIds() { return solvedLandmarkIds; }
     public void setSolvedLandmarkIds(List<Integer> ids) { this.solvedLandmarkIds = ids; }
 
@@ -61,8 +83,6 @@ public class User {
     public Double getRating() { return rating; }
     public void setRating(Double rating) { this.rating = rating; }
 
-    // public Double getUncertainty() { return uncertainty; }
-    // public void setUncertainty(Double uncertainty) { this.uncertainty = uncertainty; }
 
     public Double getDisplayRating() { return displayRating; }
     public void setDisplayRating(Double displayRating) { this.displayRating = displayRating; }

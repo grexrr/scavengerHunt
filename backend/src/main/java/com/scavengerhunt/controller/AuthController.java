@@ -2,7 +2,9 @@ package com.scavengerhunt.controller;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.scavengerhunt.dto.UserIdentityRequest;
 import com.scavengerhunt.model.User;
 import com.scavengerhunt.repository.UserRepository;
+import com.scavengerhunt.service.GameSessionService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,6 +29,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Authentication", description = "User authentication and registration APIs")
 public class AuthController {
 
+    @Autowired
+    private GameSessionService gameSessionService;
+
     private final UserRepository userRepo;
 
     public AuthController(UserRepository userRepo) {
@@ -38,14 +44,23 @@ public class AuthController {
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Registration successful"),
-        @ApiResponse(responseCode = "409", description = "Username already exists")
+        @ApiResponse(responseCode = "409", description = "Username or email already exists")
     })
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody UserIdentityRequest request){
         if (userRepo.findByUsername(request.getUsername()).isPresent()) {
             return ResponseEntity.status(409).body("Username already exists.");
         }
+        
+        String userEmail = request.getEmail();
+        if (userEmail != null && userRepo.findByEmail(userEmail).isPresent()) {
+            return ResponseEntity.status(409).body("Email already exists.");
+        }
+        
         User newUser = new User(request.getUsername(), request.getPassword());
+        if (userEmail != null) {
+            newUser.setEmail(userEmail);;
+        } 
         newUser.setCreatedAt(null);
         userRepo.save(newUser);
         return ResponseEntity.ok("[Backend] Register success!");
@@ -61,29 +76,68 @@ public class AuthController {
             description = "Login successful",
             content = @Content(schema = @Schema(implementation = Map.class))
         ),
-        @ApiResponse(responseCode = "404", description = "Invalid username or password")
+        @ApiResponse(responseCode = "400", description = "Username or email is required."),
+        @ApiResponse(responseCode = "404", description = "Invalid username/email or password")
     })
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody UserIdentityRequest request) {
-        return userRepo.findByUsername(request.getUsername())
-        .filter(user -> user.getPassword().equals(request.getPassword()))
-        .map(user -> {
+
+        String username = request.getUsername();
+        String email = request.getEmail();
+
+        Optional<User> user;
+
+        if (username != null && !username.trim().isEmpty()) {
+            user = userRepo.findByUsername(username);
+        } else if (email != null && !email.trim().isEmpty()) {
+            user = userRepo.findByEmail(email);
+        } else {
+            return ResponseEntity.status(400).body(
+                Map.of("error", "[Backend] Username or email is required.")
+            );
+        }
+        
+        return user
+        .filter(u -> u.getPassword().equals(request.getPassword()))
+        .map(u -> {
             Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("userId", user.getUserId());
-            userInfo.put("username", user.getUsername());  // Changed from userName to username
-            userInfo.put("role", user.getAdmin() ? "ADMIN": "PLAYER");
+            userInfo.put("userId", u.getUserId());
+            userInfo.put("username", u.getUsername());  // Changed from userName to username
+            userInfo.put("email", u.getEmail());
+            userInfo.put("role", u.getAdmin() ? "ADMIN": "PLAYER");
             return ResponseEntity.ok(userInfo);
         })
         .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "[Backend] Invalid username or password.")));
     }
 
     @Operation(
-        summary = "User logout",
-        description = "Logs out the current user"
+    summary = "User logout",
+    description = "Logs out the current user and clears game session"
     )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Logout successful"),
+        @ApiResponse(responseCode = "400", description = "UserId is required")
+    })
     @PostMapping("/logout")
-    public String logout() {
-        return "Logout";
+    public ResponseEntity<Map<String, Object>> logout(@RequestBody Map<String, String> request) {
+        String userId = request.get("userId");
+        
+        if (userId == null || userId.trim().isEmpty()) {
+            return ResponseEntity.status(400).body(
+                Map.of("error", "UserId is required.")
+            );
+        }
+        
+        // 清除游戏 session
+        if (gameSessionService.hasSession(userId)) {
+            gameSessionService.removeSession(userId);
+            System.out.println("[Backend]User "+ userId +" logout, session cleared.");
+        }
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Logout successful. Game session cleared.");
+        
+        return ResponseEntity.ok(response);
     }
 }
 

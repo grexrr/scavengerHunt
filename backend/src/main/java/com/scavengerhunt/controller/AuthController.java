@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,9 +38,11 @@ public class AuthController {
     private GameSessionService gameSessionService;
 
     private final UserRepository userRepo;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepo) {
+    public AuthController(UserRepository userRepo, PasswordEncoder passwordEncoder) {
         this.userRepo = userRepo;
+        this.passwordEncoder = passwordEncoder;
     }
     
     @Operation(
@@ -65,7 +68,9 @@ public class AuthController {
             return ResponseEntity.status(409).body(errorResponse);
         }
         
-        User newUser = new User(request.getUsername(), request.getPassword());
+
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        User newUser = new User(request.getUsername(), encodedPassword);
         if (userEmail != null) {
             newUser.setEmail(userEmail);
         } 
@@ -136,7 +141,7 @@ public class AuthController {
         }
         
         return user
-        .filter(u -> u.getPassword().equals(request.getPassword()))
+        .filter(u -> passwordEncoder.matches(request.getPassword(), u.getPassword()))
         .map(u -> {
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("userId", u.getUserId());

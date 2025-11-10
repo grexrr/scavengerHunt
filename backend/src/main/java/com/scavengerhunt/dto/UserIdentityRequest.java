@@ -3,6 +3,14 @@ package com.scavengerhunt.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 public class UserIdentityRequest {
+
+    @Schema(
+    description = "User ID (for update operations)",
+    example = "uuid-string",
+    required = false
+    )
+    private String userId;
+
     @Schema(
         description = "Username",
         example = "testuser",
@@ -27,7 +35,32 @@ public class UserIdentityRequest {
     )
     private String email;
 
+    @Schema(
+    description = "Preferred Language",
+    example = "english",
+    required = false
+    )
+    private String preferredLanguage;
+
+    @Schema(
+        description = "Preferred Style",
+        example = "medieval",
+        required = false
+    )
+    private String preferredStyle;
+
+    @Schema(
+        description = "Created At (ISO 8601 format)",
+        example = "2024-01-01T12:00:00",
+        required = false
+    )
+    private String createdAt;
+
     // ========== getters & setters ==========
+
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
+
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
 
@@ -36,4 +69,13 @@ public class UserIdentityRequest {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    
+    public String getPreferredLanguage() { return preferredLanguage; }
+    public void setPreferredLanguage(String preferredLanguage) { this.preferredLanguage = preferredLanguage; }
+
+    public String getPreferredStyle() { return preferredStyle; }
+    public void setPreferredStyle(String preferredStyle) { this.preferredStyle = preferredStyle; }
+
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

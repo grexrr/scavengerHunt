@@ -1,11 +1,14 @@
 package com.scavengerhunt.controller;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +25,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
 
 
 @RestController
@@ -47,23 +51,57 @@ public class AuthController {
         @ApiResponse(responseCode = "409", description = "Username or email already exists")
     })
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody UserIdentityRequest request){
+    public ResponseEntity<Map<String, Object>> register(@RequestBody UserIdentityRequest request){
         if (userRepo.findByUsername(request.getUsername()).isPresent()) {
-            return ResponseEntity.status(409).body("Username already exists.");
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Username already exists.");
+            return ResponseEntity.status(409).body(errorResponse);
         }
         
         String userEmail = request.getEmail();
         if (userEmail != null && userRepo.findByEmail(userEmail).isPresent()) {
-            return ResponseEntity.status(409).body("Email already exists.");
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Email already exists.");
+            return ResponseEntity.status(409).body(errorResponse);
         }
         
         User newUser = new User(request.getUsername(), request.getPassword());
         if (userEmail != null) {
-            newUser.setEmail(userEmail);;
+            newUser.setEmail(userEmail);
         } 
-        newUser.setCreatedAt(null);
+
+        String language = request.getPreferredLanguage();
+        if (language != null && !language.trim().isEmpty()) {
+            newUser.setPreferredLanguage(language.toLowerCase());
+        } else {
+            newUser.setPreferredLanguage("english");
+        }
+
+        String style = request.getPreferredStyle();
+        if (style != null && !style.trim().isEmpty()) {
+            newUser.setPreferredStyle(style.toLowerCase());
+        } else {
+            newUser.setPreferredStyle("medieval");
+        }
+
+        if (request.getCreatedAt() != null && !request.getCreatedAt().trim().isEmpty()) {
+            try {
+                LocalDateTime createdAt = LocalDateTime.parse(request.getCreatedAt());
+                newUser.setCreatedAt(createdAt);
+            } catch (Exception e) {
+                // 如果解析失败，使用当前时间
+                newUser.setCreatedAt(LocalDateTime.now());
+            }
+        } else {
+            // 如果没有提供，使用当前时间
+            newUser.setCreatedAt(LocalDateTime.now());
+        }
+
         userRepo.save(newUser);
-        return ResponseEntity.ok("[Backend] Register success!");
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Registration successful");
+        return ResponseEntity.ok(response);
     }
 
     @Operation(
@@ -128,7 +166,6 @@ public class AuthController {
             );
         }
         
-        // 清除游戏 session
         if (gameSessionService.hasSession(userId)) {
             gameSessionService.removeSession(userId);
             System.out.println("[Backend]User "+ userId +" logout, session cleared.");
@@ -138,6 +175,96 @@ public class AuthController {
         response.put("message", "Logout successful. Game session cleared.");
         
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+        summary = "Get user profile",
+        description = "Returns complete user profile information and preferences."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
+        @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @GetMapping("/profile/{userId}")
+    public ResponseEntity<Map<String, Object>> getProfile(@PathVariable String userId) {
+        return userRepo.findByUserId(userId)
+            .map(user -> {
+                Map<String, Object> profile = new HashMap<>();
+                profile.put("userId", user.getUserId());
+                profile.put("username", user.getUsername());
+                profile.put("email", user.getEmail() != null ? user.getEmail() : "");
+                profile.put("role", user.getAdmin() ? "ADMIN": "PLAYER");
+                profile.put("preferredLanguage", user.getPreferredLanguage() != null ? user.getPreferredLanguage() : "english");
+                profile.put("preferredStyle", user.getPreferredStyle() != null ? user.getPreferredStyle() : "medieval");
+                return ResponseEntity.ok(profile); 
+            }).orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "User not found")));
+    }
+
+    @Operation(
+    summary = "Update user profile",
+    description = "Updates user profile information including username, email, and preferences"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
+        @ApiResponse(responseCode = "404", description = "User not found"),
+        @ApiResponse(responseCode = "409", description = "Already exists")
+    })
+    @PostMapping("/update-profile")
+    public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody UserIdentityRequest request) {
+        String userId = request.getUserId();
+        if (userId == null || userId.trim().isEmpty()) {
+            return ResponseEntity.status(400).body(Map.of("error", "UserId is required"));
+        }
+        
+        return userRepo.findByUserId(userId)
+            .map(user -> {
+                if (request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
+                    String newUsername = request.getUsername();
+                    Optional<User> existingUser = userRepo.findByUsername(newUsername);
+                    
+                    if(existingUser.isPresent() && !existingUser.get().getUserId().equals(userId)) {
+                        Map<String, Object> errorResponse = new HashMap<>();
+                        errorResponse.put("error", "Username already exists.");
+                        return ResponseEntity.status(409).body(errorResponse);
+                    } else {
+                        user.setUsername(newUsername);
+                    }
+                }
+                
+                if (request.getEmail() != null) {
+                    String newEmail = request.getEmail().trim();
+                    if (newEmail.isEmpty()) {
+                        user.setEmail(null);
+                    } else {
+                        Optional<User> existingEmailUser = userRepo.findByEmail(newEmail);
+                        if (existingEmailUser.isPresent() && !existingEmailUser.get().getUserId().equals(userId)) {
+                            Map<String, Object> errorResponse = new HashMap<>();
+                            errorResponse.put("error", "Email already exists.");
+                            return ResponseEntity.status(409).body(errorResponse);
+                        }
+                        user.setEmail(newEmail);
+                    }
+                }
+
+                if (request.getPreferredLanguage() != null) {
+                    user.setPreferredLanguage(request.getPreferredLanguage().toLowerCase());
+                } else {
+                    user.setPreferredLanguage("english");
+                }
+                
+                if (request.getPreferredStyle() != null) {
+                    user.setPreferredStyle(request.getPreferredStyle().toLowerCase());
+                } else {
+                    user.setPreferredStyle("medieval");
+                }
+                
+                userRepo.save(user);
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Profile updated successfully");
+                return ResponseEntity.ok(response);
+            })
+            .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "User not found")));
     }
 }
 

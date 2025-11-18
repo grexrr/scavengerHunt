@@ -48,17 +48,58 @@ export async function getCurrentPosition(): Promise<Position | null> {
     }
 }
 
+export function watchPosition(
+    callback: (position: Position) => void,
+    options?: {
+        accuracy?: Location.Accuracy;
+        timeInterval?: number;
+        distanceInterval?: number;
+    }
+): () => void {
+    let subscription: Location.LocationSubscription | null = null;
+
+    requestPermissions().then(async (hasPermission) => {
+        if (hasPermission) {
+            subscription = await Location.watchPositionAsync(
+  
+                {
+                    accuracy: options?.accuracy || Location.Accuracy.High,
+                    timeInterval: options?.timeInterval || 1000,  // 默认每1秒更新
+                    distanceInterval: options?.distanceInterval || 0,  // 默认不限制距离
+                },
+                // callback - 位置更新时调用
+                (location) => {
+                    callback({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                        accuracy: location.coords.accuracy,
+                    });
+                },
+                // errorHandler - 错误时调用
+                (error) => {
+                    console.error('Failed to watch position:', error);
+                }
+            );
+        }
+    });
+
+    return () => {
+        if (subscription) {
+            subscription.remove();
+        }
+    };
+}
+
 // ==================== 朝向相关 ====================
 
 export async function getCurrentHeading(): Promise<Heading | null> {
     try {
         const hasPermission = await requestPermissions();
         if (!hasPermission) {
-            console.warn('定位权限未授予');
+            console.warn('Location permissions not granted');
             return null;
         }
 
-        // 使用官方 getHeadingAsync API
         const headingData = await Location.getHeadingAsync();
 
         if (headingData && headingData.magHeading !== null && headingData.magHeading >= 0) {
@@ -70,7 +111,7 @@ export async function getCurrentHeading(): Promise<Heading | null> {
 
         return null;
     } catch (error) {
-        console.error('获取朝向失败:', error);
+        console.error('Failed to get heading:', error);
         return null;
     }
 }
@@ -92,52 +133,8 @@ export function watchHeading(
                         });
                     }
                 },
-                // errorHandler - 错误时调用
                 (error) => {
-                    console.error('监听朝向失败:', error);
-                }
-            );
-        }
-    });
-
-    return () => {
-        if (subscription) {
-            subscription.remove();
-        }
-    };
-}
-
-// 实时监听位置变化
-export function watchPosition(
-    callback: (position: Position) => void,
-    options?: {
-        accuracy?: Location.Accuracy;
-        timeInterval?: number;
-        distanceInterval?: number;
-    }
-): () => void {
-    let subscription: Location.LocationSubscription | null = null;
-
-    requestPermissions().then(async (hasPermission) => {
-        if (hasPermission) {
-            subscription = await Location.watchPositionAsync(
-                // options - 配置选项
-                {
-                    accuracy: options?.accuracy || Location.Accuracy.High,
-                    timeInterval: options?.timeInterval || 1000,  // 默认每1秒更新
-                    distanceInterval: options?.distanceInterval || 0,  // 默认不限制距离
-                },
-                // callback - 位置更新时调用
-                (location) => {
-                    callback({
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude,
-                        accuracy: location.coords.accuracy,
-                    });
-                },
-                // errorHandler - 错误时调用
-                (error) => {
-                    console.error('监听位置失败:', error);
+                    console.error('Failed to watch heading:', error);
                 }
             );
         }

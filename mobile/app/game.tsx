@@ -1,41 +1,15 @@
-import { useState } from 'react';
-import { Alert, Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getCurrentHeading, getCurrentPosition, Heading, Position } from '../services/location/locationService';
+import { useLocation } from '../hooks/useLocation';
+
 
 export default function GamePage() {
-  const [location, setLocation] = useState<Position | null>(null);
-  const [heading, setHeading] = useState<Heading | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { location, heading, loading, error, refresh } = useLocation();
 
   const handleGetLocation = async () => {
-    setLoading(true);
-    
-    try {
-      // 同时获取位置和角度
-      const [position, headingData] = await Promise.all([
-        getCurrentPosition(),
-        getCurrentHeading(),
-      ]);
-      
-      if (position) {
-        setLocation(position);
-      } else {
-        Alert.alert('错误', '无法获取位置，请检查权限设置');
-      }
-
-      if (headingData) {
-        setHeading(headingData);
-      } else {
-        Alert.alert('提示', '无法获取朝向（可能需要移动设备）');
-      }
-    } catch (error) {
-      Alert.alert('错误', '获取数据时发生错误');
-    } finally {
-      setLoading(false);
-    }
+    await refresh();
   };
-
+  
   // 将角度转换为方向文字
   const getDirectionText = (angle: number): string => {
     if (angle === 0 || angle === 360) return '正北';

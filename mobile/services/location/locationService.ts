@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { Magnetometer } from 'expo-sensors';
 
 export interface Position {
     latitude: number;
@@ -61,13 +62,11 @@ export function watchPosition(
     requestPermissions().then(async (hasPermission) => {
         if (hasPermission) {
             subscription = await Location.watchPositionAsync(
-  
                 {
                     accuracy: options?.accuracy || Location.Accuracy.High,
-                    timeInterval: options?.timeInterval || 1000,  // 默认每1秒更新
-                    distanceInterval: options?.distanceInterval || 0,  // 默认不限制距离
+                    timeInterval: options?.timeInterval || 1000,
+                    distanceInterval: options?.distanceInterval || 0,
                 },
-                // callback - 位置更新时调用
                 (location) => {
                     callback({
                         latitude: location.coords.latitude,
@@ -75,7 +74,6 @@ export function watchPosition(
                         accuracy: location.coords.accuracy,
                     });
                 },
-                // errorHandler - 错误时调用
                 (error) => {
                     console.error('Failed to watch position:', error);
                 }
@@ -91,9 +89,9 @@ export function watchPosition(
 }
 
 // ==================== 朝向相关 ====================
-
 export async function getCurrentHeading(): Promise<Heading | null> {
     try {
+        // ✅ 优先使用 expo-location（更准确，返回设备朝向）
         const hasPermission = await requestPermissions();
         if (!hasPermission) {
             console.warn('Location permissions not granted');
@@ -101,12 +99,32 @@ export async function getCurrentHeading(): Promise<Heading | null> {
         }
 
         const headingData = await Location.getHeadingAsync();
-
         if (headingData && headingData.magHeading !== null && headingData.magHeading >= 0) {
             return {
-                heading: Math.round(headingData.magHeading),
+                heading: headingData.magHeading,  // ✅ 直接使用，已经是地理方向（0度=正北）
                 accuracy: headingData.accuracy,
             };
+        }
+
+        // ✅ 降级到 Magnetometer（如果 expo-location 失败）
+        const available = await Magnetometer.isAvailableAsync();
+        if (available) {
+            return new Promise((resolve) => {
+                Magnetometer.setUpdateInterval(100);
+                const subscription = Magnetometer.addListener((data) => {
+                    subscription.remove();
+                    const { x, y } = data;
+                    let angle = Math.atan2(y, x) * (180 / Math.PI);
+                    if (angle < 0) {
+                        angle += 360;
+                    }
+                    const heading = (90 - angle + 360) % 360;
+                    resolve({
+                        heading: heading,
+                        accuracy: null,
+                    });
+                });
+            });
         }
 
         return null;
@@ -116,19 +134,25 @@ export async function getCurrentHeading(): Promise<Heading | null> {
     }
 }
 
+
 export function watchHeading(
     callback: (heading: Heading) => void
 ): () => void {
     let subscription: Location.LocationSubscription | null = null;
+    let isUnsubscribed = false;
 
-    requestPermissions().then(async (hasPermission) => {
-        if (hasPermission) {
+    (async () => {
+        try {
+            // ✅ 优先使用 expo-location（更准确，返回设备朝向）
+            const hasPermission = await requestPermissions();
+            if (!hasPermission || isUnsubscribed) return;
+
             subscription = await Location.watchHeadingAsync(
-                // callback - 朝向更新时调用
                 (headingData) => {
+                    if (isUnsubscribed) return;
                     if (headingData && headingData.magHeading !== null && headingData.magHeading >= 0) {
                         callback({
-                            heading: Math.round(headingData.magHeading),
+                            heading: headingData.magHeading,  // ✅ 直接使用，已经是地理方向（0度=正北）
                             accuracy: headingData.accuracy,
                         });
                     }
@@ -137,12 +161,39 @@ export function watchHeading(
                     console.error('Failed to watch heading:', error);
                 }
             );
+        } catch (error) {
+            console.error('Error setting up heading watch:', error);
+            
+            // ✅ 降级到 Magnetometer（如果 expo-location 失败）
+            try {
+                const available = await Magnetometer.isAvailableAsync();
+                if (available && !isUnsubscribed) {
+                    Magnetometer.setUpdateInterval(100);
+                    subscription = Magnetometer.addListener((data) => {
+                        if (isUnsubscribed) return;
+                        const { x, y } = data;
+                        let angle = Math.atan2(y, x) * (180 / Math.PI);
+                        if (angle < 0) angle += 360;
+                        const heading = (90 - angle + 360) % 360;
+                        callback({
+                            heading: heading,
+                            accuracy: null,
+                        });
+                    });
+                }
+            } catch (magnetError) {
+                console.error('Magnetometer also failed:', magnetError);
+            }
         }
-    });
+    })();
 
     return () => {
+        isUnsubscribed = true;
         if (subscription) {
-            subscription.remove();
+            if (subscription.remove) {
+                subscription.remove();
+            }
+            subscription = null;
         }
     };
 }

@@ -27,6 +27,7 @@
       ]
     ],
     "ios": {
+      "bundleIdentifier": "com.grexrr.scavengerhunt",
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Location access required for game",
@@ -34,6 +35,7 @@
       }
     },
     "android": {
+      "package": "com.grexrr.scavengerhunt",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"

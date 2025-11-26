@@ -12,8 +12,8 @@ export interface Heading {
     accuracy: number | null;
 }
 
-// ==================== 权限管理 ====================
-
+// ==================== Permission ====================
+    
 export async function requestPermissions(): Promise<boolean> {
     try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -24,7 +24,7 @@ export async function requestPermissions(): Promise<boolean> {
     }
 }
 
-// ==================== 位置相关 ====================
+// ==================== Location ====================
 
 export async function getCurrentPosition(): Promise<Position | null> {
     try {
@@ -88,10 +88,10 @@ export function watchPosition(
     };
 }
 
-// ==================== 朝向相关 ====================
+// ==================== Bearing ====================
 export async function getCurrentHeading(): Promise<Heading | null> {
     try {
-        // ✅ 优先使用 expo-location（更准确，返回设备朝向）
+
         const hasPermission = await requestPermissions();
         if (!hasPermission) {
             console.warn('Location permissions not granted');
@@ -101,12 +101,11 @@ export async function getCurrentHeading(): Promise<Heading | null> {
         const headingData = await Location.getHeadingAsync();
         if (headingData && headingData.magHeading !== null && headingData.magHeading >= 0) {
             return {
-                heading: headingData.magHeading,  // ✅ 直接使用，已经是地理方向（0度=正北）
+                heading: headingData.magHeading, 
                 accuracy: headingData.accuracy,
             };
         }
 
-        // ✅ 降级到 Magnetometer（如果 expo-location 失败）
         const available = await Magnetometer.isAvailableAsync();
         if (available) {
             return new Promise((resolve) => {
@@ -164,7 +163,7 @@ export function watchHeading(
         } catch (error) {
             console.error('Error setting up heading watch:', error);
             
-            // ✅ 降级到 Magnetometer（如果 expo-location 失败）
+            // 降级到 Magnetometer（如果 expo-location 失败）
             try {
                 const available = await Magnetometer.isAvailableAsync();
                 if (available && !isUnsubscribed) {

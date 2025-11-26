@@ -1,19 +1,13 @@
 import { useMemo } from 'react';
 import { Polygon } from 'react-native-maps';
 
-interface Position {
-  latitude: number;
-  longitude: number;
-}
-
 type ViewConeProps = {
   center: { latitude: number; longitude: number };
-  headingDeg: number;        // 玩家朝向
-  spanDeg: number;           // 扇形总角度，例如 60°
-  radiusMeters: number;      // 半径，例如 50 米
-  resolution?: number;       // 计算精度，默认 50
+  headingDeg: number;        
+  spanDeg: number;          
+  radiusMeters: number;      
+  resolution?: number;       
   fillColor?: string;
-  strokeColor?: string;
 };
 
 const METERS_PER_DEG_LAT = 111_320;
@@ -25,7 +19,6 @@ export default function ViewCone({
   radiusMeters,
   resolution = 50,
   fillColor = 'rgba(0, 122, 255, 0.20)',
-  strokeColor = 'rgba(0, 122, 255, 0.35)',
 }: ViewConeProps) {
   const coordinates = useMemo(() => {
     if (!center) return [];
@@ -40,7 +33,7 @@ export default function ViewCone({
       const angle = start + i * step;
       const theta = (angle * Math.PI) / 180;
 
-      const dLat = (radiusMeters * Math.cos(theta)) / METERS_PER_DEG_LAT;
+      const dLat = (radiusMeters * Math.cos(theta)) / METERS_PER_DEG_LAT; 
       const metersPerDegLng =
         METERS_PER_DEG_LAT * Math.cos((center.latitude * Math.PI) / 180);
       const dLng = (radiusMeters * Math.sin(theta)) / metersPerDegLng;
@@ -51,7 +44,7 @@ export default function ViewCone({
       });
     }
 
-    points.push(points[0]); // 闭合
+    points.push(points[0]); // close
     return points;
   }, [center, headingDeg, spanDeg, radiusMeters, resolution]);
 
@@ -61,8 +54,8 @@ export default function ViewCone({
     <Polygon
       coordinates={coordinates}
       fillColor={fillColor}
-      // strokeColor={strokeColor}
-      // strokeWidth={1.5}
+      strokeColor="rgba(0,0,0,0)" 
+      strokeWidth={0}
     />
   );
 }

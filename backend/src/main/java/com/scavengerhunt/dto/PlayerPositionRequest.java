@@ -1,6 +1,7 @@
 package com.scavengerhunt.dto;
 
 public class PlayerPositionRequest {
+    private String userId;
     private double latitude;
     private double longitude;
     private double angle;
@@ -8,9 +9,7 @@ public class PlayerPositionRequest {
     private double spanDeg = 30;
     private double coneRadiusMeters = 50;
     // private String city = "Cork";
-  
-    private String userId;
-    
+
     public String getUserId() {
         return userId;
     }

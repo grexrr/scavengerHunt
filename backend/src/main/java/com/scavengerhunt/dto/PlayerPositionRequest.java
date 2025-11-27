@@ -1,12 +1,47 @@
 package com.scavengerhunt.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public class PlayerPositionRequest {
+
+    @Schema(
+        description = "Unique user identifier",
+        example = "408808b8-777c-469a-867d-dd5e7d5e38e2",
+        required = true
+    )
     private String userId;
+
+    @Schema(
+        description = "Latitude in decimal degrees", 
+        example = "51.894964",
+        required = true
+    )
     private double latitude;
+
+    @Schema(
+        description = "Longitude in decimal degrees", 
+        example = "-8.489178",
+        required = true
+    )
     private double longitude;
+
+    @Schema(
+        description = "Facing angle in degrees (0 = north)", 
+        example = "135",
+        required = true
+    )
     private double angle;
 
+    @Schema(
+        description = "Field-of-view span in degrees", 
+        defaultValue = "30"
+    )
     private double spanDeg = 30;
+
+    @Schema(
+        description = "Cone radius in meters", 
+        defaultValue = "50"
+    )
     private double coneRadiusMeters = 50;
     // private String city = "Cork";
 
@@ -65,3 +100,4 @@ public class PlayerPositionRequest {
     //     this.city = city;
     // }
 }
+

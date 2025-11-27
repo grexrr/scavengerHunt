@@ -105,7 +105,7 @@ public class GameSession {
         System.out.println("[Debug] Target pool contents: " + this.attemptsByLandmarkId.keySet());
         
         // check finishing time
-        if (riddleSeconds > maxRiddleDurationMinutes * 60L) {
+        if (riddleSeconds >= maxRiddleDurationMinutes * 60L) {
             System.out.println("[Debug] Time limit exceeded (" + riddleSeconds + "s) → auto-fail.");
             return singleTransaction(riddleSeconds, false);
         }

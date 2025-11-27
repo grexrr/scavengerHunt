@@ -24,8 +24,7 @@ public class OpenApiConfig {
                                 .name("Scavenger Hunt Team")
                                 .email("wyatt_h.w@protonmail.com")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8080").description("Local Development"),
-                        new Server().url("http://0.0.0.0:8080").description("Docker Container")
+                        new Server().url("http://localhost:8443").description("Local Development")
                 ));
     }
 }

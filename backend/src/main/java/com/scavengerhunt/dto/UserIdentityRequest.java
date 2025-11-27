@@ -5,9 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public class UserIdentityRequest {
 
     @Schema(
-    description = "User ID (for update operations)",
-    example = "uuid-string",
-    required = false
+        description = "Unique user identifier",
+        example = "uuid-string",
+        required = false
     )
     private String userId;
 

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.scavengerhunt.dto.LandmarkDTO;
 import com.scavengerhunt.dto.PlayerPositionRequest;
 import com.scavengerhunt.dto.StartRoundRequest;
+import com.scavengerhunt.dto.SubmitAnswerRequest;
 import com.scavengerhunt.game.GameSession;
 import com.scavengerhunt.game.LandmarkManager;
 import com.scavengerhunt.game.PlayerStateManager;
@@ -26,13 +27,18 @@ import com.scavengerhunt.repository.GameDataRepository;
 import com.scavengerhunt.service.GameSessionService;
 import com.scavengerhunt.utils.GeoUtils;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 @RestController
 @RequestMapping("/api/game")
+@Tag(name="GameController", description="Game Controller APIs")
 public class GameRestController {
 
     @Autowired
     private GameSessionService gameSessionService; 
-
 
     @Autowired
     private GameDataRepository gameDataRepo;
@@ -44,10 +50,15 @@ public class GameRestController {
     private com.scavengerhunt.client.LandmarkProcessorClient landmarkProcessorClient;
     
     // EloCalculator is created dynamically in GameSession, not as a Spring bean
-
+    @Operation(
+        summary = "Update player movement.",
+        description = "Update a player's geological location."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Player position updated")
+    })
     @PostMapping("/update-position")
     public ResponseEntity<String> updatePlayerPosition(@RequestBody PlayerPositionRequest request) {
-        
         if (request.getUserId().startsWith("guest-")) {
             return ResponseEntity.ok("[Backend][API] Guest position updated (no session created).");
         }
@@ -80,6 +91,13 @@ public class GameRestController {
         }
     }
 
+    @Operation(
+        summary = "Initialize game session",
+        description = "Initialize a new game session or update existing session with landmarks for the player's location."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Game initialized successfully, landmarks returned")
+    })
     @PostMapping("/init-game")
     public synchronized ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
         
@@ -155,6 +173,16 @@ public class GameRestController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+        summary = "Start a new round",
+        description = "Validate the player session, ensure the game is not finished, then start a new round and return the current target."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Round started, target returned"),
+        @ApiResponse(responseCode = "400", description = "Game already finished or invalid request"),
+        @ApiResponse(responseCode = "403", description = "User must be authenticated to start a round"),
+        @ApiResponse(responseCode = "404", description = "Session or target not found")
+    })
     @PostMapping("/start-round")
     public synchronized ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
 
@@ -185,9 +213,17 @@ public class GameRestController {
         return ResponseEntity.ok(currentTarget);
     }
 
+    @Operation(
+        summary = "Submit an answer for the current target",
+        description = "Submit the player's answer, update timing info, and return correctness plus next target data."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Answer processed successfully"),
+        @ApiResponse(responseCode = "404", description = "Active session not found for user")
+    })
     @PostMapping("/submit-answer")
-    public synchronized ResponseEntity<?> submitAnswer(@RequestBody Map<String, String> request) {
-        String userId = request.get("userId");
+    public synchronized ResponseEntity<?> submitAnswer(@RequestBody SubmitAnswerRequest request) {
+        String userId = request.getUserId();
         System.out.println("[Debug] Submit answer request from user: " + userId);
         
         GameSession session = gameSessionService.getSession(userId);
@@ -199,20 +235,17 @@ public class GameRestController {
             ));
         }
 
-        long secondsUsed = Long.parseLong(request.get("secondsUsed")); 
+        long secondsUsed = request.getSecondsUsed();
         System.out.println("[Debug] Seconds used: " + secondsUsed);
 
         // Update player position with current angle if provided
-        String currentAngleStr = request.get("currentAngle");
-        String latitudeStr = request.get("latitude");
-        String longitudeStr = request.get("longitude");
-        
-        if (currentAngleStr != null && latitudeStr != null && longitudeStr != null) {
-            double currentAngle = Double.parseDouble(currentAngleStr);
-            double latitude = Double.parseDouble(latitudeStr);
-            double longitude = Double.parseDouble(longitudeStr);
-            session.updatePlayerPosition(latitude, longitude, currentAngle);
-            System.out.println("[Debug] Updated player position with current angle: " + currentAngle);
+        if (request.getCurrentAngle() != null && request.getLatitude() != null && request.getLongitude() != null) {
+            session.updatePlayerPosition(
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getCurrentAngle()
+            );
+            System.out.println("[Debug] Updated player position with current angle: " + request.getCurrentAngle());
         }
 
         boolean isCorrect = session.submitCurrentAnswer(secondsUsed);
@@ -249,6 +282,14 @@ public class GameRestController {
         return ResponseEntity.ok(response);
     }
 
+    @Operation(
+        summary = "Finish the current round",
+        description = "Clear the player's session and mark the game as finished."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Session cleared successfully"),
+        @ApiResponse(responseCode = "400", description = "userId missing from request")
+    })
     @PostMapping("/finish-round")
     public ResponseEntity<?> finishRound(@RequestBody Map<String, String> request) {
         String userId = request.get("userId");

@@ -57,7 +57,8 @@ export function useGameSession() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(params),
-      })
+      });
+      
       if (!res.ok) {
         throw new Error(`update-position failed with status ${res.status}`);
       }
@@ -144,6 +145,7 @@ export function useGameSession() {
       });
 
       startTimer();
+      
     } catch (err) {
       updateState({
         status: 'error',
@@ -210,8 +212,41 @@ export function useGameSession() {
     }
   }
 
-  async function finishRound(){
+  async function finishRound(params:{
+    userId: string;
+  }){
+    if (timerRef.current){
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
+    try {
+      const res = await fetch('/api/game/finish-round', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: params.userId,
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error(`finish-round failed with status ${res.status}`);
+      }
+
+      updateState({
+        status: 'idle',
+        roundLandmarks: [],
+        currentTarget: undefined,
+        timeSecondsLeft: null,
+        isTimerActive: false
+      })
+
+    } catch (err) {
+      updateState({
+        status: 'error',
+      });
+      console.error(err);
+    }
   }
 
   // utils

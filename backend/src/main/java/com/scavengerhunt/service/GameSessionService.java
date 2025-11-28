@@ -21,8 +21,14 @@ public class GameSessionService {
     }
     
     public void removeSession(String userId) {
+        GameSession session = sessionMap.get(userId);
+        if (session != null) {
+            session.getPlayerState().setGameFinished();
+            System.out.println("[GameSessionService] Player " + session.getUserId() + " session finished and cleared.");
+        } else {
+            System.out.println("[GameSessionService] Session not found for user: " + userId);
+        }
         sessionMap.remove(userId);
-        System.out.println("[GameSessionService] Session cleared for user: " + userId);
     }
     
     public boolean hasSession(String userId) {

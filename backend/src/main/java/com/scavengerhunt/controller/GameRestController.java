@@ -299,8 +299,6 @@ public class GameRestController {
         }
 
         gameSessionService.removeSession(userId);  
-        System.out.println("[Backend][API] Session cleared for user: " + userId);
-
         Map<String, Object> res = new HashMap<>();
         res.put("message", "Game session ended.");
 

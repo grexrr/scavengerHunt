@@ -1,6 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { storageService } from '../services/storage/storageService';
 
-type GameStatus = 'idle' | 'initializing' | 'inRound' | 'finished' | 'error';
+type Role = 'guest' | 'player' | 'admin'
+type GameStatus = 'initializing' | 'inRound' | 'finished' | 'error';
 
 interface LandmarkDTO {
   id: string;
@@ -17,6 +19,7 @@ interface currentTarget {
 
 interface GameSessionState {
   userId?: string;  
+  role: Role;
   status: GameStatus;
   maxRiddleDurationMinutes: number;
   roundLandmarks: LandmarkDTO[];
@@ -28,7 +31,8 @@ interface GameSessionState {
 
 export function useGameSession() {
   const [state, setState] = useState<GameSessionState>({
-    status: 'idle',
+    status: 'finished',
+    role: 'guest',
     maxRiddleDurationMinutes: 30,
     roundLandmarks: [],
     currentTarget: undefined,
@@ -37,12 +41,21 @@ export function useGameSession() {
     errorMessage: undefined,
   });
 
+  useEffect(() => {
+    (async () => {
+      const role = await storageService.getRole();
+      if (role) {
+        const normalizedRole = role.toLowerCase() as Role;
+        updateState({ role: normalizedRole })
+      } 
+    })()
+  }, [])
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   function updateState(patch: Partial<GameSessionState>) {
     setState(prev => ({ ...prev, ...patch }));
   }
-
 
   async function updatePosition(params: {
     userId: string;
@@ -96,7 +109,6 @@ export function useGameSession() {
       const data = await res.json();
 
       updateState({
-        status: 'idle',
         roundLandmarks: data.landmarks ?? [],
       });
     } catch (err) {
@@ -234,7 +246,7 @@ export function useGameSession() {
       }
 
       updateState({
-        status: 'idle',
+        status: 'finished',
         roundLandmarks: [],
         currentTarget: undefined,
         timeSecondsLeft: null,

@@ -10,7 +10,7 @@ public class SubmitAnswerRequest {
     @NotBlank
     @Schema(
         description = "Unique identifier of the player submitting the answer.",
-        example = "user-12345",
+        example = "408808b8-777c-469a-867d-dd5e7d5e38e2",
         requiredMode = Schema.RequiredMode.REQUIRED
     )
     private String userId;

@@ -3,7 +3,7 @@ import { apiClient } from '../services/api/client';
 import { storageService } from '../services/storage/storageService';
 
 type Role = 'guest' | 'player' | 'admin'
-type GameStatus = 'initializing' | 'inRound' | 'finished' | 'error';
+type GameStatus = 'initializing' | 'initialized' | 'inRound' | 'finished' | 'error';
 
 interface InitGameResponse {
   landmarks: LandmarkDTO[];
@@ -80,6 +80,9 @@ export function useGameSession() {
   }) {
     try {
       await apiClient.post('/api/game/update-position', params);
+      updateState({
+        status:'initialized'
+      })
     } catch (err) {
       updateState({
         status: 'error',
@@ -102,10 +105,18 @@ export function useGameSession() {
       errorMessage: undefined });
     try {
       const data = await apiClient.post<InitGameResponse>('/api/game/init-game', params);
-
-      updateState({
-        roundLandmarks: data.landmarks ?? [],
-      });
+      // console.log('[initGame] Full API response:', JSON.stringify(data, null, 2));
+      // console.log('[initGame] data.landmarks type:', typeof data.landmarks);
+      // console.log('[initGame] data.landmarks is array?', Array.isArray(data.landmarks));
+      // console.log('[initGame] landmarks count:', data.landmarks?.length ?? 0);
+      if (data.landmarks && Array.isArray(data.landmarks)) {
+        updateState({
+          roundLandmarks: data.landmarks,
+        });
+        // console.log('[initGame] State updated successfully');
+      } else {
+        console.warn('[initGame] Invalid landmarks data:', data.landmarks);
+      }
 
     } catch (err) {
       updateState({
@@ -128,8 +139,7 @@ export function useGameSession() {
       throw new Error('User ID not found. Please call initGame first.');
     }
 
-    try {
-      
+    try {      
       const target = await apiClient.post<TargetDTO>('/api/game/start-round', {
         userId: state.userId,
         ...params,
@@ -146,7 +156,6 @@ export function useGameSession() {
       });
 
       startTimer();
-      
     } catch (err) {
       updateState({
         status: 'error',
@@ -236,6 +245,11 @@ export function useGameSession() {
   }
 
   // utils
+  function setRole(newRole: Role){
+    updateState({ role: newRole});
+    storageService.setRole(newRole);
+  }
+
   function startTimer() {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -284,6 +298,7 @@ export function useGameSession() {
     submitAnswer,
     startRound,
     initGame,
-    finishRound
+    finishRound,
+    setRole
   };
 }

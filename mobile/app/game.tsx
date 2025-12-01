@@ -1,8 +1,9 @@
 import BottomSheet from '@gorhom/bottom-sheet';
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import MapView, { UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import LandmarkPolygon from '../components/LandmarkPolygon';
 import ViewCone from '../components/ViewCone';
 import { useGameSession } from '../hooks/useGameSession';
 import { useLocation } from '../hooks/useLocation';
@@ -32,12 +33,16 @@ export default function GamePage() {
   //   isTimerActive,
   //   errorMessage} = gameSession;
   const bottomSheetRef = useRef<BottomSheet>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
   
   // =============== GAME INIT ===============
+  // 1. GameSession init
   useEffect(() => {
-    if (location && heading) {
+    if (location && heading && !hasInitialized) {
+      setHasInitialized(true);
+      gameSession.setRole('admin');            // FOR DEV
       gameSession.initGame({
-        userId: UID_ADMIN,
+        userId: UID_ADMIN,                     // FOR DEV
         latitude: location.latitude,
         longitude: location.longitude,
         angle: heading.heading,
@@ -45,7 +50,7 @@ export default function GamePage() {
         coneRadiusMeters: VIEW_CONE_RADIUS,
       });
     }
-  }, []);
+  }, [location, heading, hasInitialized]);
   
   // 使用 useCallback 缓存处理函数
   const handleStartGame = useCallback(async (
@@ -104,6 +109,7 @@ export default function GamePage() {
           maximumZ={19}
         />
 
+        {/* ViewCone */}
         {location && heading && (
           <ViewCone
             center={location}
@@ -113,6 +119,20 @@ export default function GamePage() {
             fillColor="rgba(0, 122, 255, 0.25)" // 随意调整
           />
         )}
+
+        {/* Landmarks */}
+        {gameSession.role !== 'guest' && gameSession.roundLandmarks.length > 0 && gameSession.roundLandmarks.map((landmark) => {
+          if (landmark.name === 'Centra') {
+            console.log('[Debug] Centra landmark found:', landmark);
+          }
+          return (
+            <LandmarkPolygon
+              key={landmark.id}
+              landmark={landmark}
+              isSolved={false}
+            />
+          );
+        })}
       </MapView>
       
       {/* Bottom Sheet- StartGame/EndRound Button*/}

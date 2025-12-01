@@ -1,5 +1,5 @@
 import BottomSheet from '@gorhom/bottom-sheet';
-import React, { useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import MapView, { UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,38 +33,57 @@ export default function GamePage() {
   //   errorMessage} = gameSession;
   const bottomSheetRef = useRef<BottomSheet>(null);
   
-  
-  
   // =============== GAME INIT ===============
-  if (location && heading) {
-    gameSession.initGame({
-      userId: UID_ADMIN, // UID ADMIN FOR TESTING PURPOSE
-      latitude: location.latitude,
-      longitude: location.longitude,
-      angle: heading.heading,
-      spanDeg: VIEW_CONE_SPAN,
-      coneRadiusMeters: VIEW_CONE_RADIUS,
-    });
-  }
-  
-  const handleStartGame = () => {
+  useEffect(() => {
     if (location && heading) {
-      gameSession.startRound({
+      gameSession.initGame({
+        userId: UID_ADMIN,
         latitude: location.latitude,
         longitude: location.longitude,
         angle: heading.heading,
-        radiusMeters: 500, // FOR TESTING PURPOSE
-        language: 'english', // FOR TESTING PURPOSE
-        style: 'medieval' // FOR TESTING PURPOSE
+        spanDeg: VIEW_CONE_SPAN,
+        coneRadiusMeters: VIEW_CONE_RADIUS,
       });
     }
+  }, []);
+  
+  // 使用 useCallback 缓存处理函数
+  const handleStartGame = useCallback(async (
+    currentLocation: { latitude: number; longitude: number }, 
+    currentHeading: { heading: number }) => {
+      try {
+        console.log('Starting Game', { 
+          location: currentLocation, 
+          heading: currentHeading,
+          userId: gameSession.userId 
+        });
+        await gameSession.startRound({
+          latitude: currentLocation.latitude,
+          longitude: currentLocation.longitude,
+          angle: currentHeading.heading,
+          radiusMeters: 500,
+          language: 'english',
+          style: 'medieval'
+        });
+        bottomSheetRef.current?.expand();
+      } catch (error) {
+      console.error('[Mobile][Game.tsx] Failed starting game:', error);
+      alert(`[Mobile][Game.tsx]: ${error instanceof Error ? error.message : 'Unknown Error'}`);
+    }
+      
+    }, [gameSession]);
 
-    bottomSheetRef.current?.expand();
-  }
-
-  const handleFinishGame = () => {
-
-  }
+  const handleFinishGame = useCallback(async () => {
+    try {
+      if (gameSession.userId) {
+        await gameSession.finishRound({ userId: gameSession.userId });
+      }
+      bottomSheetRef.current?.close();
+    } catch (error) {
+      console.error('[Mobile][Game.tsx] Failed finishing game:', error);
+      alert(`[Mobile][Game.tsx] Failed finishing game: ${error instanceof Error ? error.message : 'Unknown Error'}`);
+    }
+  }, [gameSession]);
 
   return (
     <SafeAreaView style={mapStyles.container} edges={['top']}>
@@ -98,10 +117,17 @@ export default function GamePage() {
       
       {/* Bottom Sheet- StartGame/EndRound Button*/}
       <View style={mapStyles.bottomBar}>
-        <TouchableOpacity
+        <TouchableOpacity 
           style={mapStyles.startButton}
-          onPress={gameSession.status === 'inRound' ? handleFinishGame : handleStartGame}
-          disabled={gameSession.role === 'guest'}
+          onPress={() => {
+            if (location && heading) {
+              if (gameSession.status === 'inRound') {
+                handleFinishGame();
+              } else {
+                handleStartGame(location, heading);
+              }
+            }
+          }}
         >
           <Text style={mapStyles.startButtonText}>
             {gameSession.status === 'inRound' ? 'EndRound' : 'StartRound'}

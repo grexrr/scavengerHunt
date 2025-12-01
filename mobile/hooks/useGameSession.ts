@@ -1,20 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
+import { apiClient } from '../services/api/client';
 import { storageService } from '../services/storage/storageService';
 
 type Role = 'guest' | 'player' | 'admin'
 type GameStatus = 'initializing' | 'inRound' | 'finished' | 'error';
 
-interface LandmarkDTO {
-  id: string;
-  name: string;
-  coordinates: number[][];
+interface InitGameResponse {
+  landmarks: LandmarkDTO[];
 }
 
-interface currentTarget {
+interface TargetDTO {
   id: string;
   name: string;
   riddle: string;
   attemptsLeft: number;
+}
+
+interface SubmitAnswerResponse {
+  isCorrect: boolean;
+  gameFinished: boolean;
+  message: string;
+  target?: TargetDTO;
+}
+
+interface LandmarkDTO {
+  id: string;
+  name: string;
+  coordinates: number[][];
 }
 
 interface GameSessionState {
@@ -23,9 +35,10 @@ interface GameSessionState {
   status: GameStatus;
   maxRiddleDurationMinutes: number;
   roundLandmarks: LandmarkDTO[];
-  currentTarget?: currentTarget;
+  currentTarget?: TargetDTO;
   timeSecondsLeft: number | null;
   isTimerActive: boolean;
+  lastMessage?: string;
   errorMessage?: string;
 }
 
@@ -66,15 +79,7 @@ export function useGameSession() {
     coneRadiusMeters: number;
   }) {
     try {
-      const res = await fetch('/api/game/update-position', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      });
-      
-      if (!res.ok) {
-        throw new Error(`update-position failed with status ${res.status}`);
-      }
+      await apiClient.post('/api/game/update-position', params);
     } catch (err) {
       updateState({
         status: 'error',
@@ -96,21 +101,12 @@ export function useGameSession() {
       status: 'initializing', 
       errorMessage: undefined });
     try {
-      const res = await fetch('/api/game/init-game', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(params),
-      });
-
-      if (!res.ok) {
-        throw new Error(`init-game failed with status ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await apiClient.post<InitGameResponse>('/api/game/init-game', params);
 
       updateState({
         roundLandmarks: data.landmarks ?? [],
       });
+
     } catch (err) {
       updateState({
         status: 'error',
@@ -133,19 +129,12 @@ export function useGameSession() {
     }
 
     try {
-      const res = await fetch('/api/game/start-round', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: state.userId,
-          ...params
-        }),
-      });
-      if (!res.ok) {
-        throw new Error(`start-round failed with status ${res.status}`);
-      }
+      
+      const target = await apiClient.post<TargetDTO>('/api/game/start-round', {
+        userId: state.userId,
+        ...params,
+      })
 
-      const target = await res.json();
       updateState({
         status: 'inRound',
         currentTarget: {
@@ -163,6 +152,7 @@ export function useGameSession() {
         status: 'error',
       });
       console.error(err);
+      throw err;
     }
   }
 
@@ -182,28 +172,19 @@ export function useGameSession() {
     updateState({ isTimerActive: false });
 
     try {
-      const res = await fetch('/api/game/submit-answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: params.userId,
-          secondsUsed: secondsUsed.toString(),
-          currentAngle: params.currentAngle?.toString(),
-          latitude: params.latitude?.toString(),
-          longitude: params.longitude?.toString(),
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`submit-answer failed with status ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = await apiClient.post<SubmitAnswerResponse>('/api/game/submit-answer', {
+        userId: params.userId,
+        secondsUsed: secondsUsed,
+        currentAngle: params.currentAngle,
+        latitude: params.latitude,
+        longitude: params.longitude,
+      })
 
       if (data.gameFinished) {
         updateState({
           status: 'finished',
           timeSecondsLeft: 0,
+          lastMessage: data.message
         });
       } else if (data.target) {
         updateState({
@@ -213,6 +194,7 @@ export function useGameSession() {
             riddle: data.target.riddle,
             attemptsLeft: data.target.attemptsLeft,
           },
+          lastMessage: data.message
         });
         startTimer();
       }
@@ -233,17 +215,9 @@ export function useGameSession() {
     }
 
     try {
-      const res = await fetch('/api/game/finish-round', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: params.userId,
-        })
+      await apiClient.post('/api/game/finish-round', {
+        userId: params.userId,
       });
-
-      if (!res.ok) {
-        throw new Error(`finish-round failed with status ${res.status}`);
-      }
 
       updateState({
         status: 'finished',

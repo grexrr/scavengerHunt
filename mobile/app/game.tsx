@@ -1,5 +1,5 @@
 import BottomSheet from '@gorhom/bottom-sheet';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 import MapView, { UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,10 +8,14 @@ import ViewCone from '../components/ViewCone';
 import { useGameSession } from '../hooks/useGameSession';
 import { useLocation } from '../hooks/useLocation';
 import { mapStyles } from '../styles/mapStyles';
+import { LandmarkDTO } from '../types';
+import { calculateDistance } from '../utils/calculateDistance';
 
 const VIEW_CONE_SPAN = 60;   
-const VIEW_CONE_RADIUS = 50; 
+const VIEW_CONE_RADIUS = 100; 
 const UID_ADMIN = "408808b8-777c-469a-867d-dd5e7d5e38e2"
+const MAX_DISPLAY_LANDMARKS_COUNT = 10;
+const MAX_DISPLAY_LANDMARKS_DISTANCE = 500
 
 export default function GamePage() {
   const { 
@@ -51,6 +55,32 @@ export default function GamePage() {
       });
     }
   }, [location, heading, hasInitialized]);
+
+  const displayLandmarks = useMemo(() => {
+    if (!location || gameSession.role === 'guest' || gameSession.roundLandmarks.length === 0) {
+      return [];
+    }
+  
+    const landmarksWithDistance = gameSession.roundLandmarks
+      .map(landmark => {
+        if (!landmark.centroid?.latitude || !landmark.centroid?.longitude) {
+          return null;
+        }
+        
+        const distance = calculateDistance(
+          { latitude: location.latitude, longitude: location.longitude },
+          { latitude: landmark.centroid.latitude, longitude: landmark.centroid.longitude }
+        );
+        return { landmark, distance };
+      })
+      .filter(item => item !== null) as Array<{ landmark: LandmarkDTO; distance: number }>;
+    
+    return landmarksWithDistance
+      .filter(item => item.distance <= MAX_DISPLAY_LANDMARKS_DISTANCE)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, MAX_DISPLAY_LANDMARKS_COUNT)
+      .map(item => item.landmark);
+  }, [location, gameSession.roundLandmarks, gameSession.role]); 
   
   // 使用 useCallback 缓存处理函数
   const handleStartGame = useCallback(async (
@@ -121,18 +151,13 @@ export default function GamePage() {
         )}
 
         {/* Landmarks */}
-        {gameSession.role !== 'guest' && gameSession.roundLandmarks.length > 0 && gameSession.roundLandmarks.map((landmark) => {
-          if (landmark.name === 'Centra') {
-            console.log('[Debug] Centra landmark found:', landmark);
-          }
-          return (
-            <LandmarkPolygon
-              key={landmark.id}
-              landmark={landmark}
-              isSolved={false}
-            />
-          );
-        })}
+        {displayLandmarks.map((landmark) => (
+          <LandmarkPolygon
+            key={landmark.id}
+            landmark={landmark}
+            isSolved={false}
+          />
+        ))}   
       </MapView>
       
       {/* Bottom Sheet- StartGame/EndRound Button*/}

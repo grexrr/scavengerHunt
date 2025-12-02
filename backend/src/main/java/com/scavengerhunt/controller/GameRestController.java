@@ -120,13 +120,13 @@ public class GameRestController {
             List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
 
             for (Landmark lm : landmarks) {
+                // polygon
                 List<List<Double>> coords = new ArrayList<>();
                 Coordinate[] polygon = GeoUtils.convertToJtsPolygon(lm.getGeometry()).getCoordinates();
                 for (Coordinate coord : polygon) {
                     coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
                 }
-
-                LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), coords);
+                LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), lm.getCentroid(), coords);
                 frontendLandmarks.add(dto);
             }
 
@@ -164,7 +164,7 @@ public class GameRestController {
                 coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
             }
 
-            LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), coords);
+            LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), lm.getCentroid(), coords);
             frontendLandmarks.add(dto);
         }
 

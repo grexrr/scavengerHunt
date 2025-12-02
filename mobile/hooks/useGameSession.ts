@@ -26,6 +26,10 @@ interface SubmitAnswerResponse {
 interface LandmarkDTO {
   id: string;
   name: string;
+  centroid: {
+    latitude: number;
+    longitude: number;
+  } 
   coordinates: number[][];
 }
 

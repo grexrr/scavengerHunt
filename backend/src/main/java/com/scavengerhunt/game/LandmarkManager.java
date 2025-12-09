@@ -35,13 +35,12 @@ public class LandmarkManager {
         this.landmarkAgentClient = landmarkAgentClient;
         this.currentCity = city;
         this.allLocalLandmarkIds = this.gameDataRepo.loadLandmarkIdByCity(city); // mvp style, expandable
-        System.out.println("[LandmarkManager] Initialized for city: " + city + " with "
-                + this.allLocalLandmarkIds.size() + " local landmarks");
+        // System.out.println("[LandmarkManager] Initialized for city: " + city + " with "
+        //         + this.allLocalLandmarkIds.size() + " local landmarks");
     }
 
     public void getRoundLandmarksIdWithinRadius(double lat, double lng, double radiusMeters) {
-        System.out
-                .println("[LandmarkManager] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
+        // System.out.println("[LandmarkManager] Checking radius: " + radiusMeters + "m around (" + lat + ", " + lng + ")");
 
         List<Landmark> filtered = allLocalLandmarkIds.stream()
                 .map(id -> gameDataRepo.findLandmarkById(id))

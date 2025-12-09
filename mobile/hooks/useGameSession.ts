@@ -48,7 +48,7 @@ interface GameSessionState {
 
 export function useGameSession() {
   const [state, setState] = useState<GameSessionState>({
-    status: 'finished',
+    status: 'initializing',
     role: 'guest',
     maxRiddleDurationMinutes: 30,
     roundLandmarks: [],
@@ -75,18 +75,23 @@ export function useGameSession() {
   }
 
   async function updatePosition(params: {
-    userId: string;
     latitude: number;
     longitude: number;
     angle: number;
     spanDeg: number;
     coneRadiusMeters: number;
   }) {
+
+    if (!state.userId) {
+      console.warn('[updatePosition] User ID not found');
+      return;
+    }
+
     try {
-      await apiClient.post('/api/game/update-position', params);
-      updateState({
-        status:'initialized'
-      })
+      await apiClient.post('/api/game/update-position', {
+        userId: state.userId,
+        ...params,
+      });
     } catch (err) {
       updateState({
         status: 'error',
@@ -105,7 +110,7 @@ export function useGameSession() {
   }) {
     updateState({ 
       userId: params.userId,
-      status: 'initializing', 
+      status: 'initialized', 
       errorMessage: undefined });
     try {
       const data = await apiClient.post<InitGameResponse>('/api/game/init-game', params);
@@ -170,11 +175,10 @@ export function useGameSession() {
   }
 
   async function submitAnswer(params: {
-    userId: string;
     secondsUsed?: number;
-    currentAngle?: number;
     latitude?: number;
     longitude?: number;
+    currentAngle?: number;
   }) {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -186,11 +190,11 @@ export function useGameSession() {
 
     try {
       const data = await apiClient.post<SubmitAnswerResponse>('/api/game/submit-answer', {
-        userId: params.userId,
+        userId: state.userId,
         secondsUsed: secondsUsed,
-        currentAngle: params.currentAngle,
         latitude: params.latitude,
         longitude: params.longitude,
+        currentAngle: params.currentAngle,
       })
 
       if (data.gameFinished) {
@@ -219,9 +223,7 @@ export function useGameSession() {
     }
   }
 
-  async function finishRound(params:{
-    userId: string;
-  }){
+  async function finishRound(){
     if (timerRef.current){
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -229,7 +231,7 @@ export function useGameSession() {
 
     try {
       await apiClient.post('/api/game/finish-round', {
-        userId: params.userId,
+        userId: state.userId,
       });
 
       updateState({
@@ -280,7 +282,6 @@ export function useGameSession() {
           const secondsUsed = prev.maxRiddleDurationMinutes * 60 + 1;
           if (prev.userId) {
             submitAnswer({ 
-                userId: prev.userId, 
                 secondsUsed: secondsUsed,
             });
           }

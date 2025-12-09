@@ -1,8 +1,9 @@
 import BottomSheet from '@gorhom/bottom-sheet';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Text, View } from 'react-native';
 import MapView, { UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import FloatingActionButton from '../components/FloatingActionButton';
 import LandmarkPolygon from '../components/LandmarkPolygon';
 import ViewCone from '../components/ViewCone';
 import { useGameSession } from '../hooks/useGameSession';
@@ -12,10 +13,12 @@ import { LandmarkDTO } from '../types';
 import { calculateDistance } from '../utils/calculateDistance';
 
 const VIEW_CONE_SPAN = 60;   
-const VIEW_CONE_RADIUS = 100; 
+const VIEW_CONE_RADIUS = 250; 
 const UID_ADMIN = "408808b8-777c-469a-867d-dd5e7d5e38e2"
 const MAX_DISPLAY_LANDMARKS_COUNT = 10;
 const MAX_DISPLAY_LANDMARKS_DISTANCE = 500
+const DEFAULT_LANGUATE = 'english';
+const DEFAULT_STYLE = 'medieval'
 
 export default function GamePage() {
   const { 
@@ -56,6 +59,22 @@ export default function GamePage() {
     }
   }, [location, heading, hasInitialized]);
 
+  // 2. Tracking Player Movement
+
+  useEffect(() => {
+    if (!location || !heading || !gameSession.userId) {
+      return;
+    }
+    gameSession.updatePosition({
+      latitude: location.latitude,
+      longitude: location.longitude,
+      angle: heading.heading,
+      spanDeg: VIEW_CONE_SPAN,
+      coneRadiusMeters: VIEW_CONE_RADIUS,
+    });
+  }, [location, heading, gameSession.userId, gameSession.role]);
+
+  // 3. Landmark Display
   const displayLandmarks = useMemo(() => {
     if (!location || gameSession.role === 'guest' || gameSession.roundLandmarks.length === 0) {
       return [];
@@ -82,36 +101,59 @@ export default function GamePage() {
       .map(item => item.landmark);
   }, [location, gameSession.roundLandmarks, gameSession.role]); 
   
-  // 使用 useCallback 缓存处理函数
-  const handleStartGame = useCallback(async (
-    currentLocation: { latitude: number; longitude: number }, 
-    currentHeading: { heading: number }) => {
-      try {
-        console.log('Starting Game', { 
-          location: currentLocation, 
-          heading: currentHeading,
-          userId: gameSession.userId 
-        });
-        await gameSession.startRound({
-          latitude: currentLocation.latitude,
-          longitude: currentLocation.longitude,
-          angle: currentHeading.heading,
-          radiusMeters: 500,
-          language: 'english',
-          style: 'medieval'
-        });
-        bottomSheetRef.current?.expand();
-      } catch (error) {
+  // =============== GAME LOGIC ===============
+ 
+  const handleStartGame = useCallback(async () =>  {
+    if (!location || !heading || !gameSession.userId) {
+      console.warn('[Game.tsx] Cannot start game: missing location, heading, or userId');
+      return;
+    }
+    try {
+      console.log('[Game.tsx] Before startRound, status:', gameSession.status);
+      console.log('Starting Game', { 
+        location,
+        heading,
+        userId: gameSession.userId 
+      });
+      await gameSession.startRound({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        angle: heading.heading,
+        radiusMeters: 500,
+        language: DEFAULT_LANGUATE,           // DEV
+        style: DEFAULT_STYLE                  // DEV
+      });
+      console.log('[Game.tsx] After startRound, status:', gameSession.status);
+      bottomSheetRef.current?.expand();
+    } catch (error) {
       console.error('[Mobile][Game.tsx] Failed starting game:', error);
       alert(`[Mobile][Game.tsx]: ${error instanceof Error ? error.message : 'Unknown Error'}`);
     }
-      
-    }, [gameSession]);
+  }, [gameSession, location, heading]);
+
+  const handleSubmitAnswer = useCallback(async () => {
+    if (!location || !heading || !gameSession.userId) {
+      console.warn('[Game.tsx] Cannot submit answer: missing location, heading, or userId');
+      return;
+    }
+
+    try {
+      await gameSession.submitAnswer({
+        secondsUsed: gameSession.maxRiddleDurationMinutes * 60 - (gameSession.timeSecondsLeft ?? 0),
+        currentAngle: heading.heading,
+        latitude: location.latitude,
+        longitude: location.longitude
+      })
+    } catch (error) {
+      console.error('[Mobile][Game.tsx] Failed submitting answer:', error);
+      alert(`Failed to submit answer: ${error instanceof Error ? error.message : 'Unknown Error'}`);
+    }
+  }, [gameSession,location, heading])
 
   const handleFinishGame = useCallback(async () => {
     try {
       if (gameSession.userId) {
-        await gameSession.finishRound({ userId: gameSession.userId });
+        await gameSession.finishRound();
       }
       bottomSheetRef.current?.close();
     } catch (error) {
@@ -160,26 +202,6 @@ export default function GamePage() {
         ))}   
       </MapView>
       
-      {/* Bottom Sheet- StartGame/EndRound Button*/}
-      <View style={mapStyles.bottomBar}>
-        <TouchableOpacity 
-          style={mapStyles.startButton}
-          onPress={() => {
-            if (location && heading) {
-              if (gameSession.status === 'inRound') {
-                handleFinishGame();
-              } else {
-                handleStartGame(location, heading);
-              }
-            }
-          }}
-        >
-          <Text style={mapStyles.startButtonText}>
-            {gameSession.status === 'inRound' ? 'EndRound' : 'StartRound'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
       {/* Bottom Sheet - 上拉菜单 */}
       <BottomSheet
         ref={bottomSheetRef}
@@ -192,6 +214,21 @@ export default function GamePage() {
           {/* TODO: 这里添加谜语、答案输入等 */}
         </View>
       </BottomSheet>
+
+      {/* FloatingActionButton */}
+      <FloatingActionButton 
+        status={gameSession.status}
+        onPress={() => {
+          if (location && heading) {
+            if (gameSession.status === 'inRound') {
+              handleSubmitAnswer();
+            } else {
+              // TODO: startRound
+              handleStartGame();
+            }
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }

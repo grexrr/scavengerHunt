@@ -51,6 +51,8 @@ public class Player {
         this.longitude = longitude;
         this.angle = angle;
         this.city = city;
+        this.spanDeg = spanDeg;
+        this.radiusMeters = radiusMeters;
         this.playerCone = setPlayerViewCone(latitude, longitude, angle, spanDeg, radiusMeters, this.resolution);
         // acquireCity(); // MVP as "Cork"
     }

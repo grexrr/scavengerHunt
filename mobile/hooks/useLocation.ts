@@ -35,10 +35,7 @@ export function useLocation(autoTrack: boolean = false): UseLocationReturn {
     setError(null);
 
     try {
-      const [position, direction] = await Promise.all([
-        getCurrentPosition(),
-        getCurrentHeading(),
-      ]);
+      const [position, direction] = await Promise.all([getCurrentPosition(), getCurrentHeading()]);
 
       if (position && direction) {
         setLocation(position);
@@ -52,7 +49,8 @@ export function useLocation(autoTrack: boolean = false): UseLocationReturn {
         setHeading(null);
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred while obtaining the location';
+      const errorMessage =
+        err instanceof Error ? err.message : 'An error occurred while obtaining the location';
       setError(errorMessage);
       setLocation(null);
     } finally {
@@ -68,7 +66,7 @@ export function useLocation(autoTrack: boolean = false): UseLocationReturn {
 
     // 开始实时跟踪位置
     unsubscribePositionRef.current = watchPosition(
-      (position) => {
+      position => {
         setLocation(position);
       },
       {
@@ -79,7 +77,7 @@ export function useLocation(autoTrack: boolean = false): UseLocationReturn {
     );
 
     // 开始实时跟踪朝向（使用 Magnetometer）
-    unsubscribeHeadingRef.current = watchHeading((headingData) => {
+    unsubscribeHeadingRef.current = watchHeading(headingData => {
       setHeading(headingData);
     });
   }, [isTracking]);

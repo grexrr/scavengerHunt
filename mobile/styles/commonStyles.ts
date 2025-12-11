@@ -74,7 +74,7 @@ export const commonStyles = StyleSheet.create({
     backgroundColor: colors.background,
     marginBottom: spacing.md,
   },
-  
+
   button: {
     backgroundColor: colors.primary,
     padding: spacing.md,
@@ -99,10 +99,8 @@ export const commonStyles = StyleSheet.create({
   },
 
   registerButtonText: {
-    color: colors.text,  
+    color: colors.text,
     fontSize: fontSize.md,
     fontWeight: '600',
   },
-  
-
 });

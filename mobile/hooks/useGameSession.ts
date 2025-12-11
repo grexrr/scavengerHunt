@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { apiClient } from '../services/api/client';
 import { storageService } from '../services/storage/storageService';
 
-type Role = 'guest' | 'player' | 'admin'
+type Role = 'guest' | 'player' | 'admin';
 type GameStatus = 'initializing' | 'initialized' | 'inRound' | 'finished' | 'error';
 
 interface InitGameResponse {
@@ -29,12 +29,12 @@ interface LandmarkDTO {
   centroid: {
     latitude: number;
     longitude: number;
-  } 
+  };
   coordinates: number[][];
 }
 
 interface GameSessionState {
-  userId?: string;  
+  userId?: string;
   role: Role;
   status: GameStatus;
   maxRiddleDurationMinutes: number;
@@ -63,10 +63,10 @@ export function useGameSession() {
       const role = await storageService.getRole();
       if (role) {
         const normalizedRole = role.toLowerCase() as Role;
-        updateState({ role: normalizedRole })
-      } 
-    })()
-  }, [])
+        updateState({ role: normalizedRole });
+      }
+    })();
+  }, []);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -81,7 +81,6 @@ export function useGameSession() {
     spanDeg: number;
     coneRadiusMeters: number;
   }) {
-
     if (!state.userId) {
       console.warn('[updatePosition] User ID not found');
       return;
@@ -108,10 +107,11 @@ export function useGameSession() {
     spanDeg: number;
     coneRadiusMeters: number;
   }) {
-    updateState({ 
+    updateState({
       userId: params.userId,
-      status: 'initialized', 
-      errorMessage: undefined });
+      status: 'initialized',
+      errorMessage: undefined,
+    });
     try {
       const data = await apiClient.post<InitGameResponse>('/api/game/init-game', params);
       // console.log('[initGame] Full API response:', JSON.stringify(data, null, 2));
@@ -126,7 +126,6 @@ export function useGameSession() {
       } else {
         console.warn('[initGame] Invalid landmarks data:', data.landmarks);
       }
-
     } catch (err) {
       updateState({
         status: 'error',
@@ -143,16 +142,15 @@ export function useGameSession() {
     language?: string;
     style?: string;
   }) {
-
     if (!state.userId) {
       throw new Error('User ID not found. Please call initGame first.');
     }
 
-    try {      
+    try {
       const target = await apiClient.post<TargetDTO>('/api/game/start-round', {
         userId: state.userId,
         ...params,
-      })
+      });
 
       updateState({
         status: 'inRound',
@@ -185,7 +183,8 @@ export function useGameSession() {
       timerRef.current = null;
     }
 
-    const secondsUsed = params.secondsUsed ?? (state.maxRiddleDurationMinutes * 60 - (state.timeSecondsLeft ?? 0));
+    const secondsUsed =
+      params.secondsUsed ?? state.maxRiddleDurationMinutes * 60 - (state.timeSecondsLeft ?? 0);
     updateState({ isTimerActive: false });
 
     try {
@@ -195,13 +194,13 @@ export function useGameSession() {
         latitude: params.latitude,
         longitude: params.longitude,
         currentAngle: params.currentAngle,
-      })
+      });
 
       if (data.gameFinished) {
         updateState({
           status: 'finished',
           timeSecondsLeft: 0,
-          lastMessage: data.message
+          lastMessage: data.message,
         });
       } else if (data.target) {
         updateState({
@@ -211,7 +210,7 @@ export function useGameSession() {
             riddle: data.target.riddle,
             attemptsLeft: data.target.attemptsLeft,
           },
-          lastMessage: data.message
+          lastMessage: data.message,
         });
         startTimer();
       }
@@ -223,8 +222,8 @@ export function useGameSession() {
     }
   }
 
-  async function finishRound(){
-    if (timerRef.current){
+  async function finishRound() {
+    if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
@@ -239,9 +238,8 @@ export function useGameSession() {
         roundLandmarks: [],
         currentTarget: undefined,
         timeSecondsLeft: null,
-        isTimerActive: false
-      })
-
+        isTimerActive: false,
+      });
     } catch (err) {
       updateState({
         status: 'error',
@@ -251,8 +249,8 @@ export function useGameSession() {
   }
 
   // utils
-  function setRole(newRole: Role){
-    updateState({ role: newRole});
+  function setRole(newRole: Role) {
+    updateState({ role: newRole });
     storageService.setRole(newRole);
   }
 
@@ -277,12 +275,12 @@ export function useGameSession() {
             clearInterval(timerRef.current);
             timerRef.current = null;
           }
-        
+
           // IMPORTANT: submitAnswer
           const secondsUsed = prev.maxRiddleDurationMinutes * 60 + 1;
           if (prev.userId) {
-            submitAnswer({ 
-                secondsUsed: secondsUsed,
+            submitAnswer({
+              secondsUsed: secondsUsed,
             });
           }
 
@@ -304,6 +302,6 @@ export function useGameSession() {
     startRound,
     initGame,
     finishRound,
-    setRole
+    setRole,
   };
 }

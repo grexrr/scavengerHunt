@@ -48,8 +48,7 @@ export default function SettingsPage() {
         password: loginPassword,
         ...(isEmail
           ? { email: loginToken, username: null }
-          : { username: loginToken, email: null }
-        )
+          : { username: loginToken, email: null }),
       };
 
       const response = await apiClient.post<{
@@ -74,7 +73,7 @@ export default function SettingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleLogout = async () => {
     try {
@@ -96,7 +95,7 @@ export default function SettingsPage() {
     } catch (error: any) {
       Alert.alert('Error', 'Failed to logout: ' + error.message);
     }
-  }
+  };
 
   const handleUpdate = async () => {
     if (!editableProfile || !isProfileUpdated) return;
@@ -116,7 +115,7 @@ export default function SettingsPage() {
 
       Alert.alert('Success', 'Profile updated successfully');
     } catch (error: any) {
-      let errorMsg = "Failed to update profile";
+      let errorMsg = 'Failed to update profile';
 
       if (error.message) {
         if (error.message.includes('Username already exists')) {
@@ -139,9 +138,9 @@ export default function SettingsPage() {
       Alert.alert('Error', 'Username and password are required');
       return;
     }
-  
+
     setIsLoading(true);
-  
+
     try {
       // 1. 注册
       await apiClient.post('/api/auth/register', {
@@ -150,9 +149,9 @@ export default function SettingsPage() {
         email: registerEmail.trim() || null,
         preferredLanguage: registerLanguage.trim().toLowerCase() || 'english',
         preferredStyle: registerStyle.toLowerCase() || 'medieval',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
-  
+
       // 2. 注册成功后，自动登录
       try {
         const loginResponse = await apiClient.post<{
@@ -164,18 +163,18 @@ export default function SettingsPage() {
           username: registerUsername.trim(),
           password: registerPassword.trim(),
         });
-  
+
         // 保存登录信息
         await storageService.setUserId(loginResponse.userId);
         await storageService.setUsername(loginResponse.username);
         await storageService.setRole(loginResponse.role);
-  
+
         // 加载用户信息
         await loadProfile(loginResponse.userId);
-        
+
         // 设置登录状态
         setIsLoggedIn(true);
-        
+
         // 清空注册表单
         setRegisterUsername('');
         setRegisterPassword('');
@@ -183,7 +182,7 @@ export default function SettingsPage() {
         setRegisterLanguage('');
         setRegisterStyle('');
         setShowRegister(false);
-        
+
         Alert.alert('Success', 'Registration and login successful!');
       } catch (loginError: any) {
         // 如果自动登录失败，提示用户手动登录
@@ -197,10 +196,9 @@ export default function SettingsPage() {
         setRegisterLanguage('');
         setRegisterStyle('');
       }
-    
     } catch (error: any) {
       let errorMsg = 'Registration failed';
-    
+
       if (error.message) {
         if (error.message.includes('Username already exists')) {
           errorMsg = 'Username already exists. Please choose another one.';
@@ -210,12 +208,12 @@ export default function SettingsPage() {
           errorMsg = error.message;
         }
       }
-      
+
       Alert.alert('Registration Failed', errorMsg);
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const loadProfile = async (userId: string) => {
     try {
@@ -226,7 +224,7 @@ export default function SettingsPage() {
     } catch (error: any) {
       Alert.alert('Error', 'Failed to load user profile: ' + error.message);
     }
-  }
+  };
 
   useEffect(() => {
     if (profile && editableProfile) {
@@ -239,7 +237,7 @@ export default function SettingsPage() {
     } else {
       setIsProfileUpdated(false);
     }
-  }, [editableProfile, profile])
+  }, [editableProfile, profile]);
 
   // 页面加载时检查登录状态
   useEffect(() => {
@@ -251,7 +249,7 @@ export default function SettingsPage() {
       }
     };
     checkLoginStatus();
-  }, []);  // 空数组表示只在组件首次加载时执行一次
+  }, []); // 空数组表示只在组件首次加载时执行一次
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
@@ -277,7 +275,7 @@ export default function SettingsPage() {
                 {/* Password Box */}
                 <TextInput
                   style={commonStyles.input}
-                  placeholder='Password'
+                  placeholder="Password"
                   value={loginPassword}
                   onChangeText={setLoginPassword}
                   secureTextEntry
@@ -300,13 +298,10 @@ export default function SettingsPage() {
                   onPress={() => setShowRegister(true)}
                   disabled={isLoading}
                 >
-                  <Text style={commonStyles.registerButtonText}>
-                    {'Register'}
-                  </Text>
+                  <Text style={commonStyles.registerButtonText}>{'Register'}</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              
               // Registration Page
               <>
                 <Text style={commonStyles.subtitle}>Register</Text>
@@ -342,20 +337,24 @@ export default function SettingsPage() {
                 <TextInput
                   style={commonStyles.input}
                   placeholder="Preferred language (default: English)"
-                  value={registerLanguage 
-                    ? registerLanguage.charAt(0).toUpperCase() + registerLanguage.slice(1)
-                    : ''}
-                  onChangeText={(text) => setRegisterLanguage(text.toLowerCase())}
+                  value={
+                    registerLanguage
+                      ? registerLanguage.charAt(0).toUpperCase() + registerLanguage.slice(1)
+                      : ''
+                  }
+                  onChangeText={text => setRegisterLanguage(text.toLowerCase())}
                 />
 
                 {/* Style */}
                 <TextInput
                   style={commonStyles.input}
                   placeholder="Preferred riddle style (default: Medieval)"
-                  value={registerStyle 
-                    ? registerStyle.charAt(0).toUpperCase() + registerStyle.slice(1)
-                    : ''}
-                  onChangeText={(text) => setRegisterStyle(text.toLowerCase())}
+                  value={
+                    registerStyle
+                      ? registerStyle.charAt(0).toUpperCase() + registerStyle.slice(1)
+                      : ''
+                  }
+                  onChangeText={text => setRegisterStyle(text.toLowerCase())}
                 />
 
                 {/* Registration Button */}
@@ -368,16 +367,14 @@ export default function SettingsPage() {
                     {isLoading ? 'Registering...' : 'Register'}
                   </Text>
                 </TouchableOpacity>
-                
+
                 {/* Return button */}
                 <TouchableOpacity
                   style={commonStyles.registerButton}
                   onPress={() => setShowRegister(false)}
                   disabled={isLoading}
                 >
-                  <Text style={commonStyles.registerButtonText}>
-                    {'Back to Login'}
-                  </Text>
+                  <Text style={commonStyles.registerButtonText}>{'Back to Login'}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -405,7 +402,9 @@ export default function SettingsPage() {
                 <TextInput
                   style={commonStyles.input}
                   value={editableProfile?.username || ''}
-                  onChangeText={text => setEditableProfile(prev => prev ? { ...prev, username: text } : null)}
+                  onChangeText={text =>
+                    setEditableProfile(prev => (prev ? { ...prev, username: text } : null))
+                  }
                 />
               </View>
 
@@ -415,13 +414,14 @@ export default function SettingsPage() {
                   style={commonStyles.input}
                   placeholder="email@example.com"
                   value={editableProfile?.email || ''}
-                  onChangeText={text => setEditableProfile(prev => prev ? { ...prev, email: text } : null)}
+                  onChangeText={text =>
+                    setEditableProfile(prev => (prev ? { ...prev, email: text } : null))
+                  }
                   autoCapitalize="none"
                   keyboardType="email-address"
                 />
               </View>
             </View>
-
 
             <View style={commonStyles.section}>
               <Text style={commonStyles.sectionTitle}>Preference</Text>
@@ -431,10 +431,17 @@ export default function SettingsPage() {
                 <Text style={commonStyles.secondaryText}>LANGUAGE</Text>
                 <TextInput
                   style={commonStyles.input}
-                  value={editableProfile?.preferredLanguage
-                    ? editableProfile.preferredLanguage.charAt(0).toUpperCase() + editableProfile.preferredLanguage.slice(1)
-                    : 'English'}
-                  onChangeText={text => setEditableProfile(prev => prev ? { ...prev, preferredLanguage: text.toLowerCase() } : null)}
+                  value={
+                    editableProfile?.preferredLanguage
+                      ? editableProfile.preferredLanguage.charAt(0).toUpperCase() +
+                        editableProfile.preferredLanguage.slice(1)
+                      : 'English'
+                  }
+                  onChangeText={text =>
+                    setEditableProfile(prev =>
+                      prev ? { ...prev, preferredLanguage: text.toLowerCase() } : null
+                    )
+                  }
                 />
               </View>
 
@@ -442,24 +449,28 @@ export default function SettingsPage() {
                 <Text style={commonStyles.secondaryText}>RIDDLE STYLE</Text>
                 <TextInput
                   style={commonStyles.input}
-                  value={editableProfile?.preferredStyle ? editableProfile.preferredStyle.charAt(0).toUpperCase() + editableProfile.preferredStyle.slice(1) : 'Loading...'}
-                  onChangeText={text => setEditableProfile(prev => prev ? { ...prev, preferredStyle: text.toLowerCase() } : null)}
+                  value={
+                    editableProfile?.preferredStyle
+                      ? editableProfile.preferredStyle.charAt(0).toUpperCase() +
+                        editableProfile.preferredStyle.slice(1)
+                      : 'Loading...'
+                  }
+                  onChangeText={text =>
+                    setEditableProfile(prev =>
+                      prev ? { ...prev, preferredStyle: text.toLowerCase() } : null
+                    )
+                  }
                 />
               </View>
             </View>
 
             {/* Update Button */}
             <TouchableOpacity
-              style={[
-                commonStyles.button,
-                !isProfileUpdated && { opacity: 0.5 }
-              ]}
+              style={[commonStyles.button, !isProfileUpdated && { opacity: 0.5 }]}
               onPress={handleUpdate}
               disabled={!isProfileUpdated || isLoading}
             >
-              <Text style={commonStyles.buttonText}>
-                {isLoading ? 'Updating...' : 'Update'}
-              </Text>
+              <Text style={commonStyles.buttonText}>{isLoading ? 'Updating...' : 'Update'}</Text>
             </TouchableOpacity>
 
             {/* Logout Button */}
@@ -468,14 +479,11 @@ export default function SettingsPage() {
               onPress={handleLogout}
               disabled={isLoading}
             >
-              <Text style={commonStyles.registerButtonText}>
-                {'Logout'}
-              </Text>
+              <Text style={commonStyles.registerButtonText}>{'Logout'}</Text>
             </TouchableOpacity>
           </>
         )}
-
       </ScrollView>
-    </SafeAreaView >
+    </SafeAreaView>
   );
 }

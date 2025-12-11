@@ -3,10 +3,10 @@ import { Polygon } from 'react-native-maps';
 
 type ViewConeProps = {
   center: { latitude: number; longitude: number };
-  headingDeg: number;        
-  spanDeg: number;          
-  radiusMeters: number;      
-  resolution?: number;       
+  headingDeg: number;
+  spanDeg: number;
+  radiusMeters: number;
+  resolution?: number;
   fillColor?: string;
 };
 
@@ -33,9 +33,8 @@ export default function ViewCone({
       const angle = start + i * step;
       const theta = (angle * Math.PI) / 180;
 
-      const dLat = (radiusMeters * Math.cos(theta)) / METERS_PER_DEG_LAT; 
-      const metersPerDegLng =
-        METERS_PER_DEG_LAT * Math.cos((center.latitude * Math.PI) / 180);
+      const dLat = (radiusMeters * Math.cos(theta)) / METERS_PER_DEG_LAT;
+      const metersPerDegLng = METERS_PER_DEG_LAT * Math.cos((center.latitude * Math.PI) / 180);
       const dLng = (radiusMeters * Math.sin(theta)) / metersPerDegLng;
 
       points.push({
@@ -54,7 +53,7 @@ export default function ViewCone({
     <Polygon
       coordinates={coordinates}
       fillColor={fillColor}
-      strokeColor="rgba(0,0,0,0)" 
+      strokeColor="rgba(0,0,0,0)"
       strokeWidth={0}
     />
   );

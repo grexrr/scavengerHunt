@@ -1,7 +1,7 @@
-import BottomSheet from '@gorhom/bottom-sheet';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import MapView, { UrlTile } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AnswerResult from '../components/AnswerResult';
 import FloatingActionButton from '../components/FloatingActionButton';
 import GameHud from '../components/GameHUD';
 import LandmarkPolygon from '../components/LandmarkPolygon';
@@ -26,16 +26,8 @@ export default function GamePage() {
     useLocation(true);
 
   const gameSession = useGameSession();
-  // const {
-  //   status,
-  //   maxRiddleDurationMinutes,
-  //   roundLandmarks,
-  //   currentTarget,
-  //   timeSecondsLeft,
-  //   isTimerActive,
-  //   errorMessage} = gameSession;
-  const bottomSheetRef = useRef<BottomSheet>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [showAnswerResult, setShowAnswerResult] = useState(false);
 
   // =============== GAME INIT ===============
   // 1. GameSession init
@@ -158,6 +150,9 @@ export default function GamePage() {
         latitude: location.latitude,
         longitude: location.longitude,
       });
+
+      // display result
+      setShowAnswerResult(true);
     } catch (error) {
       console.error('[Mobile][Game.tsx] Failed submitting answer:', error);
       alert(`Failed to submit answer: ${error instanceof Error ? error.message : 'Unknown Error'}`);
@@ -222,13 +217,21 @@ export default function GamePage() {
       />
 
       {/* RiddleBubble */}
-      {location && (
+      {location && gameSession.status === 'inRound' && (
         <RiddleBubble
           riddle={gameSession.currentTarget?.riddle}
           location={location}
           autoCollapseDistance={10}
         />
       )}
+
+      {/* AnswerResult Modal */}
+      <AnswerResult
+        message={gameSession.lastMessage}
+        visible={showAnswerResult}
+        onClose={() => setShowAnswerResult(false)}
+      />
+
 
       {/* FloatingActionButton */}
       <FloatingActionButton

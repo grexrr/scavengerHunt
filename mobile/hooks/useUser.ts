@@ -34,16 +34,16 @@ export function useUser() {
       setIsLoading(false);
     }
   };
-
+ 
   useEffect(() => {
     loadUser();
   }, []);
 
+  const isLoggedIn = user.userId !== null;
+
   const refreshUser = async () => {
     await loadUser();
   };
-
-  const isLoggedIn = user.userId !== null;
 
   return {
     user,

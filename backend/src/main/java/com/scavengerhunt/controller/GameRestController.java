@@ -269,7 +269,7 @@ public class GameRestController {
             response.put("message", "Correct! Next target selected.");
         } else {
             System.out.println("[Debug] Incorrect answer, game continues");
-            response.put("message", "Incorrect. Try again or check your position.");
+            response.put("message", "Incorrect. Try a dgain or check your position.");
         }
 
         // target info: currentTarget or nextTarget
@@ -304,17 +304,6 @@ public class GameRestController {
 
         return ResponseEntity.ok(res);
     }
-
-    // @GetMapping("/get-current-target")
-    // public ResponseEntity<?> getCurrentTarget(@RequestParam String userId) {
-    //     GameSession session = gameSessionService.getSession(userId);
-    //     if (session == null) return ResponseEntity.status(404).body("Session not found");
-        
-    //     Landmark target = session.getCurrentTarget();
-    //     if (target == null) return ResponseEntity.status(404).body("No target available");
-        
-    //     return ResponseEntity.ok(target);
-    // }
 }
 
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Modal, Text, TouchableOpacity } from 'react-native';
 import MapView, { UrlTile } from 'react-native-maps';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnswerResult from '../components/AnswerResult';
 import FloatingActionButton from '../components/FloatingActionButton';
 import GameHud from '../components/GameHUD';
@@ -9,14 +10,15 @@ import RiddleBubble from '../components/RiddleBubble';
 import ViewCone from '../components/ViewCone';
 import { useGameSession } from '../hooks/useGameSession';
 import { useLocation } from '../hooks/useLocation';
+import { useUser } from '../hooks/useUser';
 import { mapStyles } from '../styles/mapStyles';
 import { LandmarkDTO } from '../types';
 import { calculateDistance } from '../utils/calculateDistance';
 import { GAME_CONFIG } from '../utils/constants';
+import SettingsPage from './settings';
 
 const VIEW_CONE_SPAN = GAME_CONFIG.VIEW_ANGLE;
 const VIEW_CONE_RADIUS = GAME_CONFIG.VIEW_RADIUS;
-const UID_ADMIN = '408808b8-777c-469a-867d-dd5e7d5e38e2';
 const MAX_DISPLAY_LANDMARKS_COUNT = 10;
 const MAX_DISPLAY_LANDMARKS_DISTANCE = 500;
 const DEFAULT_LANGUATE = 'english';
@@ -25,34 +27,56 @@ const DEFAULT_STYLE = 'medieval';
 export default function GamePage() {
   const { location, heading, loading, error, isTracking, startTracking, stopTracking } =
     useLocation(true);
+  const { user, isLoading, isLoggedIn, refreshUser } = useUser();
+  const insets = useSafeAreaInsets();
 
   const gameSession = useGameSession();
   const [hasInitialized, setHasInitialized] = useState(false);
   const [showAnswerResult, setShowAnswerResult] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); 
 
   // =============== GAME INIT ===============
   // 1. GameSession init
   useEffect(() => {
-    if (location && heading && !hasInitialized) {
-      setHasInitialized(true);
-      gameSession.setRole('admin'); // FOR DEV
-      gameSession.initGame({
-        userId: UID_ADMIN, // FOR DEV
-        latitude: location.latitude,
-        longitude: location.longitude,
-        angle: heading.heading,
-        spanDeg: VIEW_CONE_SPAN,
-        coneRadiusMeters: VIEW_CONE_RADIUS,
-      });
+    if (isLoading) return;
+    if (!location || !heading) return;
+    if (hasInitialized) return;
+
+    // id
+    let userId: string;
+    if(isLoggedIn && user.userId){
+      userId = user.userId;
+    } else {
+      // temp guest-id
+      userId = `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      console.log('[Game.tsx] Using guest userId:', userId);
     }
-  }, [location, heading, hasInitialized]);
+
+    // role
+    if (isLoggedIn && user.role) {
+      gameSession.setRole(user.role.toLowerCase() as 'player' | 'admin');
+    } else {
+      gameSession.setRole('guest');
+    }
+
+    // init
+    setHasInitialized(true);
+    gameSession.initGame({
+      userId: userId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      angle: heading.heading,
+      spanDeg: VIEW_CONE_SPAN,
+      coneRadiusMeters: VIEW_CONE_RADIUS,
+    });
+    
+  }, [location, heading, hasInitialized, isLoading, isLoggedIn, user.userId, user.role]);
 
   // 2. Tracking Player Movement
 
   useEffect(() => {
-    if (!location || !heading || !gameSession.userId) {
-      return;
-    }
+    if (!location || !heading || !gameSession.userId) return;
+    
     gameSession.updatePosition({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -89,6 +113,11 @@ export default function GamePage() {
       .map(item => item.landmark);
   }, [location, gameSession.roundLandmarks, gameSession.role]);
 
+
+  // =============== Settings =============== 
+
+  const shouldShowSettingsButton = isLoggedIn && gameSession.status !== 'inRound';
+
   // =============== GAME LOGIC ===============
 
   const handleStartGame = useCallback(async () => {
@@ -96,6 +125,7 @@ export default function GamePage() {
       console.warn('[Game.tsx] Cannot start game: missing location, heading, or userId');
       return;
     }
+    
     try {
       if (gameSession.status === 'finished') {
         console.log('[Mobile][Game.tsx] Game finished, re-initializing...');
@@ -206,6 +236,42 @@ export default function GamePage() {
         ))}
       </MapView>
 
+      {/* ========== Settings 按钮（右上角）========== */}
+      {shouldShowSettingsButton && (
+        <TouchableOpacity
+          style={[
+            mapStyles.settingsButton,
+            {
+              top: insets.top + 10,
+              right: 16,
+            },
+          ]}
+          onPress={() => setShowSettings(true)}
+        >
+          <Text style={mapStyles.settingsButtonText}>⚙️ Settings</Text>
+        </TouchableOpacity>
+      )}
+
+      <Modal
+        visible={showSettings}
+        animationType="slide"
+        onRequestClose={() => {
+          setShowSettings(false);
+          refreshUser();
+        }}
+      >
+        <SettingsPage />
+        <TouchableOpacity
+          style={mapStyles.closeSettingsButton}
+          onPress={() => {
+            setShowSettings(false);
+            refreshUser();
+          }}
+        >
+          <Text style={mapStyles.closeSettingsButtonText}>×</Text>
+        </TouchableOpacity>
+      </Modal>
+
       {/* GameHUD */}
       <GameHud
         status={gameSession.status}
@@ -233,13 +299,17 @@ export default function GamePage() {
       {/* FloatingActionButton */}
       <FloatingActionButton
         status={gameSession.status}
+        isLoggedIn={isLoggedIn}
         onPress={() => {
-          if (location && heading) {
-            if (gameSession.status === 'inRound') {
-              handleSubmitAnswer();
-            } else {
-              // TODO: startRound
-              handleStartGame();
+          if (!isLoggedIn) {
+            setShowSettings(true);
+          } else {
+            if (location && heading) {
+              if (gameSession.status === 'inRound') {
+                handleSubmitAnswer();
+              } else {
+                handleStartGame();
+              }
             }
           }
         }}

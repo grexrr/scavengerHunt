@@ -6,10 +6,18 @@ type GameStatus = 'initializing' | 'initialized' | 'inRound' | 'finished' | 'err
 
 interface FloatingActionButtonProps {
   status: GameStatus;
+  isLoggedIn: boolean;
   onPress: () => void;
 }
 
-export default function FloatingActionButton({ status, onPress }: FloatingActionButtonProps) {
+export default function FloatingActionButton({ status, isLoggedIn, onPress }: FloatingActionButtonProps) {
+  if (!isLoggedIn) {
+    return (
+      <TouchableOpacity style={mapStyles.floatingActionButton} onPress={onPress}>
+        <Text style={mapStyles.floatingActionButtonText}>Login</Text>
+      </TouchableOpacity>
+    );
+  }
   console.log('[FloatingActionButton] Current status:', status);
   const buttonText = status === 'inRound' ? 'Submit Answer' : 'Start Round';
 

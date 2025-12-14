@@ -8,18 +8,6 @@ export const mapStyles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  // bottomBar: {
-  //   position: 'absolute',
-  //   bottom: 0,
-  //   left: 0,
-  //   right: 0,
-  //   backgroundColor: colors.tabBarBackground,
-  //   paddingHorizontal: spacing.md,
-  //   paddingVertical: spacing.sm,
-  //   borderTopWidth: 1,
-  //   borderTopColor: colors.backgroundSecondary,
-  // },
-
   // Auth Management
   settingsButton: {
     position: 'absolute',
@@ -41,19 +29,21 @@ export const mapStyles = StyleSheet.create({
   },
   closeSettingsButton: {
     position: 'absolute',
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: colors.primary,
-    padding: spacing.md,
-    borderRadius: 8,
+    top: 30, // 距离顶部 30px
+    right: 16, // 距离右边 16px
+    width: 40, // 固定宽度
+    height: 40, // 固定高度
+    borderRadius: 20, // 圆形按钮
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // 半透明黑色背景
+    justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1002,
+    zIndex: 1000, // 确保在最上层
   },
   closeSettingsButtonText: {
-    color: colors.background,
-    fontSize: fontSize.md,
-    fontWeight: '600',
+    color: colors.background, // 白色
+    fontSize: fontSize.xxl, // 大号字体显示 ×
+    fontWeight: 'bold',
+    lineHeight: fontSize.xxl, // 确保垂直居中
   },
 
   // startbUT

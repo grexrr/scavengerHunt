@@ -8,54 +8,92 @@ export const mapStyles = StyleSheet.create({
   map: {
     flex: 1,
   },
-  bottomBar: {
+  // bottomBar: {
+  //   position: 'absolute',
+  //   bottom: 0,
+  //   left: 0,
+  //   right: 0,
+  //   backgroundColor: colors.tabBarBackground,
+  //   paddingHorizontal: spacing.md,
+  //   paddingVertical: spacing.sm,
+  //   borderTopWidth: 1,
+  //   borderTopColor: colors.backgroundSecondary,
+  // },
+
+  // Auth Management
+  settingsButton: {
     position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.tabBarBackground,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: colors.backgroundSecondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    zIndex: 1001,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  startButton: {
+  settingsButtonText: {
+    color: colors.text,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+  closeSettingsButton: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
     backgroundColor: colors.primary,
     padding: spacing.md,
     borderRadius: 8,
     alignItems: 'center',
+    zIndex: 1002,
   },
-  startButtonText: {
+  closeSettingsButtonText: {
     color: colors.background,
-    fontSize: 16,
+    fontSize: fontSize.md,
     fontWeight: '600',
   },
-  bottomSheetBackground: {
-    backgroundColor: colors.background,
-  },
-  bottomSheetContent: {
-    flex: 1,
-    padding: spacing.md,
-  },
-  bottomSheetTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  riddleText: {
-    fontSize: 16,
-    color: colors.text,
-    lineHeight: 24,
-  },
+
+  // startbUT
+  // startButton: {
+  //   backgroundColor: colors.primary,
+  //   padding: spacing.md,
+  //   borderRadius: 8,
+  //   alignItems: 'center',
+  // },
+  // startButtonText: {
+  //   color: colors.background,
+  //   fontSize: 16,
+  //   fontWeight: '600',
+  // },
+  // bottomSheetBackground: {
+  //   backgroundColor: colors.background,
+  // },
+  // bottomSheetContent: {
+  //   flex: 1,
+  //   padding: spacing.md,
+  // },
+  // bottomSheetTitle: {
+  //   fontSize: 20,
+  //   fontWeight: 'bold',
+  //   color: colors.text,
+  //   marginBottom: spacing.md,
+  // },
+  // riddleText: {
+  //   fontSize: 16,
+  //   color: colors.text,
+  //   lineHeight: 24,
+  // },
 
   // Start Butt
   floatingActionButton: {
     position: 'absolute',
     bottom: 32, // 距离底部 32px
     alignSelf: 'center', // 水平居中
-    width: 120, // 宽度
-    height: 120, // 高度（圆形）
+    width: 100, // 宽度
+    height: 100, // 高度（圆形）
     borderRadius: 60, // 圆角半径 = 高度/2，形成圆形
     backgroundColor: colors.primary,
     justifyContent: 'center',

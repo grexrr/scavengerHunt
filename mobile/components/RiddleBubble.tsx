@@ -81,7 +81,7 @@ export default function RiddleBubble({
 
   const handleToggle = () => {
     if (!riddle) return;
-    
+
     console.log('[RiddleBubble] Toggle clicked, current expanded:', expanded);
     lastToggleTime.current = Date.now();
     setExpanded(prev => !prev);
@@ -110,9 +110,7 @@ export default function RiddleBubble({
           alignItems: 'center',
         }}
       >
-        <Text style={bubbleStyles.riddleBubbleText}>
-          {expanded ? riddle : '...'}
-        </Text>
+        <Text style={bubbleStyles.riddleBubbleText}>{expanded ? riddle : '...'}</Text>
         <View style={bubbleStyles.riddleBubbleArrow} />
       </TouchableOpacity>
     </Animated.View>

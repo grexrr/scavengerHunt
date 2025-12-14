@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../../utils/constants';
+import { API_BASE_URL } from '../utils/constants';
 
 class ApiClient {
   private baseUrl: string;

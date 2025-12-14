@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { apiClient } from '../services/api/client';
-import { storageService } from '../services/storage/storageService';
+import { apiClient } from '../services/client';
+import { storageService } from '../services/storageService';
 import { commonStyles } from '../styles/commonStyles';
 
 interface UserProfile {

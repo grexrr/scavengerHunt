@@ -260,7 +260,12 @@ export default function GamePage() {
           refreshUser();
         }}
       >
-        <SettingsPage />
+        <SettingsPage 
+          onLoginSuccess={() => {
+            setShowSettings(false);
+            refreshUser();
+          }}
+        />
         <TouchableOpacity
           style={mapStyles.closeSettingsButton}
           onPress={() => {

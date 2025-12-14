@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiClient } from '../services/api/client';
-import { storageService } from '../services/storage/storageService';
+import { apiClient } from '../services/client';
+import { storageService } from '../services/storageService';
 
 type Role = 'guest' | 'player' | 'admin';
 type GameStatus = 'initializing' | 'initialized' | 'inRound' | 'finished' | 'error';

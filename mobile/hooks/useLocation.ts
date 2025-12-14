@@ -7,7 +7,7 @@ import {
   Position,
   watchHeading,
   watchPosition,
-} from '../services/location/locationService';
+} from '../services/locationService';
 
 export interface UseLocationReturn {
   location: Position | null;

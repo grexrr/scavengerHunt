@@ -12,21 +12,12 @@ export default function AnswerResult({ message, visible, onClose }: AnswerResult
   if (!message) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <View style={resultStyles.modalOverlay}>
         <View style={resultStyles.modalContent}>
           <Text style={resultStyles.modalTitle}>Answer Result</Text>
           <Text style={resultStyles.modalMessage}>{message}</Text>
-          <TouchableOpacity
-            style={resultStyles.modalButton}
-            onPress={onClose}
-            activeOpacity={0.8}
-          >
+          <TouchableOpacity style={resultStyles.modalButton} onPress={onClose} activeOpacity={0.8}>
             <Text style={resultStyles.modalButtonText}>OK</Text>
           </TouchableOpacity>
         </View>

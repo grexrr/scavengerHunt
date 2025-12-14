@@ -12,9 +12,10 @@ import { useLocation } from '../hooks/useLocation';
 import { mapStyles } from '../styles/mapStyles';
 import { LandmarkDTO } from '../types';
 import { calculateDistance } from '../utils/calculateDistance';
+import { GAME_CONFIG } from '../utils/constants';
 
-const VIEW_CONE_SPAN = 60;
-const VIEW_CONE_RADIUS = 250;
+const VIEW_CONE_SPAN = GAME_CONFIG.VIEW_ANGLE;
+const VIEW_CONE_RADIUS = GAME_CONFIG.VIEW_RADIUS;
 const UID_ADMIN = '408808b8-777c-469a-867d-dd5e7d5e38e2';
 const MAX_DISPLAY_LANDMARKS_COUNT = 10;
 const MAX_DISPLAY_LANDMARKS_DISTANCE = 500;
@@ -159,9 +160,6 @@ export default function GamePage() {
     }
   }, [gameSession, location, heading]);
 
-  //
-  const handleConcludeAnswer = () => {};
-
   const handleFinishGame = useCallback(async () => {
     try {
       if (gameSession.userId) {
@@ -231,7 +229,6 @@ export default function GamePage() {
         visible={showAnswerResult}
         onClose={() => setShowAnswerResult(false)}
       />
-
 
       {/* FloatingActionButton */}
       <FloatingActionButton

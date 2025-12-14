@@ -14,7 +14,11 @@ interface UserProfile {
   preferredStyle: string;
 }
 
-export default function SettingsPage() {
+interface SettingsPageProps {
+  onLoginSuccess?: () => void;
+}
+
+export default function SettingsPage({ onLoginSuccess }: SettingsPageProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginToken, setloginToken] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -67,7 +71,11 @@ export default function SettingsPage() {
 
       setloginToken('');
       setLoginPassword('');
-      // Alert.alert('Success', 'Login successful!')
+      
+      // 登录成功后调用回调，关闭 Modal
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
     } catch (error: any) {
       Alert.alert('Login Failed', error.message || 'Please check your credentials');
     } finally {
@@ -183,7 +191,10 @@ export default function SettingsPage() {
         setRegisterStyle('');
         setShowRegister(false);
 
-        Alert.alert('Success', 'Registration and login successful!');
+        // 注册并登录成功后调用回调，关闭 Modal
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        }
       } catch (loginError: any) {
         // 如果自动登录失败，提示用户手动登录
         Alert.alert('Registration Successful', 'Please login manually.');

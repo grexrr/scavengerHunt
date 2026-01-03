@@ -4,6 +4,8 @@ const STORAGE_KEYS = {
   USER_ID: '@scavengerhunt:userId',
   USERNAME: '@scavengerhunt:username',
   ROLE: '@scavengerhunt:role',
+  FIRST_PERSON_ZOOM: '@scavengerhunt:firstPersonZoom',
+  FIRST_PERSON_ENABLED: '@scavengerhunt:firstPersonEnabled'
 } as const;
 
 class StorageService {
@@ -29,6 +31,24 @@ class StorageService {
 
   async getRole(): Promise<string | null> {
     return await AsyncStorage.getItem(STORAGE_KEYS.ROLE);
+  }
+
+  async setFirstPersonZoom(zoom: number): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.FIRST_PERSON_ZOOM, zoom.toString());
+  }
+
+  async getFirstPersonZoom(): Promise<number> {
+    const zoom = await AsyncStorage.getItem(STORAGE_KEYS.FIRST_PERSON_ZOOM);
+    return zoom ? parseFloat(zoom) : 18;
+  }
+
+  async setFirstPersonEnabled(enabled: boolean): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.FIRST_PERSON_ENABLED, enabled.toString());
+  }
+
+  async getFirstPersonEnabled(): Promise<boolean> {
+    const enabled = await AsyncStorage.getItem(STORAGE_KEYS.FIRST_PERSON_ENABLED);
+    return enabled === 'true';
   }
 
   async clearUserData(): Promise<void> {

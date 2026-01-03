@@ -222,7 +222,13 @@ export function useGameSession() {
     }
   }
 
-  async function finishRound() {
+  async function finishRound(params?: {
+    latitude: number;
+    longitude: number;
+    angle: number;
+    spanDeg: number;
+    coneRadiusMeters: number;
+  }) {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
@@ -235,11 +241,23 @@ export function useGameSession() {
 
       updateState({
         status: 'finished',
-        roundLandmarks: [],
         currentTarget: undefined,
         timeSecondsLeft: null,
         isTimerActive: false,
       });
+
+      // refetch roundLandmarks
+      if (params && state.userId) {
+        const data = await apiClient.post<InitGameResponse>('/api/game/init-game', {
+          userId: state.userId,
+          ...params,
+        });
+        if (data.landmarks && Array.isArray(data.landmarks)) {
+          updateState({
+            roundLandmarks: data.landmarks,
+          });
+        }
+      }
     } catch (err) {
       updateState({
         status: 'error',

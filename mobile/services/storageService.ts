@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   USER_ID: '@scavengerhunt:userId',
   USERNAME: '@scavengerhunt:username',
   ROLE: '@scavengerhunt:role',
+  MAP_ZOOM: '@scavengerhunt:mapZoom',
   FIRST_PERSON_ZOOM: '@scavengerhunt:firstPersonZoom',
   FIRST_PERSON_ENABLED: '@scavengerhunt:firstPersonEnabled'
 } as const;
@@ -33,13 +34,15 @@ class StorageService {
     return await AsyncStorage.getItem(STORAGE_KEYS.ROLE);
   }
 
-  async setFirstPersonZoom(zoom: number): Promise<void> {
-    await AsyncStorage.setItem(STORAGE_KEYS.FIRST_PERSON_ZOOM, zoom.toString());
+  async setMapZoom(zoom: number): Promise<void> {
+    await AsyncStorage.setItem(STORAGE_KEYS.MAP_ZOOM, zoom.toString());
   }
 
-  async getFirstPersonZoom(): Promise<number> {
-    const zoom = await AsyncStorage.getItem(STORAGE_KEYS.FIRST_PERSON_ZOOM);
-    return zoom ? parseFloat(zoom) : 18;
+  async getMapZoom(): Promise<number> {
+    const zoom = await AsyncStorage.getItem(STORAGE_KEYS.MAP_ZOOM);
+    if (zoom) return parseFloat(zoom);
+    const legacyZoom = await AsyncStorage.getItem(STORAGE_KEYS.FIRST_PERSON_ZOOM);
+    return legacyZoom ? parseFloat(legacyZoom) : 18;
   }
 
   async setFirstPersonEnabled(enabled: boolean): Promise<void> {

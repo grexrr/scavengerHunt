@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Text, TouchableOpacity, View } from 'react-native';
 import MapView, { Camera, UrlTile } from 'react-native-maps';
@@ -39,7 +40,7 @@ export default function GamePage() {
 
   // fp
   const [isFirstPersonMode, setIsFirstPersonMode] = useState(false);
-  const [firstPersonZoom, setFirstPersonZoom] = useState(18);
+  const [mapZoom, setMapZoom] = useState(18);
   const [isUserZooming, setIsUserZooming] = useState(false);
   const [mapHeading, setMapHeading] = useState(0);
   const mapRef = useRef<MapView>(null);
@@ -49,8 +50,8 @@ export default function GamePage() {
   // =============== Init First Personal Mode ===============
   useEffect(() => {
     (async () => {
-      const zoom = await storageService.getFirstPersonZoom();
-      setFirstPersonZoom(zoom);
+      const zoom = await storageService.getMapZoom();
+      setMapZoom(zoom);
     })();
   }, []);
 
@@ -172,8 +173,7 @@ export default function GamePage() {
   // =============== FIRST PERSON ===============
   const handleRegionChange = useCallback(
     (_region: any, details?: { isGesture?: boolean }) => {
-      if (!isFirstPersonMode) return;
-      if (details?.isGesture) {
+      if (details?.isGesture || !isFirstPersonMode) {
         setIsUserZooming(true);
       }
     },
@@ -181,7 +181,7 @@ export default function GamePage() {
   );
 
   const handleRegionChangeComplete = useCallback(async (region: any) => {
-    if (!isFirstPersonMode) return;
+    if (!isUserZooming) return;
 
     setIsUserZooming(false);
 
@@ -192,10 +192,10 @@ export default function GamePage() {
 
     const nextZoom = zoomFromLongitudeDelta(region.longitudeDelta);
     if (nextZoom !== null) {
-      setFirstPersonZoom(nextZoom);
-      await storageService.setFirstPersonZoom(nextZoom);
+      setMapZoom(nextZoom);
+      await storageService.setMapZoom(nextZoom);
     }
-  }, [isFirstPersonMode]);
+  }, [isUserZooming]);
 
   const handlePanDrag = useCallback(() => {
     if (!isFirstPersonMode || !location || !heading || !mapRef.current) return;
@@ -209,9 +209,9 @@ export default function GamePage() {
       heading: heading.heading,
       pitch: 0,
       altitude: 0,
-      zoom: firstPersonZoom,
+      zoom: mapZoom,
     });
-  }, [isFirstPersonMode, location, heading, firstPersonZoom]);
+  }, [isFirstPersonMode, location, heading, isUserZooming, mapZoom]);
 
   // 切换第一人称模式
   const toggleFirstPersonMode = useCallback(async () => {
@@ -221,12 +221,18 @@ export default function GamePage() {
 
     if (!newMode && mapRef.current) {
       // 退出第一人称时，重置地图跟随
-      mapRef.current.animateToRegion({
-        latitude: location?.latitude ?? 52.145765,
-        longitude: location?.longitude ?? -8.641198,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 350);
+      mapRef.current.animateCamera(
+        {
+          center: {
+            latitude: location?.latitude ?? 52.145765,
+            longitude: location?.longitude ?? -8.641198,
+          },
+          heading: 0,
+          pitch: 0,
+          zoom: mapZoom,
+        },
+        { duration: 350 }
+      );
     } else if (newMode && mapRef.current && location && heading) {
       lastCenteredLocationRef.current = {
         latitude: location.latitude,
@@ -240,10 +246,10 @@ export default function GamePage() {
         heading: heading.heading,
         pitch: 0,
         altitude: 0,
-        zoom: firstPersonZoom,
+        zoom: mapZoom,
       });
     }
-  }, [isFirstPersonMode, location, heading, firstPersonZoom]);
+  }, [isFirstPersonMode, location, heading, mapZoom]);
 
   const centerToCurrentLocation = useCallback(() => {
     if (!location || !mapRef.current) return;
@@ -262,18 +268,21 @@ export default function GamePage() {
         heading: heading.heading,
         pitch: 0,
         altitude: 0,
-        zoom: firstPersonZoom,
+        zoom: mapZoom,
       });
     } else {
-      // 普通模式下，使用 animateToRegion
-      mapRef.current.animateToRegion({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
+      // 普通模式下，使用 animateCamera 保持缩放
+      mapRef.current.animateCamera({
+        center: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        },
+        heading: 0,
+        pitch: 0,
+        zoom: mapZoom,
       });
     }
-  }, [location, heading, isFirstPersonMode, firstPersonZoom]);
+  }, [location, heading, isFirstPersonMode, mapZoom]);
 
   // =============== GAME LOGIC ===============
 
@@ -319,11 +328,33 @@ export default function GamePage() {
         style: DEFAULT_STYLE, // DEV
       });
       console.log('[Mobile][Game.tsx] After startRound, status:', gameSession.status);
+
+      if (!isFirstPersonMode && mapRef.current) {
+        setIsFirstPersonMode(true);
+        await storageService.setFirstPersonEnabled(true);
+        lastCenteredLocationRef.current = {
+          latitude: location.latitude,
+          longitude: location.longitude,
+        };
+        mapRef.current.animateCamera(
+          {
+            center: {
+              latitude: location.latitude,
+              longitude: location.longitude,
+            },
+            heading: heading.heading,
+            pitch: 0,
+            altitude: 0,
+            zoom: mapZoom,
+          },
+          { duration: 350 }
+        );
+      }
     } catch (error) {
       console.error('[Mobile][Game.tsx] Failed starting game:', error);
       alert(`[Mobile][Game.tsx]: ${error instanceof Error ? error.message : 'Unknown Error'}`);
     }
-  }, [gameSession, location, heading]);
+  }, [gameSession, location, heading, isFirstPersonMode, mapZoom]);
 
   const handleSubmitAnswer = useCallback(async () => {
     if (!location || !heading || !gameSession.userId) {
@@ -349,8 +380,14 @@ export default function GamePage() {
 
   const handleFinishGame = useCallback(async () => {
     try {
-      if (gameSession.userId) {
-        await gameSession.finishRound();
+      if (gameSession.userId && location && heading) {
+        await gameSession.finishRound({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          angle: heading.heading,
+          spanDeg: VIEW_CONE_SPAN,
+          coneRadiusMeters: VIEW_CONE_RADIUS,
+        });
       }
     } catch (error) {
       console.error('[Mobile][Game.tsx] Failed finishing game:', error);
@@ -358,7 +395,7 @@ export default function GamePage() {
         `[Mobile][Game.tsx] Failed finishing game: ${error instanceof Error ? error.message : 'Unknown Error'}`
       );
     }
-  }, [gameSession]);
+  }, [gameSession, location, heading]);
 
   return (
     <SafeAreaView style={mapStyles.container} edges={['top']}>
@@ -427,7 +464,7 @@ export default function GamePage() {
           style={mapStyles.mapControlButton}
           onPress={centerToCurrentLocation}
         >
-          <Text style={mapStyles.mapControlButtonText}>📍</Text>
+          <Ionicons name="locate" size={20} color="#1a1a1a" />
         </TouchableOpacity>
 
         {/* 第一人称模式切换按钮 */}
@@ -435,9 +472,7 @@ export default function GamePage() {
           style={mapStyles.mapControlButton}
           onPress={toggleFirstPersonMode}
         >
-          <Text style={mapStyles.mapControlButtonText}>
-            {isFirstPersonMode ? '👁️' : '🗺️'}
-          </Text>
+          <Ionicons name={isFirstPersonMode ? 'compass' : 'map'} size={20} color="#1a1a1a" />
         </TouchableOpacity>
       </View>
 

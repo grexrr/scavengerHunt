@@ -1,0 +1,120 @@
+version: '3.8'
+
+networks:
+  scavenger-net:
+    external: true
+    name: scavenger-net
+
+volumes:
+  mongo-data:
+    name: scavenger-mongo-data
+    driver: local
+
+services:
+  # ==================== MongoDB ====================
+  mongo:
+    image: mongo:8.0
+    container_name: mongo-scavenger
+    networks:
+      - scavenger-net
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=scavengerhunt
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ==================== Spring Boot ====================
+  spring-backend:
+    image: spring-backend:${IMAGE_TAG:-local}
+    container_name: spring-backend
+    networks:
+      - scavenger-net
+    ports:
+      # 8443 是外部访问端口，8080 是容器内端口
+      # 访问：http://localhost:8443
+      - "8443:8080"
+    environment:
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo-scavenger:27017/scavengerhunt
+      - JAVA_TOOL_OPTIONS=-Dpuzzle.agent.url=http://puzzle-agent:5000 -Dlandmark.processor.url=http://landmark-processor:5000
+    depends_on:
+      mongo:
+        condition: service_healthy
+      puzzle-agent:
+        condition: service_healthy
+      landmark-processor:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/actuator/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  # ==================== PuzzleAgent(Flask) ====================
+  puzzle-agent:
+    build:
+      context: ../scavenger.PuzzleAgent
+      dockerfile: Dockerfile
+    container_name: puzzle-agent
+    networks:
+      - scavenger-net
+    ports:
+      # 本地测试端口：5001
+      # 生产环境可以不暴露，仅内部访问
+      - "5001:5000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MONGO_URL=mongodb://mongo-scavenger:27017
+      # Flask
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+
+      # 可选：LM Studio 本地 LLM 支持
+      # - LMSTUDIO_BASE_URL=${LMSTUDIO_BASE_URL:-}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; req = urllib.request.Request('http://localhost:5000/health', method='POST'); urllib.request.urlopen(req)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # ==================== LandmarkProcessor (Flask) ====================
+  landmark-processor:
+    build:
+      context: ../scavenger.LandmarkProcessor
+      dockerfile: Dockerfile
+    container_name: landmark-processor
+    networks:
+      - scavenger-net
+    ports:
+      # 本地测试端口：5002
+      - "5002:5000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MONGO_URL=mongodb://mongo-scavenger:27017
+      - MONGO_DB=scavengerhunt
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped

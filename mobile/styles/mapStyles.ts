@@ -141,4 +141,30 @@ export const mapStyles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '600',
   },
+
+  // fp button
+  mapControlButtons: {
+    position: 'absolute',
+    right: 16,
+    alignItems: 'center',
+    zIndex: 1001,
+  },
+  mapControlButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  // 按钮图标文字
+  mapControlButtonText: {
+    fontSize: 20,
+  },
 });

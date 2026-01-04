@@ -49,5 +49,6 @@ keystore.p12
 *.log
 
 # ===== 环境变量 =====
+.ssh
 .env
 .env.local

@@ -40,9 +40,9 @@ let isCalibrating = false;
 let calibrationPoints = [];
 let calibratedAngleOffset = null;  // Calibrated angle offset
 let currentAbsoluteAngle = 0;  // Current absolute angle for map rotation
-let showViewCone = false;  
+let showViewCone = false;
 
-const LOCAL_HOST = "http://localhost:8443";   // Backend base URL
+const LOCAL_HOST = window.location.origin;   // Backend base URL
 // const LOCAL_HOST = "https://43f358fe7f5f.ngrok-free.app"  // Ngrok
 const ADMIN_TEST_COORD = L.latLng(51.8940, -8.4902);
 const INIT_MAP = L.map('map');  // Initialize INIT_MAP centered at UCC for test admin
@@ -82,43 +82,43 @@ function updateCalibrationStatus() {
 // Complete map cleanup function for logout/refresh scenarios
 function completeMapCleanup() {
   console.log("[Frontend] Performing complete map cleanup...");
-  
+
   // Clear all known map layers
   if (playerMarker) {
     INIT_MAP.removeLayer(playerMarker);
     playerMarker = null;
   }
-  
+
   if (playerCone) {
     INIT_MAP.removeLayer(playerCone);
     playerCone = null;
   }
-  
+
   if (searchCircle) {
     INIT_MAP.removeLayer(searchCircle);
     searchCircle = null;
   }
-  
+
   if (accuracyCircle) {
     INIT_MAP.removeLayer(accuracyCircle);
     accuracyCircle = null;
   }
-  
+
   // Clear landmark polygons
   landmarkMap.forEach(polygon => {
     INIT_MAP.removeLayer(polygon);
   });
   landmarkMap.clear();
-  
+
   // Reset map rotation
   INIT_MAP.getContainer().style.transform = '';
-  
+
   // Stop any active geolocation watching
   if (geoWatchId !== null) {
     navigator.geolocation.clearWatch(geoWatchId);
     geoWatchId = null;
   }
-  
+
   console.log("[Frontend] Complete map cleanup finished");
 }
 
@@ -127,7 +127,7 @@ function cleanLocalStorage() {
   // Keep important keys including calibration data and saved settings
   const keysToKeep = ['userId', 'username', 'role', 'calibratedAngleOffset', 'savedLanguage', 'savedStyle'];
   const currentValues = {};
-  
+
   // Backup values to keep
   keysToKeep.forEach(key => {
     const value = localStorage.getItem(key);
@@ -135,15 +135,15 @@ function cleanLocalStorage() {
       currentValues[key] = value;
     }
   });
-  
+
   // Clear localStorage
   localStorage.clear();
-  
+
   // Restore important values
   Object.keys(currentValues).forEach(key => {
     localStorage.setItem(key, currentValues[key]);
   });
-  
+
   console.log("[Frontend] LocalStorage cleaned, kept:", Object.keys(currentValues));
 }
 
@@ -152,27 +152,27 @@ function cleanLocalStorage() {
 function ensureUserId() {
     let userId = localStorage.getItem('userId');
     let role = localStorage.getItem('role');
-    
+
     // 如果用户已登录，不要重置为 GUEST
     if (userId && role && role !== 'GUEST') {
         console.log("[Frontend][Init] User already logged in:", userId, role);
         return;
     }
-    
+
     if (!userId) {
         userId = 'guest-' + crypto.randomUUID();
         localStorage.setItem('userId', userId);
         localStorage.setItem('role', "GUEST");
         console.log("[Frontend][Init] Generate guest userId: ", userId);
     }
-    
+
     // Restore previously saved calibrated angle offset
     const savedCalibration = localStorage.getItem("calibratedAngleOffset");
     if (savedCalibration && calibratedAngleOffset === null) {
       calibratedAngleOffset = parseFloat(savedCalibration);
       console.log("[Frontend][Init] Restored calibrated angle offset:", calibratedAngleOffset);
     }
-    
+
     // Update calibration status display
     setTimeout(() => updateCalibrationStatus(), 100);
 }
@@ -202,11 +202,11 @@ function updateAuthUI() {
   const canStartRound = !isGuest && !roundStarted && (calibratedAngleOffset !== null || isAdmin);
   startBtn.disabled = !canStartRound;
 }
- 
+
 function initMap() {
   const userRole = localStorage.getItem('role');
   updateAuthUI();
-  
+
   if(userRole === "ADMIN"){
     INIT_MAP.setView(ADMIN_TEST_COORD, 17);
     console.log('[Frontend][Init] Admin INIT_MAP initialized at UCC');
@@ -258,7 +258,7 @@ function initGame(){
   .then(res => res.json())
   .then(data => {
     console.log("[Frontend] InitGame response:", data);
-  
+
     if (!data.landmarks || data.landmarks.length === 0) {
       console.warn("[Frontend] No landmarks received");
       return;
@@ -275,8 +275,8 @@ function initGame(){
         fillOpacity: 0.3
       }).addTo(INIT_MAP);
 
-      polygon.options.name = lm.name; 
-      landmarkMap.set(lm.id, polygon);  
+      polygon.options.name = lm.name;
+      landmarkMap.set(lm.id, polygon);
     });
   })
 }
@@ -321,14 +321,14 @@ function login(username, password) {
   .then(userInfo => {
     // Clean localStorage garbage data on successful login
     cleanLocalStorage();
-    
+
     localStorage.setItem('userId', userInfo.userId);
     localStorage.setItem('username', userInfo.username);
     localStorage.setItem('role', userInfo.role);
 
     alert('Logged In.');
     updateAuthUI();
-    
+
     // Reset game state
     resetGameToInit();
   })
@@ -339,17 +339,17 @@ function logout(){
   localStorage.removeItem('username');
   localStorage.removeItem('calibratedAngleOffset');  // Clear calibration on logout
   localStorage.setItem('role', "GUEST");
-  
+
   // Reset calibration state
   calibratedAngleOffset = null;
   isCalibrating = false;
-  
+
   // Perform complete map cleanup
   completeMapCleanup();
-  
-  resetGameToInit(); 
+
+  resetGameToInit();
   initMap();
-  updateAuthUI(); 
+  updateAuthUI();
   setupInteractions();
   alert('Logout successful.')
 }
@@ -458,12 +458,12 @@ function finishCalibration() {
 
     window.addEventListener('deviceorientationabsolute', oneTimeHandler, true);
   }
-  
+
 
   isCalibrating = false;
   initGame();
   drawRadiusCircle();
-  showViewCone = true; 
+  showViewCone = true;
 }
 
 
@@ -504,7 +504,7 @@ function handleOrientation(event) {
     }
 
     updatePlayerViewCone(playerAngle);
-    
+
     // Update map rotation for first-person view
     if (calibratedAngleOffset !== null) {
       currentAbsoluteAngle = (calibratedAngleOffset + (playerAngle ?? 0.0)) % 360;
@@ -575,9 +575,9 @@ function submitAnswer() {
     if(localStorage.getItem('role')==='ADMIN'){
       currentTargetName = document.getElementById('target-info').innerText;
     }
-    
+
     const shouldColorLandmark = data.isCorrect || (data.target && data.target.name !== currentTargetName);
-    
+
     if (shouldColorLandmark && currentTargetName) {
       for (const [id, polygon] of landmarkMap.entries()) {
         if (polygon && polygon.options && polygon.options.name === currentTargetName) {
@@ -592,7 +592,7 @@ function submitAnswer() {
       if(localStorage.getItem('role')==='ADMIN'){
         document.getElementById('target-info').innerText = data.target.name;
       }
-      
+
       document.getElementById('chances-left').style.display = 'block';
       document.getElementById('chances-left').innerText = `Remaining Attempts: ${data.target.attemptsLeft}`;
       document.getElementById('riddle-box').innerText = data.target.riddle ? data.target.riddle : "(No riddle)";
@@ -668,7 +668,7 @@ function startRound() {
     // Ensure angle is in 0-360 range
     if (effectiveAngle < 0) effectiveAngle += 360;
   } else {
-    effectiveAngle = playerAngle ?? 0.0;  
+    effectiveAngle = playerAngle ?? 0.0;
   }
 
   const language = document.getElementById('language-input').value || 'English';
@@ -754,7 +754,7 @@ function startRound() {
     alert("Failed to start round.");
     drawRadiusCircle();
     resetGameToInit();
-    
+
     // Reset button state on failure
     roundStarted = false;
     radiusSlider.disabled = false;
@@ -866,11 +866,11 @@ function resetGameToInit() {
   const style = document.getElementById('style-input').value;
   if (language) localStorage.setItem('savedLanguage', language);
   if (style) localStorage.setItem('savedStyle', style);
-  
+
   // landmarkMap.forEach(polygon => {
   //   polygon.setStyle({ color: 'darkgrey' });
   // });
-  showViewCone = false; 
+  showViewCone = false;
   // window.location.reload();
 }
 
@@ -898,8 +898,8 @@ function updateTestPlayerPosition(lat, lng, angle) {
 // ========== Tool Functions ==========
 
 function startCountdown() {
-  clearInterval(countdownInterval);   
-  countdownSeconds = 1800;            
+  clearInterval(countdownInterval);
+  countdownSeconds = 1800;
   countdownStartTimestamp = Date.now();
 
   const timerDisplay = document.getElementById('countdown-timer');
@@ -918,7 +918,7 @@ function startCountdown() {
     countdownSeconds--;
   }
 
-  updateTimer(); 
+  updateTimer();
   countdownInterval = setInterval(updateTimer, 1000);
 }
 
@@ -948,7 +948,7 @@ function drawRadiusCircle() {
     } else {
       searchCircle.setLatLng(playerCoord);
       searchCircle.setRadius(sliderRadius);
-    } 
+    }
   }
 }
 
@@ -956,17 +956,17 @@ function updatePlayerViewCone(playerAngle) {
 
   if (!playerCoord || (playerCoord.lat == null || playerCoord.lng == null)) return;
 
-  let coneAngle;  // Cone angle in map coordinate system 
-  
+  let coneAngle;  // Cone angle in map coordinate system
+
   if (localStorage.getItem('role') === 'ADMIN'){
     // Admin mode: cone follows testPlayerAngle, map doesn't rotate
     coneAngle = testPlayerAngle;
   } else {
-    if(calibratedAngleOffset !== null && showViewCone){  
+    if(calibratedAngleOffset !== null && showViewCone){
       coneAngle = (calibratedAngleOffset + playerAngle) % 360;
       // Ensure angle is in 0-360 range
       if (coneAngle < 0) coneAngle += 360;
-      console.log(`[Debug ViewCone] calibratedOffset: ${calibratedAngleOffset.toFixed(1)}°, playerAngle: ${playerAngle.toFixed(1)}°, finalCone: ${coneAngle.toFixed(1)}°`); 
+      console.log(`[Debug ViewCone] calibratedOffset: ${calibratedAngleOffset.toFixed(1)}°, playerAngle: ${playerAngle.toFixed(1)}°, finalCone: ${coneAngle.toFixed(1)}°`);
     } else {
       // Uncalibrated mode: cone follows device angle directly
       coneAngle = playerAngle || 0;
@@ -981,19 +981,19 @@ function updatePlayerViewCone(playerAngle) {
   if (coneAngle == null) return;
 
   // Apply map rotation
-  
-  const resolution = 20;  
+
+  const resolution = 20;
   const startAngle = coneAngle - spanDeg / 2;
   const endAngle = coneAngle + spanDeg / 2;
 
-  const conePoints = [[playerCoord.lat, playerCoord.lng]];  
+  const conePoints = [[playerCoord.lat, playerCoord.lng]];
 
   for (let i = 0; i <= resolution; i++) {
     const angleDeg = startAngle + (i / resolution) * (endAngle - startAngle);
     const angleRad = angleDeg * Math.PI / 180;
 
     // Earth coordinate correction: approximately 1° latitude ≈ 111.32 km, longitude needs adjustment based on latitude
-    const latOffset = (coneRadiusMeters * Math.cos(angleRad)) / 111320; 
+    const latOffset = (coneRadiusMeters * Math.cos(angleRad)) / 111320;
     const lngOffset = (coneRadiusMeters * Math.sin(angleRad)) / (111320 * Math.cos(playerCoord.lat * Math.PI / 180));
 
     const lat = playerCoord.lat + latOffset;
@@ -1012,13 +1012,13 @@ function updatePlayerViewCone(playerAngle) {
     fillOpacity: 0.35,
     weight: 1
   }).addTo(INIT_MAP);
-  
+
   updateCalibrationStatus();
 }
 
 
 function fetchPlayerCoord() {
-  // reference 
+  // reference
   // Real time location tracker app on leafletjs || HTML5 geolocation || Tekson
   // https://www.youtube.com/watch?v=8KX4_4NK7ZY
 
@@ -1041,7 +1041,7 @@ function fetchPlayerCoord() {
       const accuracy = position.coords.accuracy;
 
       updatePlayerViewCone(playerAngle || 0);
-      drawRadiusCircle(); 
+      drawRadiusCircle();
 
       if (!playerMarker) {
         playerMarker = L.marker(playerCoord, { icon }).addTo(INIT_MAP);
@@ -1053,7 +1053,7 @@ function fetchPlayerCoord() {
       if (firstUpdate) {
         INIT_MAP.setView(playerCoord, 17);
         firstUpdate = false;
-        
+
         // Initialize game session for regular players after first location update
         if (localStorage.getItem('role') === 'PLAYER') {
           setTimeout(() => {
@@ -1148,16 +1148,16 @@ function setupInteractions() {
 
 
 function calculateAngle(start, end) {
-  const dy = end.lat - start.lat;  
-  const dx = end.lng - start.lng;  
-  
+  const dy = end.lat - start.lat;
+  const dx = end.lng - start.lng;
+
   // Calculate bearing: measured clockwise from north
   const theta = Math.atan2(dx, dy);
   let angle = theta * (180 / Math.PI);
-  
+
   // Ensure angle is in 0-360 degree range
   if (angle < 0) angle += 360;
-  
+
   return angle;
 }
 
@@ -1168,14 +1168,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.cleanLocalStorage = cleanLocalStorage;
   window.completeMapCleanup = completeMapCleanup;  // Expose for debugging
-  
+
   // Ensure clean state on page load
   console.log("[Frontend] Page loaded, ensuring clean map state...");
 
 
   const existingUserId = localStorage.getItem('userId');
   const existingRole = localStorage.getItem('role');
-  
+
   if (existingUserId && existingRole && existingRole !== 'GUEST') {
 
       console.log('[Frontend] User already logged in:', existingUserId);
@@ -1185,11 +1185,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cleanLocalStorage();
     }
   }
-  
+
   ensureUserId();
   updateAuthUI();  // Ensure UI state is updated on initialization
   setupInteractions();
-  
+
   // Restore saved language and style settings
   const savedLanguage = localStorage.getItem('savedLanguage');
   const savedStyle = localStorage.getItem('savedStyle');
@@ -1201,14 +1201,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('style-input').value = savedStyle;
     localStorage.removeItem('savedStyle'); // Clean up after restoring
   }
-  
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(INIT_MAP);
-  
+
   initMap();
   initOrientationListener();
-  
+
   registerBtn.addEventListener('click', () => {
     const username = prompt('Enter Username: ');
     const password = prompt('Enter Password: ');

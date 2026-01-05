@@ -53,6 +53,8 @@ services:
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MONGO_URL=mongodb://mongo-scavenger:27017
+      - MONGO_DATABASE=scavengerhunt
+      - MONGO_COLLECTION=landmark_metadata
       - FLASK_HOST=0.0.0.0
       - FLASK_PORT=5000
     depends_on:

@@ -31,7 +31,10 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Location access required for game",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Location access required for game"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Location access required for game",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
       }
     },
     "android": {

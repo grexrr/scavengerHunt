@@ -143,14 +143,20 @@ export function useGameSession() {
     style?: string;
   }) {
     if (!state.userId) {
+      console.error('[startRound] User ID not found!');
       throw new Error('User ID not found. Please call initGame first.');
     }
+
+    console.log('[startRound] Starting with params:', params);
+    console.log('[startRound] User ID:', state.userId);
 
     try {
       const target = await apiClient.post<TargetDTO>('/api/game/start-round', {
         userId: state.userId,
         ...params,
       });
+
+      console.log('[startRound] Success, received target:', target);
 
       updateState({
         status: 'inRound',
@@ -164,10 +170,11 @@ export function useGameSession() {
 
       startTimer();
     } catch (err) {
+      console.error('[startRound] Error details:', err);
       updateState({
         status: 'error',
+        errorMessage: err instanceof Error ? err.message : 'Unknown error',
       });
-      console.error(err);
       throw err;
     }
   }
@@ -313,6 +320,20 @@ export function useGameSession() {
     }, 1000);
   }
 
+  function resetGame() {
+    setState({
+      status: 'initializing',
+      role: state.role, // 保留 role
+      maxRiddleDurationMinutes: 30,
+      roundLandmarks: [],
+      currentTarget: undefined,
+      timeSecondsLeft: null,
+      isTimerActive: false,
+      errorMessage: undefined,
+      userId: undefined, // 清除 userId
+    });
+  }
+
   return {
     ...state,
     updatePosition,
@@ -321,5 +342,6 @@ export function useGameSession() {
     initGame,
     finishRound,
     setRole,
+    resetGame
   };
 }

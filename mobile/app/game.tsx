@@ -47,20 +47,18 @@ export default function GamePage() {
   const cameraRef = useRef<Camera | null>(null);
   const lastCenteredLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
-  // =============== Init First Personal Mode ===============
-  useEffect(() => {
-    (async () => {
-      const zoom = await storageService.getMapZoom();
-      setMapZoom(zoom);
-    })();
-  }, []);
-
   // =============== GAME INIT ===============
   // 1. GameSession init
   useEffect(() => {
     if (isLoading) return;
     if (!location || !heading) return;
-    if (hasInitialized) return;
+
+    if (hasInitialized && gameSession.roundLandmarks.length > 0) return;
+
+    if (hasInitialized && gameSession.roundLandmarks.length === 0) {
+      console.log('[Game.tsx] Re-initializing: no landmarks found');
+      setHasInitialized(false);
+    }
 
     // id
     let userId: string;
@@ -90,7 +88,7 @@ export default function GamePage() {
       coneRadiusMeters: VIEW_CONE_RADIUS,
     });
 
-  }, [location, heading, hasInitialized, isLoading, isLoggedIn, user.userId, user.role]);
+  }, [location, heading, hasInitialized, isLoading, isLoggedIn, user.userId, user.role, gameSession.roundLandmarks.length]);
 
   // 2. Tracking Player Movement
   useEffect(() => {
@@ -131,7 +129,7 @@ export default function GamePage() {
         latitude: location.latitude,
         longitude: location.longitude,
       };
-      mapRef.current.animateCamera(cameraUpdate);
+    mapRef.current.animateCamera(cameraUpdate);
       return;
     }
 
@@ -173,14 +171,18 @@ export default function GamePage() {
   // =============== FIRST PERSON ===============
   const handleRegionChange = useCallback(
     (_region: any, details?: { isGesture?: boolean }) => {
-      if (details?.isGesture || !isFirstPersonMode) {
+      if (details?.isGesture === true) {
         setIsUserZooming(true);
       }
     },
-    [isFirstPersonMode]
+    []
   );
 
-  const handleRegionChangeComplete = useCallback(async (region: any) => {
+  const handleRegionChangeComplete = useCallback((region: any, details?: { isGesture?: boolean }) => {
+    if (details?.isGesture !== true) {
+      setIsUserZooming(false);
+      return;
+    }
     if (!isUserZooming) return;
 
     setIsUserZooming(false);
@@ -193,7 +195,6 @@ export default function GamePage() {
     const nextZoom = zoomFromLongitudeDelta(region.longitudeDelta);
     if (nextZoom !== null) {
       setMapZoom(nextZoom);
-      await storageService.setMapZoom(nextZoom);
     }
   }, [isUserZooming]);
 
@@ -448,7 +449,7 @@ export default function GamePage() {
           ]}
           onPress={() => setShowSettings(true)}
         >
-          <Text style={mapStyles.settingsButtonText}>⚙️ Settings</Text>
+          <Text style={mapStyles.settingsButtonText}>⚙️</Text>
         </TouchableOpacity>
       )}
 
@@ -456,7 +457,9 @@ export default function GamePage() {
       <View style={[
         mapStyles.mapControlButtons,
         {
-          top: insets.top + (shouldShowSettingsButton ? 60 : 10),
+          top:
+            insets.top +
+            (gameSession.status === 'inRound' ? 90 : shouldShowSettingsButton ? 80 : 30),
         },
       ]}>
         {/* 定位到当前位置按钮 */}

@@ -1,0 +1,72 @@
+const path = require('path');
+
+module.exports = {
+  expo: {
+    name: "UrbanQuest",
+    slug: "mobile",
+    version: "1.0.0",
+    orientation: "portrait",
+    icon: "./assets/icon.png",
+    userInterfaceStyle: "light",
+    newArchEnabled: true,
+    splash: {
+      image: "./assets/splash-icon.png",
+      resizeMode: "contain",
+      backgroundColor: "#ffffff"
+    },
+    plugins: [
+      [
+        "expo-location",
+        {
+          locationAlwaysAndWhenInUsePermission: "This app uses location to track your position in the scavenger hunt game."
+        }
+      ],
+      [
+        "react-native-maps",
+        {
+          googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || ""
+        }
+      ]
+    ],
+    ios: {
+      bundleIdentifier: "com.grexrr.scavengerhunt",
+      supportsTablet: true,
+      newArchEnabled: true,
+      splash: {
+        image: "./assets/splash-icon.png",
+        resizeMode: "cover",
+      },
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription: "Location access required for game",
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Location access required for game",
+        NSAppTransportSecurity: {
+          NSAllowsArbitraryLoads: true
+        }
+      }
+    },
+    android: {
+      package: "com.grexrr.urbanquest",
+      newArchEnabled: true,
+      splash: {
+        image: "./assets/splash-icon-android.png",
+        resizeMode: "cover",
+        backgroundColor: "#ffffff"
+      },
+      config: {
+        googleMaps: {
+          apiKey: process.env.GOOGLE_MAPS_API_KEY || ""
+        }
+      },
+      adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
+        backgroundColor: "#ffffff"
+      },
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      permissions: ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+    },
+    web: {
+      favicon: "./assets/favicon.png"
+    }
+  }
+};

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import MapView, { Camera, UrlTile } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnswerResult from '../components/AnswerResult';
@@ -24,6 +24,7 @@ const VIEW_CONE_RADIUS = GAME_CONFIG.VIEW_RADIUS;
 const MAX_DISPLAY_LANDMARKS_COUNT = 10;
 const MAX_DISPLAY_LANDMARKS_DISTANCE = 500;
 const FIRST_PERSON_RECENTER_DISTANCE_METERS = 5;
+const FIRST_PERSON_CENTER_OFFSET_METERS = -35;
 const DEFAULT_LANGUATE = 'english';
 const DEFAULT_STYLE = 'medieval';
 
@@ -32,6 +33,7 @@ export default function GamePage() {
     useLocation(true);
   const { user, isLoading, isLoggedIn, refreshUser } = useUser();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
 
   const gameSession = useGameSession();
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -40,18 +42,34 @@ export default function GamePage() {
 
   // fp
   const [isFirstPersonMode, setIsFirstPersonMode] = useState(false);
-  const [mapZoom, setMapZoom] = useState(18);
   const [isUserZooming, setIsUserZooming] = useState(false);
   const [mapHeading, setMapHeading] = useState(0);
   const mapRef = useRef<MapView>(null);
   const cameraRef = useRef<Camera | null>(null);
   const lastCenteredLocationRef = useRef<{ latitude: number; longitude: number } | null>(null);
 
+  const getFirstPersonCenter = useCallback((lat: number, lng: number) => {
+    const latitudeOffset = FIRST_PERSON_CENTER_OFFSET_METERS / 111_111;
+    return {
+      latitude: lat + latitudeOffset,
+      longitude: lng,
+    };
+  }, []);
+
   // =============== GAME INIT ===============
   // 1. GameSession init
   useEffect(() => {
     if (isLoading) return;
     if (!location || !heading) return;
+
+    const isLoggedInUser = isLoggedIn && user.userId;
+    const hasGuestSession = gameSession.userId?.startsWith('guest-');
+    if (isLoggedInUser && hasGuestSession) {
+      console.log('[Game.tsx] Re-initializing after login to replace guest session');
+      gameSession.resetGame();
+      setHasInitialized(false);
+      return;
+    }
 
     if (hasInitialized && gameSession.roundLandmarks.length > 0) return;
 
@@ -90,19 +108,6 @@ export default function GamePage() {
 
   }, [location, heading, hasInitialized, isLoading, isLoggedIn, user.userId, user.role, gameSession.roundLandmarks.length]);
 
-  // 2. Tracking Player Movement
-  useEffect(() => {
-    if (!location || !heading || !gameSession.userId) return;
-
-    gameSession.updatePosition({
-      latitude: location.latitude,
-      longitude: location.longitude,
-      angle: heading.heading,
-      spanDeg: VIEW_CONE_SPAN,
-      coneRadiusMeters: VIEW_CONE_RADIUS,
-    });
-  }, [location, heading, gameSession.userId, gameSession.role]);
-
   useEffect(() => {
     if (!isFirstPersonMode || !location || !heading || !mapRef.current) return;
 
@@ -110,31 +115,18 @@ export default function GamePage() {
 
     setMapHeading(heading.heading);
 
-    const shouldRecenter =
-      !lastCenteredLocationRef.current ||
-      calculateDistance(lastCenteredLocationRef.current, location) >=
-        FIRST_PERSON_RECENTER_DISTANCE_METERS;
-
     const cameraUpdate: Partial<Camera> = {
       heading: heading.heading,
       pitch: 0,
     };
 
-    if (shouldRecenter) {
-      cameraUpdate.center = {
-        latitude: location.latitude,
-        longitude: location.longitude,
-      };
-      lastCenteredLocationRef.current = {
-        latitude: location.latitude,
-        longitude: location.longitude,
-      };
+    cameraUpdate.center = getFirstPersonCenter(location.latitude, location.longitude);
+    lastCenteredLocationRef.current = {
+      latitude: location.latitude,
+      longitude: location.longitude,
+    };
     mapRef.current.animateCamera(cameraUpdate);
-      return;
-    }
-
-    mapRef.current.setCamera(cameraUpdate as Camera);
-  }, [isFirstPersonMode, location, heading, isUserZooming]);
+  }, [isFirstPersonMode, location, heading, isUserZooming, getFirstPersonCenter]);
 
   // 3. Landmark Display
   const displayLandmarks = useMemo(() => {
@@ -167,52 +159,35 @@ export default function GamePage() {
   // =============== Settings ===============
 
   const shouldShowSettingsButton = isLoggedIn && gameSession.status !== 'inRound';
+  const mapControlTop = Math.max(
+    insets.top + (gameSession.status === 'inRound' ? 90 : shouldShowSettingsButton ? 80 : 30),
+    windowHeight * 0.35
+  );
 
   // =============== FIRST PERSON ===============
   const handleRegionChange = useCallback(
     (_region: any, details?: { isGesture?: boolean }) => {
-      if (details?.isGesture === true) {
+      if (details?.isGesture !== false) {
         setIsUserZooming(true);
       }
     },
     []
   );
 
-  const handleRegionChangeComplete = useCallback((region: any, details?: { isGesture?: boolean }) => {
-    if (details?.isGesture !== true) {
-      setIsUserZooming(false);
-      return;
-    }
-    if (!isUserZooming) return;
-
+  const handleRegionChangeComplete = useCallback(() => {
     setIsUserZooming(false);
-
-    const zoomFromLongitudeDelta = (longitudeDelta: number) => {
-      if (!longitudeDelta || longitudeDelta <= 0) return null;
-      return Math.round(Math.log2(360 / longitudeDelta));
-    };
-
-    const nextZoom = zoomFromLongitudeDelta(region.longitudeDelta);
-    if (nextZoom !== null) {
-      setMapZoom(nextZoom);
-    }
-  }, [isUserZooming]);
+  }, []);
 
   const handlePanDrag = useCallback(() => {
     if (!isFirstPersonMode || !location || !heading || !mapRef.current) return;
     if (isUserZooming) return;
 
     mapRef.current.animateCamera({
-      center: {
-        latitude: location.latitude,
-        longitude: location.longitude,
-      },
+      center: getFirstPersonCenter(location.latitude, location.longitude),
       heading: heading.heading,
       pitch: 0,
-      altitude: 0,
-      zoom: mapZoom,
     });
-  }, [isFirstPersonMode, location, heading, isUserZooming, mapZoom]);
+  }, [isFirstPersonMode, location, heading, isUserZooming, getFirstPersonCenter]);
 
   // 切换第一人称模式
   const toggleFirstPersonMode = useCallback(async () => {
@@ -230,7 +205,6 @@ export default function GamePage() {
           },
           heading: 0,
           pitch: 0,
-          zoom: mapZoom,
         },
         { duration: 350 }
       );
@@ -240,17 +214,12 @@ export default function GamePage() {
         longitude: location.longitude,
       };
       mapRef.current.animateCamera({
-        center: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
+        center: getFirstPersonCenter(location.latitude, location.longitude),
         heading: heading.heading,
         pitch: 0,
-        altitude: 0,
-        zoom: mapZoom,
       });
     }
-  }, [isFirstPersonMode, location, heading, mapZoom]);
+  }, [isFirstPersonMode, location, heading, getFirstPersonCenter]);
 
   const centerToCurrentLocation = useCallback(() => {
     if (!location || !mapRef.current) return;
@@ -262,14 +231,9 @@ export default function GamePage() {
         longitude: location.longitude,
       };
       mapRef.current.animateCamera({
-        center: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-        },
+        center: getFirstPersonCenter(location.latitude, location.longitude),
         heading: heading.heading,
         pitch: 0,
-        altitude: 0,
-        zoom: mapZoom,
       });
     } else {
       // 普通模式下，使用 animateCamera 保持缩放
@@ -280,10 +244,9 @@ export default function GamePage() {
         },
         heading: 0,
         pitch: 0,
-        zoom: mapZoom,
       });
     }
-  }, [location, heading, isFirstPersonMode, mapZoom]);
+  }, [location, heading, isFirstPersonMode, getFirstPersonCenter]);
 
   // =============== GAME LOGIC ===============
 
@@ -339,14 +302,9 @@ export default function GamePage() {
         };
         mapRef.current.animateCamera(
           {
-            center: {
-              latitude: location.latitude,
-              longitude: location.longitude,
-            },
+            center: getFirstPersonCenter(location.latitude, location.longitude),
             heading: heading.heading,
             pitch: 0,
-            altitude: 0,
-            zoom: mapZoom,
           },
           { duration: 350 }
         );
@@ -355,7 +313,7 @@ export default function GamePage() {
       console.error('[Mobile][Game.tsx] Failed starting game:', error);
       alert(`[Mobile][Game.tsx]: ${error instanceof Error ? error.message : 'Unknown Error'}`);
     }
-  }, [gameSession, location, heading, isFirstPersonMode, mapZoom]);
+  }, [gameSession, location, heading, isFirstPersonMode, getFirstPersonCenter]);
 
   const handleSubmitAnswer = useCallback(async () => {
     if (!location || !heading || !gameSession.userId) {
@@ -403,7 +361,7 @@ export default function GamePage() {
       <MapView
         ref={mapRef}
         style={mapStyles.map}
-        mapType="none"
+        mapType="standard"
         initialRegion={{
           latitude: location?.latitude ?? 52.145765,
           longitude: location?.longitude ?? -8.641198,
@@ -454,14 +412,14 @@ export default function GamePage() {
       )}
 
       {/* ========== 右侧地图控制按钮 ========== */}
-      <View style={[
-        mapStyles.mapControlButtons,
-        {
-          top:
-            insets.top +
-            (gameSession.status === 'inRound' ? 90 : shouldShowSettingsButton ? 80 : 30),
-        },
-      ]}>
+      <View
+        style={[
+          mapStyles.mapControlButtons,
+          {
+            top: mapControlTop,
+          },
+        ]}
+      >
         {/* 定位到当前位置按钮 */}
         <TouchableOpacity
           style={mapStyles.mapControlButton}
@@ -532,6 +490,7 @@ export default function GamePage() {
       <FloatingActionButton
         status={gameSession.status}
         isLoggedIn={isLoggedIn}
+        bottomInset={insets.bottom}
         onPress={() => {
           if (!isLoggedIn) {
             setShowSettings(true);

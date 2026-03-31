@@ -8,12 +8,19 @@ interface FloatingActionButtonProps {
   status: GameStatus;
   isLoggedIn: boolean;
   onPress: () => void;
+  bottomInset?: number;
 }
 
-export default function FloatingActionButton({ status, isLoggedIn, onPress }: FloatingActionButtonProps) {
+export default function FloatingActionButton({
+  status,
+  isLoggedIn,
+  onPress,
+  bottomInset = 0,
+}: FloatingActionButtonProps) {
+  const bottomOffset = bottomInset > 0 ? bottomInset + 32 : 32;
   if (!isLoggedIn) {
     return (
-      <TouchableOpacity style={mapStyles.floatingActionButton} onPress={onPress}>
+      <TouchableOpacity style={[mapStyles.floatingActionButton, { bottom: bottomOffset }]} onPress={onPress}>
         <Text style={mapStyles.floatingActionButtonText}>Login</Text>
       </TouchableOpacity>
     );
@@ -22,7 +29,7 @@ export default function FloatingActionButton({ status, isLoggedIn, onPress }: Fl
   const buttonText = status === 'inRound' ? 'Submit Answer' : 'Start Round';
 
   return (
-    <TouchableOpacity style={mapStyles.floatingActionButton} onPress={onPress}>
+    <TouchableOpacity style={[mapStyles.floatingActionButton, { bottom: bottomOffset }]} onPress={onPress}>
       <Text style={mapStyles.floatingActionButtonText}>{buttonText}</Text>
     </TouchableOpacity>
   );

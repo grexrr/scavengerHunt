@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { apiClient } from '../services/client';
 import { storageService } from '../services/storageService';
 import { commonStyles } from '../styles/commonStyles';
@@ -19,6 +19,7 @@ interface SettingsPageProps {
 }
 
 export default function SettingsPage({ onLoginSuccess }: SettingsPageProps) {
+  const insets = useSafeAreaInsets();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loginToken, setloginToken] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
@@ -264,7 +265,10 @@ export default function SettingsPage({ onLoginSuccess }: SettingsPageProps) {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={['top']}>
-      <ScrollView style={commonStyles.container}>
+      <ScrollView
+        style={commonStyles.container}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 16 }}
+      >
         <Text style={commonStyles.title}>Settings</Text>
 
         {!isLoggedIn ? (

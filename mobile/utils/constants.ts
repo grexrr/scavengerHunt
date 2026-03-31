@@ -1,6 +1,17 @@
-// export const API_BASE_URL = __DEV__ ? 'http://192.168.1.9:8443' : 'https://3.81.254.35';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-export const API_BASE_URL = 'https://1c116e529824.ngrok-free.app';
+const isDev = __DEV__;
+console.log('[Constants] __DEV__ =', isDev);
+console.log('[Constants] Platform =', Platform.OS);
+
+const extra = Constants.expoConfig?.extra ?? {};
+const apiBaseUrlDev = String(extra.apiBaseUrlDev || 'http://192.168.1.9:8443');
+const apiBaseUrlProd = String(extra.apiBaseUrlProd || 'https://454bb8d88e34.ngrok-free.app');
+
+export const API_BASE_URL = isDev ? apiBaseUrlDev : apiBaseUrlProd;
+
+console.log('[Constants] API_BASE_URL =', API_BASE_URL);
 
 export const GAME_CONFIG = {
   TIME_LIMIT_SEC: 1800,

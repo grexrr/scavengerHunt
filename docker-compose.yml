@@ -63,7 +63,7 @@ services:
   # ==================== PuzzleAgent(Flask) ====================
   puzzle-agent:
     build:
-      context: ../scavenger.PuzzleAgent
+      context: ./services/puzzle-agent
       dockerfile: Dockerfile
     image: grexrr/puzzle-agent:demo
     container_name: puzzle-agent
@@ -98,7 +98,7 @@ services:
   # ==================== LandmarkProcessor (Flask) ====================
   landmark-processor:
     build:
-      context: ../scavenger.LandmarkProcessor
+      context: ./services/landmark-processor
       dockerfile: Dockerfile
     image: grexrr/landmark-processor:demo
     container_name: landmark-processor

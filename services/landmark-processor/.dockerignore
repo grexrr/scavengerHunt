@@ -1,0 +1,11 @@
+.git
+__pycache__/
+*.pyc
+.env
+venv/
+.build/
+dist/
+manual_*
+images
+outputfiles
+script.py

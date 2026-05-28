@@ -54,6 +54,129 @@ docker run -d --name spring-backend --network scavenger-net -p 8443:8080 -e JAVA
 - Port: 27017 (if need to expose to host: -p 27017:27017)
 - Hostname accessed within container: mongo-scavenger
 
+---
+
+## Running with Docker
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) and [Docker Compose v2](https://docs.docker.com/compose/install/) installed
+- An `OPENAI_API_KEY` — copy the template and fill it in:
+  ```bash
+  cp env.template .env
+  # open .env and set OPENAI_API_KEY=sk-...
+  ```
+- The shared Docker network (one-time, needed by both compose files):
+  ```bash
+  docker network create scavenger-net
+  ```
+
+---
+
+### Local Testing (`docker-compose.yml`)
+
+The local compose file builds all images from source and exposes internal service ports so you can hit each microservice directly from the host.
+
+**Start all services (foreground — shows interleaved logs):**
+```bash
+docker compose up --build
+```
+`--build` forces a rebuild of every image. Omit it on subsequent runs if source code has not changed.
+
+**Start in the background:**
+```bash
+docker compose up --build -d
+```
+
+**Stream logs after a detached start:**
+```bash
+docker compose logs -f
+# or a single service:
+docker compose logs -f puzzle-agent
+```
+
+**Stop and remove containers (data volume is preserved):**
+```bash
+docker compose down
+```
+
+**Stop and also wipe the MongoDB volume (full reset):**
+```bash
+docker compose down -v
+```
+
+**Service endpoints (local only):**
+
+| Service | Host address | Notes |
+|---|---|---|
+| Spring Boot backend | `http://localhost:8443` | Main API + Swagger UI at `/swagger-ui.html` |
+| PuzzleAgent (Flask) | `http://localhost:5001` | Riddle generation |
+| LandmarkProcessor (Flask) | `http://localhost:5002` | OSM fetch + metadata pipeline |
+| MongoDB | `localhost:27017` | Direct access for inspection |
+
+**Quick health checks:**
+```bash
+# Spring Boot (Actuator)
+curl http://localhost:8443/actuator/health
+
+# PuzzleAgent
+curl -X POST http://localhost:5001/health
+
+# LandmarkProcessor
+curl http://localhost:5002/health
+```
+
+---
+
+### Production (`docker-compose.prod.yml`)
+
+The production compose file pulls pre-built images from the registry instead of building from source. Internal service ports (Flask services, MongoDB) are **not** exposed to the host — all traffic reaches the Spring Boot API through port 8443 only.
+
+**Pull the latest images:**
+```bash
+docker compose -f docker-compose.prod.yml pull
+```
+
+**Start all services in the background:**
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+**Check container status:**
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+**Stream logs:**
+```bash
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+**Stop and remove containers:**
+```bash
+docker compose -f docker-compose.prod.yml down
+```
+
+**Roll out a new image version** (e.g. after a CI push):
+```bash
+docker compose -f docker-compose.prod.yml pull <service-name>
+docker compose -f docker-compose.prod.yml up -d --no-deps <service-name>
+# example: update only the puzzle-agent without restarting everything
+docker compose -f docker-compose.prod.yml pull puzzle-agent
+docker compose -f docker-compose.prod.yml up -d --no-deps puzzle-agent
+```
+`--no-deps` prevents Docker Compose from restarting services that the updated container depends on.
+
+**Service endpoint (production):**
+
+| Service | Host address |
+|---|---|
+| Spring Boot backend | `http://<host-ip>:8443` |
+
+Flask services and MongoDB are only reachable within the `scavenger-net` Docker network and are not accessible from outside the host.
+
+---
+
 ### Module Overview (Updating)
 
 ![General Pipeline Overview](./images/general_activity.png)

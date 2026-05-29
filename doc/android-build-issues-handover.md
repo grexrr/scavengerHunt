@@ -75,7 +75,7 @@
   <meta-data android:name="expo.modules.updates.ENABLED" android:value="false"/>
   <meta-data android:name="expo.modules.updates.EXPO_UPDATES_CHECK_ON_LAUNCH" android:value="ALWAYS"/>
   <meta-data android:name="expo.modules.updates.EXPO_UPDATES_LAUNCH_WAIT_MS" android:value="0"/>
-  <meta-data android:name="com.google.android.geo.API_KEY" android:value="REDACTED_GOOGLE_MAPS_API_KEY"/>
+  <meta-data android:name="com.google.android.geo.API_KEY" android:value="YOUR_GOOGLE_MAPS_API_KEY"/>
   ...
 </application>
 ```

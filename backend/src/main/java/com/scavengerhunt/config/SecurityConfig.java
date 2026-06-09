@@ -30,7 +30,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // no more session, jwt instead
             .authorizeHttpRequests(auth -> auth
                 // public endpoints
                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
@@ -42,6 +42,7 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(
+                // add filter before UNPW auth so that it does not 401 the logging in users
                 new JwtAuthenticationFilter(tokenProvider),
                 UsernamePasswordAuthenticationFilter.class
             );

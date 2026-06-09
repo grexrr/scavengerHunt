@@ -7,9 +7,9 @@ import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.scavengerhunt.dto.UserIdentityRequest;
 import com.scavengerhunt.model.User;
 import com.scavengerhunt.repository.UserRepository;
+import com.scavengerhunt.security.JwtTokenProvider;
 import com.scavengerhunt.service.GameSessionService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,14 +36,17 @@ public class AuthController {
     @Autowired
     private GameSessionService gameSessionService;
 
+
+    private final JwtTokenProvider tokenProvider;
     private final UserRepository userRepo;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepo, PasswordEncoder passwordEncoder) {
+    public AuthController(UserRepository userRepo, PasswordEncoder passwordEncoder, JwtTokenProvider tokenProvider) {
         this.userRepo = userRepo;
         this.passwordEncoder = passwordEncoder;
+        this.tokenProvider = tokenProvider;
     }
-    
+
     @Operation(
         summary = "Register new user",
         description = "Creates a new player account with username and password"
@@ -58,20 +62,20 @@ public class AuthController {
             errorResponse.put("error", "Username already exists.");
             return ResponseEntity.status(409).body(errorResponse);
         }
-        
+
         String userEmail = request.getEmail();
         if (userEmail != null && userRepo.findByEmail(userEmail).isPresent()) {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Email already exists.");
             return ResponseEntity.status(409).body(errorResponse);
         }
-        
+
 
         String encodedPassword = passwordEncoder.encode(request.getPassword());
         User newUser = new User(request.getUsername(), encodedPassword);
         if (userEmail != null) {
             newUser.setEmail(userEmail);
-        } 
+        }
 
         String language = request.getPreferredLanguage();
         if (language != null && !language.trim().isEmpty()) {
@@ -101,7 +105,7 @@ public class AuthController {
         }
 
         userRepo.save(newUser);
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Registration successful");
         return ResponseEntity.ok(response);
@@ -113,7 +117,7 @@ public class AuthController {
     )
     @ApiResponses(value = {
         @ApiResponse(
-            responseCode = "200", 
+            responseCode = "200",
             description = "Login successful",
             content = @Content(schema = @Schema(implementation = Map.class))
         ),
@@ -137,15 +141,18 @@ public class AuthController {
                 Map.of("error", "[Backend] Username or email is required.")
             );
         }
-        
+
         return user
         .filter(u -> passwordEncoder.matches(request.getPassword(), u.getPassword()))
         .map(u -> {
+            String role = u.getAdmin() ? "ADMIN" : "PLAYER";
+            String token = tokenProvider.generateToken(u.getUserId(), role);
+
             Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("token", token);
             userInfo.put("userId", u.getUserId());
-            userInfo.put("username", u.getUsername());  // Changed from userName to username
-            userInfo.put("email", u.getEmail());
-            userInfo.put("role", u.getAdmin() ? "ADMIN": "PLAYER");
+            userInfo.put("username", u.getUsername());
+            userInfo.put("role", role);
             return ResponseEntity.ok(userInfo);
         })
         .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "[Backend] Invalid username or password.")));
@@ -160,23 +167,23 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "UserId is required")
     })
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, Object>> logout(@RequestBody Map<String, String> request) {
-        String userId = request.get("userId");
-        
+    public ResponseEntity<Map<String, Object>> logout() {
+        String userId = currentUserId();
+
         if (userId == null || userId.trim().isEmpty()) {
             return ResponseEntity.status(400).body(
                 Map.of("error", "UserId is required.")
             );
         }
-        
+
         if (gameSessionService.hasSession(userId)) {
             gameSessionService.removeSession(userId);
             System.out.println("[Backend]User "+ userId +" logout, session cleared.");
         }
-        
+
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Logout successful. Game session cleared.");
-        
+
         return ResponseEntity.ok(response);
     }
 
@@ -188,18 +195,19 @@ public class AuthController {
         @ApiResponse(responseCode = "200", description = "Profile retrieved successfully"),
         @ApiResponse(responseCode = "404", description = "User not found")
     })
-    @GetMapping("/profile/{userId}")
-    public ResponseEntity<Map<String, Object>> getProfile(@PathVariable String userId) {
+    @GetMapping("/profile")
+    public ResponseEntity<Map<String, Object>> getProfile() {
+        String userId = currentUserId();
         return userRepo.findByUserId(userId)
             .map(user -> {
                 Map<String, Object> profile = new HashMap<>();
-                profile.put("userId", user.getUserId());
+                profile.put("userId", userId);
                 profile.put("username", user.getUsername());
                 profile.put("email", user.getEmail() != null ? user.getEmail() : "");
                 profile.put("role", user.getAdmin() ? "ADMIN": "PLAYER");
                 profile.put("preferredLanguage", user.getPreferredLanguage() != null ? user.getPreferredLanguage() : "english");
                 profile.put("preferredStyle", user.getPreferredStyle() != null ? user.getPreferredStyle() : "medieval");
-                return ResponseEntity.ok(profile); 
+                return ResponseEntity.ok(profile);
             }).orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "User not found")));
     }
 
@@ -214,17 +222,17 @@ public class AuthController {
     })
     @PostMapping("/update-profile")
     public ResponseEntity<Map<String, Object>> updateProfile(@RequestBody UserIdentityRequest request) {
-        String userId = request.getUserId();
+        String userId = currentUserId();
         if (userId == null || userId.trim().isEmpty()) {
             return ResponseEntity.status(400).body(Map.of("error", "UserId is required"));
         }
-        
+
         return userRepo.findByUserId(userId)
             .map(user -> {
                 if (request.getUsername() != null && !request.getUsername().trim().isEmpty()) {
                     String newUsername = request.getUsername();
                     Optional<User> existingUser = userRepo.findByUsername(newUsername);
-                    
+
                     if(existingUser.isPresent() && !existingUser.get().getUserId().equals(userId)) {
                         Map<String, Object> errorResponse = new HashMap<>();
                         errorResponse.put("error", "Username already exists.");
@@ -233,7 +241,7 @@ public class AuthController {
                         user.setUsername(newUsername);
                     }
                 }
-                
+
                 if (request.getEmail() != null) {
                     String newEmail = request.getEmail().trim();
                     if (newEmail.isEmpty()) {
@@ -254,20 +262,24 @@ public class AuthController {
                 } else {
                     user.setPreferredLanguage("english");
                 }
-                
+
                 if (request.getPreferredStyle() != null) {
                     user.setPreferredStyle(request.getPreferredStyle().toLowerCase());
                 } else {
                     user.setPreferredStyle("medieval");
                 }
-                
+
                 userRepo.save(user);
-                
+
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "Profile updated successfully");
                 return ResponseEntity.ok(response);
             })
             .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "User not found")));
+    }
+
+    private String currentUserId() {
+        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
 

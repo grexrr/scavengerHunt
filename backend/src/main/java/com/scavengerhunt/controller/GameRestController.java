@@ -32,6 +32,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/game")
@@ -59,7 +60,7 @@ public class GameRestController {
         @ApiResponse(responseCode = "200", description = "Player position updated")
     })
     @PostMapping("/update-position")
-    public ResponseEntity<String> updatePlayerPosition(@RequestBody PlayerPositionRequest request) {
+    public ResponseEntity<String> updatePlayerPosition(@Valid @RequestBody PlayerPositionRequest request) {
         String userId = currentUserId();
 
         // if (userId.startsWith("guest-")) {
@@ -96,7 +97,7 @@ public class GameRestController {
         @ApiResponse(responseCode = "200", description = "Game initialized successfully, landmarks returned")
     })
     @PostMapping("/init-game")
-    public synchronized ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
+    public synchronized ResponseEntity<?> initGame(@Valid @RequestBody PlayerPositionRequest request) {
         String userId = currentUserId();
         System.out.println("[InitGame] Request from user: " + userId);
         // System.out.println("[InitGame] city: " + request.getCity());
@@ -180,7 +181,7 @@ public class GameRestController {
         @ApiResponse(responseCode = "404", description = "Session or target not found")
     })
     @PostMapping("/start-round")
-    public synchronized ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
+    public synchronized ResponseEntity<?> startNewRound(@Valid @RequestBody StartRoundRequest request) {
 
         // if (userId.startsWith("guest-")) {
         //     return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
@@ -220,7 +221,7 @@ public class GameRestController {
         @ApiResponse(responseCode = "404", description = "Active session not found for user")
     })
     @PostMapping("/submit-answer")
-    public synchronized ResponseEntity<?> submitAnswer(@RequestBody SubmitAnswerRequest request) {
+    public synchronized ResponseEntity<?> submitAnswer(@Valid @RequestBody SubmitAnswerRequest request) {
         String userId = currentUserId();
         System.out.println("[Debug] Submit answer request from user: " + userId);
 

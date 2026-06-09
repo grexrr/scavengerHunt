@@ -1,6 +1,11 @@
 package com.scavengerhunt.dto;
 
+import com.mongodb.lang.NonNull;
+
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 
 public class StartRoundRequest {
 
@@ -9,53 +14,62 @@ public class StartRoundRequest {
         example = "uuid-string",
         required = true
     )
+    @NonNull
     private String userId;
 
     @Schema(
-        description = "Latitude in decimal degrees", 
+        description = "Latitude in decimal degrees",
         example = "40.7128",
         required = true
     )
-    private double latitude;
+    @NotNull
+    @DecimalMin("-90.0") @DecimalMax("90.0")
+    private Double latitude;
 
     @Schema(
-        description = "Longitude in decimal degrees", 
+        description = "Longitude in decimal degrees",
         example = "-74.0060",
         required = true
     )
+    @NotNull
+    @DecimalMin("-180.0") @DecimalMax("180.0")
     private double longitude;
 
     @Schema(
-        description = "Facing angle in degrees (0 = north)", 
+        description = "Facing angle in degrees (0 = north)",
         example = "135",
         required = true
     )
+    @DecimalMin("0.0") @DecimalMax("360.0")
     private double angle;
 
     @Schema(
-        description = "Search Radius of the Game Round", 
+        description = "Search Radius of the Game Round",
         example = "500 (unit: meters)",
         required = true
     )
-    private double radiusMeters;
+    @NonNull
+    private Double radiusMeters;
 
     @Schema(
-        description = "Player riddle language preference", 
+        description = "Player riddle language preference",
         example = "500 (unit: meters)",
         defaultValue = "English",
         required = true
     )
+    @NonNull
     private String language = "English";
 
     @Schema(
-        description = "Player riddle style preference", 
+        description = "Player riddle style preference",
         example = "medieval",
         defaultValue = "medieval",
         required = true
     )
+    @NonNull
     private String style = "medieval";
 
-    
+
     public String getLanguage() {
         return language;
     }
@@ -87,7 +101,7 @@ public class StartRoundRequest {
     public void setUserId(String userId) {
         this.userId = userId;
     }
-    
+
     public double getLatitude() {
         return latitude;
     }
@@ -107,7 +121,7 @@ public class StartRoundRequest {
     public double getRadiusMeters() {
         return radiusMeters;
     }
-    
+
     public void setRadiusMeters(double radiusMeters) {
         this.radiusMeters = radiusMeters;
     }

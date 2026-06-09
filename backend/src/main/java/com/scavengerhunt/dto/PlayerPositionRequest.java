@@ -1,6 +1,9 @@
 package com.scavengerhunt.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
 
 public class PlayerPositionRequest {
 
@@ -9,37 +12,43 @@ public class PlayerPositionRequest {
         example = "408808b8-777c-469a-867d-dd5e7d5e38e2",
         required = true
     )
+    @NotNull
     private String userId;
 
     @Schema(
-        description = "Latitude in decimal degrees", 
+        description = "Latitude in decimal degrees",
         example = "51.894964",
         required = true
     )
-    private double latitude;
+    @NotNull
+    @DecimalMin("-90.0") @DecimalMax("90.0")
+    private Double latitude;
 
     @Schema(
-        description = "Longitude in decimal degrees", 
+        description = "Longitude in decimal degrees",
         example = "-8.489178",
         required = true
     )
-    private double longitude;
+    @NotNull
+    @DecimalMin("-180.0") @DecimalMax("180.0")
+    private Double longitude;
 
     @Schema(
-        description = "Facing angle in degrees (0 = north)", 
+        description = "Facing angle in degrees (0 = north)",
         example = "135",
         required = true
     )
+    @DecimalMin("0.0") @DecimalMax("360.0")
     private double angle;
 
     @Schema(
-        description = "Field-of-view span in degrees", 
+        description = "Field-of-view span in degrees",
         defaultValue = "30"
     )
     private double spanDeg = 30;
 
     @Schema(
-        description = "Cone radius in meters", 
+        description = "Cone radius in meters",
         defaultValue = "50"
     )
     private double coneRadiusMeters = 50;

@@ -9,6 +9,7 @@ import java.util.Map;
 import org.locationtech.jts.geom.Coordinate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,7 +39,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class GameRestController {
 
     @Autowired
-    private GameSessionService gameSessionService; 
+    private GameSessionService gameSessionService;
 
     @Autowired
     private GameDataRepository gameDataRepo;
@@ -48,7 +49,7 @@ public class GameRestController {
 
     @Autowired
     private com.scavengerhunt.client.LandmarkProcessorClient landmarkProcessorClient;
-    
+
     // EloCalculator is created dynamically in GameSession, not as a Spring bean
     @Operation(
         summary = "Update player movement.",
@@ -59,12 +60,14 @@ public class GameRestController {
     })
     @PostMapping("/update-position")
     public ResponseEntity<String> updatePlayerPosition(@RequestBody PlayerPositionRequest request) {
-        if (request.getUserId().startsWith("guest-")) {
-            return ResponseEntity.ok("[Backend][API] Guest position updated (no session created).");
-        }
-        
+        String userId = currentUserId();
+
+        // if (userId.startsWith("guest-")) {
+        //     return ResponseEntity.ok("[Backend][API] Guest position updated (no session created).");
+        // }
+
         // create session for whatever user type
-        GameSession session = gameSessionService.getSession(request.getUserId());
+        GameSession session = gameSessionService.getSession(userId);
         if (session == null) {
             double latitude = request.getLatitude();
             double longitude = request.getLongitude();
@@ -75,20 +78,14 @@ public class GameRestController {
             PlayerStateManager playerState = new PlayerStateManager(player, landmarkManager, gameDataRepo);
             com.scavengerhunt.game.PuzzleManager puzzleManager = new com.scavengerhunt.game.PuzzleManager(gameDataRepo, puzzleAgentClient);
 
-            String userId = request.getUserId();
-            
             session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
             gameSessionService.putSession(userId, session);
         }
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
 
-        
         // user based response
-        if (request.getUserId().startsWith("guest-")) {
-            return ResponseEntity.ok("[Backend][API] Guest position updated (session created).");
-        } else {
-            return ResponseEntity.ok("[Backend][API] Player Position Updated.");
-        }
+        return ResponseEntity.ok("[Backend][API] Player Position Updated.");
+
     }
 
     @Operation(
@@ -100,21 +97,20 @@ public class GameRestController {
     })
     @PostMapping("/init-game")
     public synchronized ResponseEntity<?> initGame(@RequestBody PlayerPositionRequest request) {
-        
-        System.out.println("[InitGame] Request from user: " + request.getUserId());
+        String userId = currentUserId();
+        System.out.println("[InitGame] Request from user: " + userId);
         // System.out.println("[InitGame] city: " + request.getCity());
 
-        String userId = request.getUserId();
         double lat = request.getLatitude();
         double lng = request.getLongitude();
         String city = gameDataRepo.initLandmarkDataFromPosition(lat, lng);
-        
+
         // Check if there's already an active session for this user
         GameSession existingSession = gameSessionService.getSession(userId);
         if (existingSession != null && !existingSession.isGameFinished()) {
             System.out.println("[InitGame] Active session exists for user " + userId + ", updating position only");
             existingSession.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
-            
+
             // Still return landmarks for consistency
             List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
             List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
@@ -137,7 +133,7 @@ public class GameRestController {
 
         // Create new session only if no active session exists
         System.out.println("[InitGame] Creating new session for user: " + userId);
-        
+
         Player player = new Player(
             request.getLatitude(),
             request.getLongitude(),
@@ -153,7 +149,7 @@ public class GameRestController {
 
         GameSession session = new GameSession(userId, gameDataRepo, playerState, landmarkManager, puzzleManager, 30);
         gameSessionService.putSession(userId, session);
-        
+
         List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
         List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
 
@@ -186,23 +182,25 @@ public class GameRestController {
     @PostMapping("/start-round")
     public synchronized ResponseEntity<?> startNewRound(@RequestBody StartRoundRequest request) {
 
-        if (request.getUserId().startsWith("guest-")) {
-            return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
-        }
-        
-        GameSession session = gameSessionService.getSession(request.getUserId());
+        // if (userId.startsWith("guest-")) {
+        //     return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
+        // }
+
+        String userId = currentUserId();
+
+        GameSession session = gameSessionService.getSession(userId);
         if (session == null) return ResponseEntity.status(404).body("[Backend][API] Session Not Found.");
 
         if (session.getUserId() == null) {
             return ResponseEntity.status(403).body("[Backend][API] Must be logged in to start round.");
         }
-        
+
         // Check if game is already finished to prevent starting new round on finished session
         if (session.isGameFinished()) {
-            System.out.println("[StartRound] Cannot start round - game already finished for user: " + request.getUserId());
+            System.out.println("[StartRound] Cannot start round - game already finished for user: " + userId);
             return ResponseEntity.status(400).body("[Backend][API] Game already finished. Please initialize a new game.");
         }
-        
+
         session.updatePlayerPosition(request.getLatitude(), request.getLongitude(), request.getAngle());
         session.startNewRound(request.getRadiusMeters());
 
@@ -223,9 +221,9 @@ public class GameRestController {
     })
     @PostMapping("/submit-answer")
     public synchronized ResponseEntity<?> submitAnswer(@RequestBody SubmitAnswerRequest request) {
-        String userId = request.getUserId();
+        String userId = currentUserId();
         System.out.println("[Debug] Submit answer request from user: " + userId);
-        
+
         GameSession session = gameSessionService.getSession(userId);
         if (session == null) {
             System.out.println("[Error] Session not found for user: " + userId);
@@ -250,7 +248,7 @@ public class GameRestController {
 
         boolean isCorrect = session.submitCurrentAnswer(secondsUsed);
         boolean gameFinished = session.isGameFinished();
-        
+
         System.out.println("[Debug] Submit answer result: isCorrect=" + isCorrect + ", gameFinished=" + gameFinished);
 
         Map<String, Object> response = new HashMap<>();
@@ -298,11 +296,15 @@ public class GameRestController {
             return ResponseEntity.badRequest().body("Missing userId.");
         }
 
-        gameSessionService.removeSession(userId);  
+        gameSessionService.removeSession(userId);
         Map<String, Object> res = new HashMap<>();
         res.put("message", "Game session ended.");
 
         return ResponseEntity.ok(res);
+    }
+
+    private String currentUserId() {
+        return (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }
 

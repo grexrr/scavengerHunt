@@ -43,12 +43,12 @@ mvnw.cmd
 *.pdf
 
 # ===== Spring Boot 配置 =====
-application.properties
-!src/main/resources/application.properties
 keystore.p12
 
 # ===== 日志 =====
 *.log
+doc
+docs
 
 # ===== 环境变量 =====
 .ssh

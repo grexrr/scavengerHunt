@@ -1,5 +1,6 @@
 # ===== Python 相关 =====
 venv/
+.venv/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -54,6 +55,10 @@ docs
 .ssh
 .env
 .env.local
+
+# ===== uv / Python tooling =====
+.ruff_cache/
+.mypy_cache/
 
 # ===== Services (Python microservices) =====
 services/*/outputfiles/

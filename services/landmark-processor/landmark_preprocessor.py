@@ -20,7 +20,17 @@ class LandmarkPreprocessor:
         self.processedLandmarks = None
 
     def fetchRaw(self):
-        res = requests.post(self.osmUrl, data={"data": self.query})
+        res = requests.post(
+            self.osmUrl,
+            data={"data": self.query},
+            headers={
+                "User-Agent": "scavengerHunt-landmark-processor/1.0 (your-email@example.com)",
+                "Accept": "*/*",
+            },
+            timeout=180,
+        )
+        print(res.status_code)
+        res.raise_for_status()
         self.rawData = res.text
         return self
 
@@ -81,79 +91,50 @@ class LandmarkPreprocessor:
         self.processedLandmarks = res
         return self
 
-    def storeToDB(self, collection_name="landmark_metadata", overwrite=False):
-        client = MongoClient(self.mongo_url)
-        db = client[self.db_name]
-        collection = db[collection_name]
+    def storeToDB(self, overwrite=False, mongo_url="mongodb://localhost:27017", db_name="scavengerhunt"):
+        if not self.processedLandmarks:
+            raise ValueError("No processed landmaks. Run processRawLandmark() first")
 
-        # 为landmarkId创建唯一索引
-        try:
-            collection.create_index("landmarkId", unique=True)
-        except Exception:
-            # 如果已有重复数据，索引创建会失败，需要先清理
-            print("[!] Unique index creation failed, cleaning duplicates first...")
-            pass
+        client = MongoClient(mongo_url)
+        db = client[db_name]
+        collection = db["landmarks"]
 
-        inserted_count = 0
-        skipped_count = 0
-        cleaned_count = 0
+        inserted = 0
+        skipped = 0
 
-        for lm_id, info in self.metaInfo.items():
-            entry = {
-                "landmarkId": lm_id,
-                "name": info["name"],
-                "city": info.get("city", ""),
-                "meta": info.get("meta", {})
+        for name, data in self.processedLandmarks.items():
+            existing = collection.find_one({
+                "name": name,
+                "city": self.city
+            })
+            if existing and not overwrite:
+                skipped += 1
+                print(f"[→] Skipped (exists): {name}")
+                continue
+
+            doc = {
+                "name": name,
+                "city": self.city,
+                "latitude": data["latitude"],
+                "longitude": data["longitude"],
+                "geometry": data["geometry"],
+                "tags": data.get("tags", {}),
+                "centroid": [data["latitude"], data["longitude"]],
+                "rating": 0.5,
             }
 
-            # 查找所有匹配的记录
-            existing_docs = list(collection.find({"landmarkId": lm_id}))
-            
-            if existing_docs:
-                if overwrite:
-                    # 如果要覆盖，删除所有旧记录，插入新的
-                    result = collection.delete_many({"landmarkId": lm_id})
-                    cleaned_count += result.deleted_count
-                    
-                    collection.insert_one(entry)
-                    inserted_count += 1
-                    print(f"[✓] Replaced {result.deleted_count} old record(s) for: {info['name']}")
-                else:
-                    # 不覆盖的情况下，检查是否有完整的 description
-                    has_complete_data = any(
-                        doc.get("meta", {}).get("description") 
-                        for doc in existing_docs
-                    )
-                    
-                    if has_complete_data:
-                        # 已有完整数据，跳过
-                        skipped_count += 1
-                        print(f"[→] Skipped (complete data exists): {info['name']}")
-                    else:
-                        # 已有数据不完整，删除并插入新的
-                        result = collection.delete_many({"landmarkId": lm_id})
-                        cleaned_count += result.deleted_count
-                        
-                        collection.insert_one(entry)
-                        inserted_count += 1
-                        print(f"[✓] Replaced {result.deleted_count} incomplete record(s) for: {info['name']}")
+            if existing and overwrite:
+                collection.replace_one({"_id": existing["_id"]}, doc)
+                print(f"[✓] Replaced: {name}")
             else:
-                # 不存在则插入新记录
-                collection.insert_one(entry)
-                inserted_count += 1
-                print(f"[✓] Inserted: {info['name']}")
+                collection.insert_one(doc)
+                print(f"[✓] Inserted: {name}")
 
-        print(f"\n[Summary] Collection: {collection_name}")
-        print(f"  - Inserted: {inserted_count}")
-        print(f"  - Skipped: {skipped_count}")
-        print(f"  - Old Records Cleaned: {cleaned_count}")
-        
-        # 清理完后，确保创建唯一索引
-        try:
-            collection.create_index("landmarkId", unique=True)
-            print(f"[✓] Unique index ensured on landmarkId")
-        except Exception as e:
-            print(f"[!] Could not create unique index: {e}")
+            inserted += 1
+        print(f"[Summary] landmarks/{self.city}: inserted={inserted}, skipped={skipped}")
+        client.close()
+        return self
+
 
     def saveAsFile(self, filename="processed.json"):
         if not self.processedLandmarks:
@@ -197,83 +178,21 @@ if __name__ == "__main__":
     out geom;
     """
 
-    query = """
-    [out:json][timeout:180];
-    (
-    way["amenity"]["name"]["amenity"!="parking"]["amenity"!="parking_space"]["amenity"!="bicycle_parking"]["amenity"!="waste_disposal"]
-        (poly:"23.09998 113.31101 23.10002 113.32784 23.12860 113.32719 23.13010 113.31097");
-    way["tourism"]["name"]["tourism"!="guest_house"]
-        (poly:"23.09998 113.31101 23.10002 113.32784 23.12860 113.32719 23.13010 113.31097");
-    way["historic"]["name"]
-        (poly:"23.09998 113.31101 23.10002 113.32784 23.12860 113.32719 23.13010 113.31097");
-    way["leisure"]["name"]["leisure"!="pitch"]
-        (poly:"23.09998 113.31101 23.10002 113.32784 23.12860 113.32719 23.13010 113.31097");
-    way["building"]["name"]
-        (poly:"23.09998 113.31101 23.10002 113.32784 23.12860 113.32719 23.13010 113.31097");
-    node["historic"]["indoor"!="yes"]
-        (poly:"23.09998 113.31101 23.10002 113.32784 23.12860 113.32719 23.13010 113.31097");
-    );
-    out tags geom;
-    """
-
-
-    # query_landmarks = [
-    #     "Glucksman Gallery",
-    #     "Cork Greyhound Track",
-    #     "Honan Collegiate Chapel",
-    #     "the President's Garden",
-    #     "Boole Library",
-    #     "The Quad / Aula Maxima",
-    #     "Brookfield Health Sciences Complex",
-    #     "Western Gateway Building"
-    # ]
-
     query_landmarks = [
-        "广州市第二少年宫",
-        "广州图书馆",
-        "广东省博物馆",
-        "广州国际金融中心(广州西塔)",
-        "海心沙亚运公园",
-        "广州塔",
+        "Glucksman Gallery",
+        "Cork Greyhound Track",
+        "Honan Collegiate Chapel",
+        "the President's Garden",
+        "Boole Library",
+        "The Quad / Aula Maxima",
+        "Brookfield Health Sciences Complex",
+        "Western Gateway Building"
     ]
 
-    processed_landmarks = (
-    LandmarkPreprocessor(query)
-        .fetchRaw()
-        .findRawLandmarks(query_landmarks)
-        .processRawLandmark()
-        .storeToDB()
-        .saveAsFile("guangzhou.json")
-        # .saveAsFile("pre-processed.json")
-        # .saveRawOSMAsFile("raw.json")
-    )
+    pre = LandmarkPreprocessor(query).fetchRaw().findRawLandmarks(query_landmarks)
 
-    print("\n[!] Start generating Guangzhou metadata...")
-
-    load_dotenv(override=True)
-    api_key = os.getenv('OPENAI_API_KEY')
-
-    if not api_key:
-        print("[x] OPENAI_API_KEY not found in environment variables!")
-    else:
-        meta_generator = LandmarkMetaGenerator(api_key)
-
-        meta_generator.loadLandmarksFromDB()
-
-        original_landmarks = meta_generator.landmarks.copy()
-        meta_generator.landmarks = [
-            (lm_id, lm_name, city) for lm_id, lm_name, city in original_landmarks
-            if lm_name in query_landmarks
-        ]
-
-        print(f"[✓] Selected {len(meta_generator.landmarks)} Guangzhou Landmark for metadata generation")
-
-        if len(meta_generator.landmarks) == 0:
-            print("[!] Warning: No match landmark, please ensure landmars are stored in DB")
-        else:
-
-            meta_generator.fetchWiki().fetchOpenAI()
-            meta_generator.saveToFile("guangzhou_metadata.json")
-            meta_generator.storeToDB(collection_name="landmark_metadata", overwrite=False)
-
-            print("[✓]Guangzhou landmark metadata generated!")
+    full_raw = json.loads(pre.rawData)
+    full_raw["elements"] = list(pre.rawLandmarks.values())
+    with open("outputfiles/raw.json", "w", encoding="utf-8") as f:
+        json.dump(full_raw, f, indent=2, ensure_ascii=False)
+    print(f"saved {len(full_raw['elements'])} / {len(query_landmarks)} landmarks")

@@ -20,12 +20,13 @@ outputfiles/
 *.egg-info/
 .installed.cfg
 *.egg
-
+.pytest_cache/
+.coverage
+htmlcov/
 
 openaiAPI.txt
 enkboldAPI.txt
 
-.env
-
 manual_delete.py
 manual_repair.py
+outputfiles

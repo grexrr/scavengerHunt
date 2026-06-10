@@ -63,6 +63,16 @@ public class PersistedGameSession {
     public double getPlayerAngle() { return playerAngle; }
     public void setPlayerAngle(double playerAngle) { this.playerAngle = playerAngle; }
 
+    public void updatePlayerPosition(
+        double lat,
+        double lng,
+        double angle
+        ){
+        this.playerLat = lat;
+        this.playerLng = lng;
+        this.playerAngle = angle;
+    }
+
     public Map<String, Integer> getAttemptsByLandmarkId() { return this.attemptsByLandmarkId; }
     public void setAttemptsByLandmarkId(Map<String, Integer> m) { this.attemptsByLandmarkId = m; }
 

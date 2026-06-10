@@ -345,6 +345,14 @@ public class GameSession {
     public Map<String, Integer> getUnsolvedLandmarks() {
         return this.attemptsByLandmarkId;
     }
+
+    public void setAttemptsByLandmarkId(Map<String, Integer> attempts) {
+        this.attemptsByLandmarkId = attempts;
+    }
+
+    public void setCurrentTarget(Landmark target) {
+        this.currentTarget = target;
+    }
 }
 
 

@@ -1,37 +1,49 @@
 package com.scavengerhunt.service;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
-import com.scavengerhunt.game.GameSession;
+import com.scavengerhunt.model.PersistedGameSession;
+import com.scavengerhunt.repository.GameSessionRepository;
 
 @Service
 public class GameSessionService {
-    
-    private Map<String, GameSession> sessionMap = new HashMap<>();
-    
-    public GameSession getSession(String userId) {
-        return sessionMap.get(userId);
+
+    private final GameSessionRepository repo;
+
+    public GameSessionService(GameSessionRepository repo) {
+        this.repo = repo;
     }
-    
-    public void putSession(String userId, GameSession session) {
-        sessionMap.put(userId, session);
+
+    public PersistedGameSession createSession(String userId, String city) {
+        repo.deleteByUserId(userId);  // first clear
+
+        PersistedGameSession session = new PersistedGameSession(
+            UUID.randomUUID().toString(),
+            userId,
+            city
+        );
+
+        return repo.save(session);
     }
-    
+
+    public Optional<PersistedGameSession> findByUserId(String userId) {
+        return repo.findByUserId(userId);
+    }
+
+    public PersistedGameSession save(PersistedGameSession session) {
+        session.setLastUpdated(Instant.now());
+        return repo.save(session);
+    }
+
     public void removeSession(String userId) {
-        GameSession session = sessionMap.get(userId);
-        if (session != null) {
-            session.getPlayerState().setGameFinished();
-            System.out.println("[GameSessionService] Player " + session.getUserId() + " session finished and cleared.");
-        } else {
-            System.out.println("[GameSessionService] Session not found for user: " + userId);
-        }
-        sessionMap.remove(userId);
+        repo.deleteByUserId(userId);
     }
-    
+
     public boolean hasSession(String userId) {
-        return sessionMap.containsKey(userId);
+        return repo.findByUserId(userId).isPresent();
     }
 }

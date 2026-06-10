@@ -1,21 +1,30 @@
 package com.scavengerhunt.game;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.scavengerhunt.client.LandmarkProcessorClient;
+import com.scavengerhunt.client.PuzzleAgentClient;
 import com.scavengerhunt.model.Landmark;
+import com.scavengerhunt.model.PersistedGameSession;
+import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
 import com.scavengerhunt.utils.EloCalculator;
 import com.scavengerhunt.utils.GeoUtils;
 
-public class GameSession {
+public class GameLogicManager {
     private String userId;
+    private Player player;
 
-    private GameDataRepository gameDataRepository;
+    private GameDataRepository gameDataRepo;
+    private PersistedGameSession session;
+    private LandmarkProcessorClient landmarkProcessorClient;
+    private PuzzleAgentClient puzzleAgentClient;
 
-    private PlayerStateManager playerState;
+    private PlayerStateManager playerStateManager;
     private LandmarkManager landmarkManager;
     private PuzzleManager puzzleManager;
 
@@ -28,36 +37,55 @@ public class GameSession {
     private int maxWrongAnswer = 3;
     private int maxRiddleDurationMinutes = 30;
 
-    public GameSession(
-        String userId,
-        GameDataRepository gameDataRepository,
-        PlayerStateManager playerState,
-        LandmarkManager landmarkManager,
-        PuzzleManager puzzleManager,
+    public GameLogicManager(
+        PersistedGameSession session,
+        GameDataRepository gameDataRepo,
+        LandmarkProcessorClient landmarkProcessorClient,
+        PuzzleAgentClient puzzleAgentClient,
         int maxRiddleDurationMinutes
     ) {
-        this.userId = userId;
-        this.gameDataRepository = gameDataRepository;
-        this.playerState = playerState;
-        this.landmarkManager = landmarkManager;
-        this.puzzleManager = puzzleManager;
-        this.eloCalculator = new EloCalculator(userId, gameDataRepository, maxRiddleDurationMinutes);
+        this.session = session;
+        this.gameDataRepo = gameDataRepo;
+        this.landmarkProcessorClient = landmarkProcessorClient;
+        this.puzzleAgentClient = puzzleAgentClient;
+
+        this.userId = session.getUserId();
+
+        this.player = new Player(
+            session.getPlayerLat(),
+            session.getPlayerLng(),
+            session.getPlayerAngle(),
+            session.getCity()
+        );
+
+        this.landmarkManager = new LandmarkManager(gameDataRepo, landmarkProcessorClient, session.getCity());
+
+        this.playerStateManager = new PlayerStateManager(this.player, this.landmarkManager, this.gameDataRepo);
+
+        this.puzzleManager = new PuzzleManager(gameDataRepo, this.puzzleAgentClient);
+
+        this.attemptsByLandmarkId = session.getAttemptsByLandmarkId();
+        if (session.getCurrentTargetId() != null){
+            this.currentTarget = gameDataRepo.findLandmarkById(session.getCurrentTargetId());
+        }
+
+        this.eloCalculator = new EloCalculator(this.userId, this.gameDataRepo, this.maxRiddleDurationMinutes);
     }
 
     public void updatePlayerPosition(double lat, double lng, double angle){
-        this.playerState.updatePlayerPosition(lat, lng, angle);
+        this.playerStateManager.updatePlayerPosition(lat, lng, angle);
+        this.session.updatePlayerPosition(lat, lng, angle);
         System.out.println("[Session] Updated position: " + lat + ", " + lng + " @ " + angle);
     }
 
     public void startNewRound(double radiusMeters) {
 
-        double lat = this.playerState.getPlayer().getLatitude();
-        double lng = this.playerState.getPlayer().getLongitude();
+        double lat = this.playerStateManager.getPlayer().getLatitude();
+        double lng = this.playerStateManager.getPlayer().getLongitude();
 
         // clear currentTarget!
-        this.playerState.resetGame();
+        this.playerStateManager.resetGame();
         this.currentTarget = null;
-
 
         // init candidate map
         this.landmarkManager.getRoundLandmarksIdWithinRadius(lat, lng, radiusMeters);
@@ -75,7 +103,8 @@ public class GameSession {
 
         if (candidateLandmarks.isEmpty()) {
             System.out.println("[Error] No landmarks found within radius " + radiusMeters + " meters. Cannot start game.");
-            this.playerState.setGameFinished();
+            this.playerStateManager.setGameFinished();
+            syncToSession();
             return;
         }
 
@@ -87,6 +116,7 @@ public class GameSession {
 
         // select the first target & set round start time
         selectNextTarget();
+        syncToSession();
         System.out.println("[Session] New game round started.");
     }
 
@@ -108,8 +138,8 @@ public class GameSession {
         }
 
         //check if detected landmark == currentTarget
-        this.playerState.updateDetectedLandmark(); // Force update detected landmark before checking
-        Landmark detectedLandmark = this.playerState.getDetectedLandmark();
+        this.playerStateManager.updateDetectedLandmark(); // Force update detected landmark before checking
+        Landmark detectedLandmark = this.playerStateManager.getDetectedLandmark();
         System.out.println("[Debug] Current target: " + this.currentTarget.getName() + " (ID: " + this.currentTarget.getId() + ")");
         System.out.println("[Debug] Detected landmark: " + (detectedLandmark != null ? detectedLandmark.getName() + " (ID: " + detectedLandmark.getId() + ")" : "null"));
 
@@ -138,16 +168,22 @@ public class GameSession {
         }
     }
 
-
     // ==================== Helper Functions ====================
 
-    public Landmark selectNextTarget() {
+    private void syncToSession() {
+        session.setAttemptsByLandmarkId(this.attemptsByLandmarkId);
+        session.setCurrentTargetId(this.currentTarget != null ? this.currentTarget.getId() : null);
+        session.setFinished(isGameFinished());
+        session.setLastUpdated(Instant.now());
+    }
+
+    private Landmark selectNextTarget() {
         // select Nearest for MVP
-        if (!this.playerState.isGameFinished()) {
+        if (!this.playerStateManager.isGameFinished()) {
             // Check if target pool is empty
             if (getUnsolvedLandmarks().isEmpty()) {
                 System.out.println("[Debug] Target pool is empty, marking game as finished");
-                this.playerState.setGameFinished();
+                this.playerStateManager.setGameFinished();
                 this.currentTarget = null;
                 this.puzzleManager.storeUserGameRoundStatistics();
                 return null;
@@ -158,8 +194,8 @@ public class GameSession {
 
             Landmark last = this.currentTarget;
             if (last == null){
-                double playerLat = playerState.getPlayer().getLatitude();
-                double playerLng = playerState.getPlayer().getLongitude();
+                double playerLat = playerStateManager.getPlayer().getLatitude();
+                double playerLng = playerStateManager.getPlayer().getLongitude();
                 this.currentTarget = selectNearestTo(playerLat, playerLng);
             } else {
                 this.currentTarget = selectNearestTo(last.getLatitude(), last.getLongitude());
@@ -175,8 +211,8 @@ public class GameSession {
 
                 // Force update detected landmark when target changes
                 System.out.println("[Debug] Target changed, updating detected landmark...");
-                this.playerState.updateDetectedLandmark();
-                Landmark newDetected = this.playerState.getDetectedLandmark();
+                this.playerStateManager.updateDetectedLandmark();
+                Landmark newDetected = this.playerStateManager.getDetectedLandmark();
                 System.out.println("[Debug] New detected landmark: " + (newDetected != null ? newDetected.getName() + " (ID: " + newDetected.getId() + ")" : "null"));
             }
 
@@ -192,7 +228,7 @@ public class GameSession {
 
     private boolean singleTransaction(long riddleSeconds, Boolean isCorrect){
         // Only proceed if game has not finished (i.e., game is active)
-        if (this.playerState.isGameFinished()) {
+        if (this.playerStateManager.isGameFinished()) {
             System.out.println("[Debug] Game is finished, ignoring transaction");
             return false;
         }
@@ -223,6 +259,7 @@ public class GameSession {
                     return isCorrect; // Continue with next target
                 }
             }
+            syncToSession();
             return isCorrect;
         } else {
             System.out.println("[Debug] Answer is correct!");
@@ -248,26 +285,24 @@ public class GameSession {
     private boolean checkAndHandleGameEnd() {
         // Only handle game end if game is active (not already finished)
         if (this.attemptsByLandmarkId.isEmpty()) {
-            System.out.println("[Debug] Target pool is empty - game finished");
-            this.playerState.setGameFinished();
+            this.playerStateManager.setGameFinished();
             this.currentTarget = null;
             this.puzzleManager.storeUserGameRoundStatistics();
             this.puzzleManager.resetPuzzleSession();
-
+            syncToSession();
             return true; // Game finished
         } else {
             System.out.println("[Debug] Target pool not empty, selecting next target");
             selectNextTarget();
+            syncToSession();
             return false; // Continue with next target
         }
     }
 
-
-
     private Landmark selectNearestTo(double refLat, double refLng) {
         System.out.println("[Debug] Trying to select from: " + getUnsolvedLandmarks().keySet());
         return getUnsolvedLandmarks().entrySet().stream()
-            .map(entry -> gameDataRepository.findLandmarkById(entry.getKey()))
+            .map(entry -> gameDataRepo.findLandmarkById(entry.getKey()))
             .filter(landmark -> landmark != null)
             .min((l1, l2) -> {
                 double d1 = GeoUtils.distanceInMeters(refLat, refLng, l1.getLatitude(), l1.getLongitude());
@@ -278,7 +313,7 @@ public class GameSession {
     }
 
     public boolean answerCorrect(Landmark detectedLandmark) {
-        if (playerState.getDetectedLandmark() == null || currentTarget == null) return false;
+        if (playerStateManager.getDetectedLandmark() == null || currentTarget == null) return false;
 
         boolean isCorrect = detectedLandmark.getId().equals(this.currentTarget.getId());
         System.out.println("[Debug] Comparing detected ID: " + detectedLandmark.getId() + " with target ID: " + this.currentTarget.getId() + " = " + isCorrect);
@@ -287,7 +322,7 @@ public class GameSession {
     }
 
     public boolean isGameFinished() {
-        if (this.playerState.isGameFinished()) {
+        if (this.playerStateManager.isGameFinished()) {
             return true;
         }
         return this.attemptsByLandmarkId != null && this.attemptsByLandmarkId.isEmpty();
@@ -297,7 +332,7 @@ public class GameSession {
 
     public Map<String, Object> getCurrentTarget() {
         // If game is finished, don't try to select new targets
-        if (this.playerState.isGameFinished()) {
+        if (this.playerStateManager.isGameFinished()) {
             System.out.println("[Debug] Game is finished, returning null for current target");
             return null;
         }
@@ -339,7 +374,7 @@ public class GameSession {
     }
 
     public PlayerStateManager getPlayerState() {
-        return this.playerState;
+        return this.playerStateManager;
     }
 
     public Map<String, Integer> getUnsolvedLandmarks() {

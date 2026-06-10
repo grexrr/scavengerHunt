@@ -17,9 +17,9 @@ import com.scavengerhunt.model.User;
 @Repository
 public class GameDataRepository {
     // 静态配置读取
-    private static final String LANDMARK_PROCESSOR_URL = 
+    private static final String LANDMARK_PROCESSOR_URL =
         System.getProperty("landmark.processor.url", "http://landmark-processor:5000");
-    
+
     private final LandmarkRepository landmarkRepo;
     private final UserRepository userRepo;
     private final RestTemplate restTemplate;
@@ -30,19 +30,19 @@ public class GameDataRepository {
         this.restTemplate = new RestTemplate();
     }
 
-    // ==================== Landmark Operations ====================    
-    
+    // ==================== Landmark Operations ====================
+
     public String initLandmarkDataFromPosition(double lat, double lng) {
         String resolveCityUrl = LANDMARK_PROCESSOR_URL + "/resolve-city";
         String fetchLandmarkUrl = LANDMARK_PROCESSOR_URL + "/fetch-landmark";
-    
+
         Map<String, Object> payload = Map.of("latitude", lat, "longitude", lng);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-    
+
         String city = null;
-    
+
         // Step 1: try resolve city from Flask
         try {
             ResponseEntity<Map> resolveResp = restTemplate.postForEntity(resolveCityUrl, entity, Map.class);
@@ -56,27 +56,27 @@ public class GameDataRepository {
         } catch (Exception e) {
             System.err.println("[Landmark Processor] resolve-city call failed: " + e.getMessage());
         }
-    
+
         // Step 2: fallback if resolution failed
         if (city == null || city.equals("UnknownCity")) {
             System.err.println("[GameDataRepo] Could not resolve city. Skipping fetch, using 'UnknownCity'.");
             city = "Cork";
         }
-    
+
         // Step 3: try database first
         List<Landmark> landmarks = landmarkRepo.findByCity(city);
         if (landmarks.size() >= 10) {
             System.out.println("[Landmark Processor] Using cached landmarks for city: " + city + " (" + landmarks.size() + ")");
             return city;
         }
-    
+
         // Step 4: fetch if needed
         try {
             System.out.println("[Landmark Processor] Landmark data insufficient (" + landmarks.size() + "), triggering fetch...");
             Map<String, String> cityPayload = Map.of("latitude", String.valueOf(lat), "longitude", String.valueOf(lng));
             HttpEntity<Map<String, String>> fetchEntity = new HttpEntity<>(cityPayload, headers);
             ResponseEntity<Map> fetchResp = restTemplate.postForEntity(fetchLandmarkUrl, fetchEntity, Map.class);
-    
+
             if (fetchResp.getStatusCode().is2xxSuccessful()) {
                 System.out.println("[Landmark Processor] Fetch succeeded from Flask.");
             } else {
@@ -85,11 +85,9 @@ public class GameDataRepository {
         } catch (Exception e) {
             System.err.println("[Landmark Processor] Fetch from Flask failed: " + e.getMessage());
         }
-    
+
         return city;
     }
-    
-    
 
     public List<Landmark> loadLandmarks() {
         return landmarkRepo.findAll();
@@ -115,12 +113,12 @@ public class GameDataRepository {
         Double rating = (landmark != null) ? landmark.getRating() : null;
         return (rating != null) ? rating : 0.5;
     }
-   
+
     public void updateLandmarkRating(String landmarkId, Double rating) {
         Landmark landmark = findLandmarkById(landmarkId);
         if (landmark != null) {
             if (landmark.getRating() == null) {
-                landmark.setRating(0.5); // !!!! init default as 0.5 
+                landmark.setRating(0.5); // !!!! init default as 0.5
             }
             landmark.setRating(rating);
             landmarkRepo.save(landmark);

@@ -139,6 +139,14 @@
 			<groupId>org.springframework.security</groupId>
 			<artifactId>spring-security-crypto</artifactId>
 		</dependency>
+
+		<!-- Flapdoodle in-memo MongoDB for testing env -->
+		<dependency>
+			<groupId>de.flapdoodle.embed</groupId>
+			<artifactId>de.flapdoodle.embed.mongo.spring3x</artifactId>
+			<version>4.18.0</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 	<build>

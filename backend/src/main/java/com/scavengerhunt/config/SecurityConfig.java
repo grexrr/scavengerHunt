@@ -14,6 +14,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.scavengerhunt.security.JwtAuthenticationFilter;
 import com.scavengerhunt.security.JwtTokenProvider;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity // enables @PreAuthroize on methods
@@ -45,6 +47,10 @@ public class SecurityConfig {
                 // add filter before UNPW auth so that it does not 401 the logging in users
                 new JwtAuthenticationFilter(tokenProvider),
                 UsernamePasswordAuthenticationFilter.class
+            ).exceptionHandling(ex -> ex
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.sendError(HttpServletResponse.SC_UNAUTHORIZED);
+                })
             );
         return http.build();
     }

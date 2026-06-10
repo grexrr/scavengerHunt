@@ -21,8 +21,6 @@ public class GameLogicManager {
 
     private GameDataRepository gameDataRepo;
     private PersistedGameSession session;
-    private LandmarkProcessorClient landmarkProcessorClient;
-    private PuzzleAgentClient puzzleAgentClient;
 
     private PlayerStateManager playerStateManager;
     private LandmarkManager landmarkManager;
@@ -46,11 +44,8 @@ public class GameLogicManager {
     ) {
         this.session = session;
         this.gameDataRepo = gameDataRepo;
-        this.landmarkProcessorClient = landmarkProcessorClient;
-        this.puzzleAgentClient = puzzleAgentClient;
 
         this.userId = session.getUserId();
-
         this.player = new Player(
             session.getPlayerLat(),
             session.getPlayerLng(),
@@ -62,7 +57,7 @@ public class GameLogicManager {
 
         this.playerStateManager = new PlayerStateManager(this.player, this.landmarkManager, this.gameDataRepo);
 
-        this.puzzleManager = new PuzzleManager(gameDataRepo, this.puzzleAgentClient);
+        this.puzzleManager = new PuzzleManager(gameDataRepo, puzzleAgentClient);
 
         this.attemptsByLandmarkId = session.getAttemptsByLandmarkId();
         if (session.getCurrentTargetId() != null){

@@ -26,6 +26,7 @@ import com.scavengerhunt.dto.SubmitAnswerRequest;
 import com.scavengerhunt.game.GameLogicManager;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.PersistedGameSession;
+import com.scavengerhunt.repository.AnswerTransactionRecordRepository;
 import com.scavengerhunt.repository.GameDataRepository;
 import com.scavengerhunt.service.GameSessionService;
 import com.scavengerhunt.utils.GeoUtils;
@@ -46,6 +47,9 @@ public class GameRestController {
 
     @Autowired
     private GameDataRepository gameDataRepo;
+
+    @Autowired
+    private AnswerTransactionRecordRepository answerTransactionRecordRepo;
 
     @Autowired
     private PuzzleAgentClient puzzleAgentClient;
@@ -162,7 +166,7 @@ public class GameRestController {
         }
 
         // Run round logic
-        GameLogicManager game = new GameLogicManager(session, gameDataRepo, landmarkProcessorClient, puzzleAgentClient, 30);
+        GameLogicManager game = new GameLogicManager(session, gameDataRepo, landmarkProcessorClient, puzzleAgentClient, answerTransactionRecordRepo, 30);
         game.startNewRound(request.getRadiusMeters());
 
         Map<String, Object> currentTarget = game.getCurrentTarget();
@@ -198,7 +202,7 @@ public class GameRestController {
         double lat = request.getLatitude() != null ? request.getLatitude() : session.getPlayerLat();
         double lng = request.getLongitude() != null ? request.getLongitude() : session.getPlayerLng();
         double angle = request.getCurrentAngle() != null ? request.getCurrentAngle() : session.getPlayerAngle();
-        GameLogicManager game = new GameLogicManager(session, gameDataRepo, landmarkProcessorClient, puzzleAgentClient, 30);
+        GameLogicManager game = new GameLogicManager(session, gameDataRepo, landmarkProcessorClient, puzzleAgentClient, answerTransactionRecordRepo, 30);
 
         // Update player position with current angle if provided
         if (request.getCurrentAngle() != null && request.getLatitude() != null && request.getLongitude() != null) {

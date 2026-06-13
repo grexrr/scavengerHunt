@@ -8,9 +8,11 @@ import java.util.stream.Collectors;
 
 import com.scavengerhunt.client.LandmarkProcessorClient;
 import com.scavengerhunt.client.PuzzleAgentClient;
+import com.scavengerhunt.model.AnswerTransactionRecord;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.PersistedGameSession;
 import com.scavengerhunt.model.Player;
+import com.scavengerhunt.repository.AnswerTransactionRecordRepository;
 import com.scavengerhunt.repository.GameDataRepository;
 import com.scavengerhunt.utils.EloCalculator;
 import com.scavengerhunt.utils.GeoUtils;
@@ -27,6 +29,7 @@ public class GameLogicManager {
     private PuzzleManager puzzleManager;
 
     private EloCalculator eloCalculator;
+    private AnswerTransactionRecordRepository answerTransactionRecordRepo;
 
     private Landmark currentTarget;
     private Map<String, Integer> attemptsByLandmarkId;
@@ -40,6 +43,7 @@ public class GameLogicManager {
         GameDataRepository gameDataRepo,
         LandmarkProcessorClient landmarkProcessorClient,
         PuzzleAgentClient puzzleAgentClient,
+        AnswerTransactionRecordRepository answerTransactionRecordRepo,
         int maxRiddleDurationMinutes
     ) {
         this.session = session;
@@ -65,6 +69,8 @@ public class GameLogicManager {
         }
 
         this.eloCalculator = new EloCalculator(this.userId, this.gameDataRepo, this.maxRiddleDurationMinutes);
+
+        this.answerTransactionRecordRepo = answerTransactionRecordRepo;
     }
 
     public void updatePlayerPosition(double lat, double lng, double angle){
@@ -241,6 +247,15 @@ public class GameLogicManager {
                 this.attemptsByLandmarkId.remove(lmid);
                 eloCalculator.updateRating(lmid, riddleSeconds, isCorrect);
 
+                AnswerTransactionRecord record = AnswerTransactionRecord.forAttempt(
+                    this.session.getSessionId(),
+                    this.session.getUserId(),
+                    lmid, isCorrect,
+                    maxWrongAnswer - this.attemptsByLandmarkId.getOrDefault(lmid, 0),
+                    riddleSeconds
+                );
+                answerTransactionRecordRepo.save(record);
+
                 // add to solved landmark as wrong
                 this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);
 
@@ -264,6 +279,14 @@ public class GameLogicManager {
             String lmid = this.currentTarget.getId();
             this.attemptsByLandmarkId.remove(lmid);
             eloCalculator.updateRating(lmid, riddleSeconds, isCorrect);
+            AnswerTransactionRecord record = AnswerTransactionRecord.forAttempt(
+                    this.session.getSessionId(),
+                    this.session.getUserId(),
+                    lmid, isCorrect,
+                    maxWrongAnswer - this.attemptsByLandmarkId.getOrDefault(lmid, 0),
+                    riddleSeconds
+                );
+                answerTransactionRecordRepo.save(record);
 
             System.out.println("[Debug] Target pool after removal: " + this.attemptsByLandmarkId.keySet());
             this.solvedLandmarks.put(this.currentTarget.getId(), isCorrect);

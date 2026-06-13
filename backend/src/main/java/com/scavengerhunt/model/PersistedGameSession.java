@@ -35,8 +35,6 @@ public class PersistedGameSession {
     @Version
     private Long version;   // optimistic locking — prevents two concurrent writes from clobbering each other
 
-    private PersistedGameSession() {}
-
     public PersistedGameSession(String sessionId, String userId, String city) {
         this.sessionId = sessionId;
         this.userId = userId;

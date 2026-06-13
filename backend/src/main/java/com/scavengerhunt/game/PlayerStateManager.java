@@ -17,10 +17,10 @@ public class PlayerStateManager {
     private GameDataRepository gameDataRepository;
 
     private boolean isGameFinish = false;
-    
+
     private Landmark detectedLandmark;
     // private Map<String, Boolean> solvedLandmarksId = new HashMap<>(); // for frontend to render into diff color
- 
+
     public PlayerStateManager(Player player, LandmarkManager landmarkManager, GameDataRepository gameDataRepository) {
         // this.currentTarget = landmark;
         this.player = player;
@@ -28,7 +28,7 @@ public class PlayerStateManager {
         this.gameDataRepository = gameDataRepository;
     }
 
-    /** 
+    /**
      * Core Functions
      */
 
@@ -44,11 +44,11 @@ public class PlayerStateManager {
         List<String> candidateIds = landmarkManager.getAllLocalLandmarkIds();
         System.out.println("[PlayerStateManager] Detecting landmark from " + candidateIds.size() + " local landmarks");
         System.out.println("[PlayerStateManager] Player position: " + getPlayer().getLatitude() + ", " + getPlayer().getLongitude() + " @ " + getPlayer().getAngle());
-        
+
         // Use GeoUtils.detectedLandmark method to update detected landmark
         this.detectedLandmark = null;
         this.detectedLandmark = GeoUtils.detectedLandmark(candidateIds, this.player, gameDataRepository);
-        
+
         if (this.detectedLandmark != null) {
             System.out.println("[PlayerStateManager] Detected landmark: " + this.detectedLandmark.getName());
         } else {
@@ -81,4 +81,4 @@ public class PlayerStateManager {
     // public Map<String, Boolean> getSolvedLandmarksId() {
     //     return solvedLandmarksId;
     // }
-}   
+}

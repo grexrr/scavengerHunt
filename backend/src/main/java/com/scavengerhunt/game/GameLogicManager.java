@@ -73,6 +73,36 @@ public class GameLogicManager {
         this.answerTransactionRecordRepo = answerTransactionRecordRepo;
     }
 
+    // Package-private: only accessible from com.scavengerhunt.game — where tests live
+    GameLogicManager(
+        PersistedGameSession session,
+        GameDataRepository gameDataRepo,
+        PlayerStateManager playerStateManager,
+        PuzzleAgentClient puzzleAgentClient,
+        AnswerTransactionRecordRepository answerTransactionRecordRepo,
+        int maxRiddleDurationMinutes
+    ) {
+        this.session = session;
+        this.gameDataRepo = gameDataRepo;
+        this.userId = session.getUserId();
+        this.player = new Player(
+            session.getPlayerLat(),
+            session.getPlayerLng(),
+            session.getPlayerAngle(),
+            session.getCity()
+        );
+        this.landmarkManager = null;
+        this.playerStateManager = playerStateManager;
+        this.puzzleManager = new PuzzleManager(gameDataRepo, puzzleAgentClient);
+        this.attemptsByLandmarkId = session.getAttemptsByLandmarkId();
+        if (session.getCurrentTargetId() != null) {
+            this.currentTarget = gameDataRepo.findLandmarkById(session.getCurrentTargetId());
+        }
+        this.eloCalculator = new EloCalculator(this.userId, this.gameDataRepo, maxRiddleDurationMinutes);
+        this.answerTransactionRecordRepo = answerTransactionRecordRepo;
+        this.maxRiddleDurationMinutes = maxRiddleDurationMinutes;
+    }
+
     public void updatePlayerPosition(double lat, double lng, double angle){
         this.playerStateManager.updatePlayerPosition(lat, lng, angle);
         this.session.updatePlayerPosition(lat, lng, angle);
@@ -128,9 +158,6 @@ public class GameLogicManager {
             return false;
         };
 
-        System.out.println("[Debug] Current target: " + this.currentTarget.getName() + " (ID: " + this.currentTarget.getId() + ")");
-        System.out.println("[Debug] Target pool size: " + this.attemptsByLandmarkId.size());
-        System.out.println("[Debug] Target pool contents: " + this.attemptsByLandmarkId.keySet());
 
         // check finishing time
         if (riddleSeconds >= maxRiddleDurationMinutes * 60L) {

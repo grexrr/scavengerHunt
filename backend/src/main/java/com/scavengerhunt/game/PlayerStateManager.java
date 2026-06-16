@@ -56,10 +56,6 @@ public class PlayerStateManager {
         }
     }
 
-    // public void updateSolvedLandmarksId(String solvedLandmarksId, boolean isCorrect) {
-    //     this.solvedLandmarksId.put(solvedLandmarksId, isCorrect);
-    // }
-
     public void resetGame(){
         this.isGameFinish = false;
         this.detectedLandmark = null;
@@ -77,8 +73,4 @@ public class PlayerStateManager {
     public Landmark getDetectedLandmark() {
         return detectedLandmark;
     }
-
-    // public Map<String, Boolean> getSolvedLandmarksId() {
-    //     return solvedLandmarksId;
-    // }
 }

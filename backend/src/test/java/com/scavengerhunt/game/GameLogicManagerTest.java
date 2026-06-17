@@ -188,4 +188,74 @@ public class GameLogicManagerTest {
         boolean result = game.submitCurrentAnswer(60);
         assertFalse(result, "No current target should return false immediately");
     }
+
+    // ============ basic functions ============
+
+    @Test
+    void updatePlayerPosition_updatesSession() {
+        Map<String, Integer> pool = new HashMap<>(Map.of("id-glucksman", 3));
+        GameLogicManager game = buildGame(pool, "id-glucksman", glucksman);
+
+        game.updatePlayerPosition(51.895, -8.488, 90.0);
+
+        assertEquals(51.895, mockSession.getPlayerLat(), 0.0001);
+        assertEquals(-8.488, mockSession.getPlayerLng(), 0.0001);
+        assertEquals(90.0, mockSession.getPlayerAngle(), 0.0001);
+    }
+
+    @Test
+    void isGameFinished_returnsFalse_whenPoolNotEmpty() {
+        Map<String, Integer> pool = new HashMap<>(Map.of("id-glucksman", 3));
+        GameLogicManager game = buildGame(pool, "id-glucksman", glucksman);
+
+        assertFalse(game.isGameFinished());
+    }
+
+    @Test
+    void isGameFinished_returnsTrue_whenPoolEmpty() {
+        Map<String, Integer> pool = new HashMap<>();
+        GameLogicManager game = buildGame(pool, null, null);
+
+        assertTrue(game.isGameFinished());
+    }
+
+    @Test
+    void getCurrentTarget_returnsTargetMap_withCorrectFields() {
+        glucksman.setRiddle("A riddle about art.");
+        Map<String, Integer> pool = new HashMap<>(Map.of("id-glucksman", 3));
+        GameLogicManager game = buildGame(pool, "id-glucksman", glucksman);
+
+        Map<String, Object> target = game.getCurrentTarget();
+
+        assertNotNull(target);
+        assertEquals("id-glucksman", target.get("id"));
+        assertEquals("Glucksman Gallery", target.get("name"));
+        assertEquals(3, target.get("attemptsLeft"));
+        assertEquals("A riddle about art.", target.get("riddle"));
+    }
+
+    @Test
+    void getCurrentTarget_returnsNull_whenGameFinished() {
+        Map<String, Integer> pool = new HashMap<>(Map.of("id-glucksman", 3));
+        when(mockPlayerStateManager.isGameFinished()).thenReturn(true);
+        GameLogicManager game = buildGame(pool, "id-glucksman", glucksman);
+
+        assertNull(game.getCurrentTarget());
+    }
+
+    @Test
+    void answerCorrect_returnsTrue_whenDetectedMatchesTarget() {
+        Map<String, Integer> pool = new HashMap<>(Map.of("id-glucksman", 3));
+        GameLogicManager game = buildGame(pool, "id-glucksman", glucksman);
+
+        assertTrue(game.answerCorrect(glucksman));
+    }
+
+    @Test
+    void answerCorrect_returnsFalse_whenDetectedDiffersFromTarget() {
+        Map<String, Integer> pool = new HashMap<>(Map.of("id-glucksman", 3));
+        GameLogicManager game = buildGame(pool, "id-glucksman", quad);
+
+        assertFalse(game.answerCorrect(quad));
+    }
 }

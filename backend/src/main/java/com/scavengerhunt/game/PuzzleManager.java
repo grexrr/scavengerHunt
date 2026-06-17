@@ -12,11 +12,11 @@ public class PuzzleManager {
 
     private final GameDataRepository gameDataRepo;
     private final PuzzleAgentClient puzzleAgentClient;
-    
+
     private String sessionId;
     private String language;
     private String style;
-    private List<Landmark> targetPool; 
+    private List<Landmark> targetPool;
 
     public PuzzleManager(GameDataRepository gameDataRepo, PuzzleAgentClient puzzleAgentClient) {
         this.gameDataRepo = gameDataRepo;
@@ -36,12 +36,12 @@ public class PuzzleManager {
         List<String> poolIds = null;
         if (this.targetPool != null) {
             poolIds = this.targetPool.stream()
-                    .map(Landmark::getId)  
+                    .map(Landmark::getId)
                     .toList();
         }
-        
+
         System.out.println("[Debug] Sending puzzlePool: " + poolIds);
-        
+
         Map<String, Object> payload = new HashMap<>();
         if (this.sessionId != null && !this.sessionId.isEmpty()) {
             payload.put("sessionId", this.sessionId);
@@ -59,29 +59,29 @@ public class PuzzleManager {
             return "Default Riddle";
         }
     }
-    
+
     public void resetPuzzleSession() {
         try {
             puzzleAgentClient.resetSession(this.sessionId);
         } catch (Exception ignored) {
         }
     }
-    
+
 
     public void storeUserGameRoundStatistics(){
 
     }
 
     private double normalizeRating(Double rating, String mode){
-        //needs to be change to log 
+        //needs to be change to log
         // Delta = q_{player} - q_{landmark}
         // d = 100 / (1 + e^(-Delta))
-        
+
         if (rating == null || rating.isNaN()) return 50.0; // fallback
-    
+
         String m = (mode == null || mode.isEmpty()) ? "default" : mode;
         double clamppedRating = Math.max(-3.0, Math.min(3.0, rating));
-        
+
         if ("default".equals(m)){
             return (clamppedRating - (-3.0)) / 6.0 * 100.0;
         } else if ("sigmoid".equals(m)){
@@ -97,9 +97,28 @@ public class PuzzleManager {
     }
 
     public String getSessionId() { return sessionId; }
-    
+
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }
 
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        this.language = language;
+    }
+
+    public String getStyle() {
+        return style;
+    }
+
+    public void setStyle(String style) {
+        this.style = style;
+    }
+
+    public List<Landmark> getTargetPool() {
+        return targetPool;
+    }
 }
 
 

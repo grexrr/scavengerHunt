@@ -24,10 +24,11 @@ public class PuzzleAgentClient {
     public String generateRiddle(Map<String, Object> payload) {
         try {
             String url = baseUrl + "/generate-riddle";
-            System.out.println("[PuzzleAgentClient] Calling: " + url);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+
             HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headers);
+
             ResponseEntity<Map> resp = restTemplate.postForEntity(url, req, Map.class);
             if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
                 System.out.println("[PuzzleAgentClient] Non-2xx response or null body");

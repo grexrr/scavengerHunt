@@ -20,7 +20,7 @@ public class LandmarkProcessorClient {
 
     private final String baseUrl;
     private final RestTemplate restTemplate = new RestTemplate();
-    
+
     public LandmarkProcessorClient(@Value("${landmark.processor.url}") String baseUrl) {
         this.baseUrl = baseUrl;
     }

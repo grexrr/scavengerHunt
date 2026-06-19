@@ -1,10 +1,9 @@
 package com.scavengerhunt.game;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.scavengerhunt.client.PuzzleAgentClient;
+import com.scavengerhunt.client.dto.GenerateRiddleRequest;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.repository.GameDataRepository;
 
@@ -40,20 +39,19 @@ public class PuzzleManager {
                     .toList();
         }
 
-        System.out.println("[Debug] Sending puzzlePool: " + poolIds);
+        double difficulty = normalizeRating(gameDataRepo.getLandmarkRatingById(landmarkId), "sigmoid");
 
-        Map<String, Object> payload = new HashMap<>();
-        if (this.sessionId != null && !this.sessionId.isEmpty()) {
-            payload.put("sessionId", this.sessionId);
-        }
-        payload.put("landmarkId", landmarkId);
-        payload.put("difficulty", normalizeRating(gameDataRepo.getLandmarkRatingById(landmarkId), "sigmoid"));
-        payload.put("language", this.language);
-        payload.put("style", this.style);
-        payload.put("puzzlePool", poolIds);
+        var req = new GenerateRiddleRequest(
+            this.sessionId,
+            landmarkId,
+            difficulty,
+            this.language,
+            this.style,
+            poolIds
+        );
 
         try {
-            return puzzleAgentClient.generateRiddle(payload);
+            return puzzleAgentClient.generateRiddle(req);
         } catch (Exception e) {
             System.out.println("[PuzzleManager] Python backend not available: " + e.getMessage());
             return "Default Riddle";

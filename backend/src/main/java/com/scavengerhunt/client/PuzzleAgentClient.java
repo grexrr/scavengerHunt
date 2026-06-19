@@ -1,55 +1,65 @@
 package com.scavengerhunt.client;
 
-import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
+
+import com.scavengerhunt.client.dto.GenerateRiddleRequest;
+import com.scavengerhunt.client.dto.GenerateRiddleResponse;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 
 @Component
 public class PuzzleAgentClient {
 
-    private final String baseUrl;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private static final Logger log = LoggerFactory.getLogger(PuzzleAgentClient.class);
 
-    public PuzzleAgentClient(@Value("${puzzle.agent.url}") String baseUrl) {
-        this.baseUrl = baseUrl;
+    private final RestClient restClient;
+
+
+    public PuzzleAgentClient(
+        @Value("${app.puzzle-agent.url}") String baseUrl,
+        @Value("${app.puzzle-agent.timeout-seconds}") int timeoutSeconds
+    ){
+        var factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(timeoutSeconds * 1000);
+        factory.setReadTimeout(timeoutSeconds * 1000);
+
+        this.restClient = RestClient.builder()
+            .baseUrl(baseUrl)
+            .requestFactory(factory)
+            .build();
     }
 
-    public String generateRiddle(Map<String, Object> payload) {
-        try {
-            String url = baseUrl + "/generate-riddle";
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
+    @CircuitBreaker(name = "puzzleAgent", fallbackMethod = "riddleFallback")
+    public String generateRiddle(GenerateRiddleRequest req)  {
+        var resp = restClient.post()
+            .uri("/generate-riddle")
+            .body(req)
+            .retrieve()
+            .body(GenerateRiddleResponse.class);
 
-            HttpEntity<Map<String, Object>> req = new HttpEntity<>(payload, headers);
-
-            ResponseEntity<Map> resp = restTemplate.postForEntity(url, req, Map.class);
-            if (!resp.getStatusCode().is2xxSuccessful() || resp.getBody() == null) {
-                System.out.println("[PuzzleAgentClient] Non-2xx response or null body");
-                return "Default Riddle";
-            }
-            Object r = resp.getBody().get("riddle");
-            return (r instanceof String) ? (String) r : "Default Riddle";
-        } catch (Exception e) {
-            System.out.println("[PuzzleAgentClient] Error calling puzzle-agent: " + e.getMessage());
-            e.printStackTrace();
-            return "Default Riddle";
+        if (resp == null || resp.riddle() == null){
+            throw new RuntimeException("Empty riddle response from Puzzle Agent");
         }
+        return resp.riddle();
+    }
+
+    private String riddleFallback(GenerateRiddleRequest req, Throwable t) {
+        log.warn("Puzzle Agent unavailable for landmark {}, using fallback. Cause: {}", req.landmarkId(), t.getMessage());
+        return "Find the landmark that matches your target. Look carefully at the surroundings.";
     }
 
     public void resetSession(String sessionId) {
-        try {
-            String url = baseUrl + "/reset-session";
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("session_id", sessionId);
-            restTemplate.postForEntity(url, payload, String.class);
-        } catch (Exception ignored) {
-        }
+        restClient.post()
+        .uri("/reset-session")
+        .body(Map.of("session_id", sessionId))
+        .retrieve()
+        .toBodilessEntity();
     }
 }

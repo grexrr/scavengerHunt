@@ -1,7 +1,7 @@
 package com.scavengerhunt.game;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.scavengerhunt.client.PuzzleAgentClient;
+import com.scavengerhunt.client.dto.GenerateRiddleRequest;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.repository.GameDataRepository;
 
@@ -122,10 +123,10 @@ public class PuzzleManagerTest {
         String mockRiddle = "I have spires but no church. What am I?";
 
         when(mockGameDataRepo.getLandmarkRatingById(mockLandmarkId)).thenReturn(0.5);
-        when(mockPuzzleAgentClient.generateRiddle(anyMap())).thenReturn(mockRiddle);
+        when(mockPuzzleAgentClient.generateRiddle(any(GenerateRiddleRequest.class))).thenReturn(mockRiddle);
 
         assertEquals(testPuzzleManager.getRiddleForLandmark(mockLandmarkId), mockRiddle);
-        verify(mockPuzzleAgentClient, times(1)).generateRiddle(anyMap());
+        verify(mockPuzzleAgentClient, times(1)).generateRiddle(any(GenerateRiddleRequest.class));
     }
 
     @Test
@@ -133,7 +134,7 @@ public class PuzzleManagerTest {
         String mockLandmarkId = "lm-123";
 
         when(mockGameDataRepo.getLandmarkRatingById(mockLandmarkId)).thenReturn(0.5);
-        when(mockPuzzleAgentClient.generateRiddle(anyMap())).thenThrow(new RuntimeException("Mock python server down"));
+        when(mockPuzzleAgentClient.generateRiddle(any(GenerateRiddleRequest.class))).thenThrow(new RuntimeException("Mock python server down"));
 
         String res = testPuzzleManager.getRiddleForLandmark(mockLandmarkId);
 
@@ -144,11 +145,11 @@ public class PuzzleManagerTest {
     void getRiddleForLandmark_calledTwice(){
         String landmarkId = "lm-001";
         when(mockGameDataRepo.getLandmarkRatingById(landmarkId)).thenReturn(0.5);
-        when(mockPuzzleAgentClient.generateRiddle(anyMap())).thenReturn("Some riddle");
+        when(mockPuzzleAgentClient.generateRiddle(any(GenerateRiddleRequest.class))).thenReturn("Some riddle");
 
         testPuzzleManager.getRiddleForLandmark(landmarkId);
         testPuzzleManager.getRiddleForLandmark(landmarkId);
 
-        verify(mockPuzzleAgentClient, times(2)).generateRiddle(anyMap());
+        verify(mockPuzzleAgentClient, times(2)).generateRiddle(any(GenerateRiddleRequest.class));
     }
 }

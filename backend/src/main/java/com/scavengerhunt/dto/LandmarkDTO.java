@@ -11,12 +11,6 @@ public class LandmarkDTO {
 
     public LandmarkDTO() {}
 
-    // public LandmarkDTO(String id, String name, List<List<Double>> coordinates) {
-    //     this.id = id;
-    //     this.name = name;
-    //     this.coordinates = coordinates;
-    // }
-
     public LandmarkDTO(String id, String name,  Map<String, Double> centroid, List<List<Double>> coordinates) {
         this.id = id;
         this.name = name;

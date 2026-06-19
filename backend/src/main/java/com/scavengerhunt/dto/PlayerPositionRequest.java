@@ -8,14 +8,6 @@ import jakarta.validation.constraints.NotNull;
 public class PlayerPositionRequest {
 
     @Schema(
-        description = "Unique user identifier",
-        example = "408808b8-777c-469a-867d-dd5e7d5e38e2",
-        required = true
-    )
-    @NotNull
-    private String userId;
-
-    @Schema(
         description = "Latitude in decimal degrees",
         example = "51.894964",
         required = true
@@ -53,14 +45,6 @@ public class PlayerPositionRequest {
     )
     private double coneRadiusMeters = 50;
     // private String city = "Cork";
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
 
     public double getLatitude() {
         return latitude;

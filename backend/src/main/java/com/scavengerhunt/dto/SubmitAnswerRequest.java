@@ -1,19 +1,10 @@
 package com.scavengerhunt.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Payload for submitting an answer and optional telemetry data.")
 public class SubmitAnswerRequest {
-
-    @NotBlank
-    @Schema(
-        description = "Unique identifier of the player submitting the answer.",
-        example = "408808b8-777c-469a-867d-dd5e7d5e38e2",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    private String userId;
 
     @NotNull
     @Schema(
@@ -40,14 +31,6 @@ public class SubmitAnswerRequest {
         example = "-8.489178"
     )
     private Double longitude;
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
 
     public Long getSecondsUsed() {
         return secondsUsed;

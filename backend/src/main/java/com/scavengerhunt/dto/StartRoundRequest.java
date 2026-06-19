@@ -10,14 +10,6 @@ import jakarta.validation.constraints.NotNull;
 public class StartRoundRequest {
 
     @Schema(
-        description = "Unique user identifier",
-        example = "uuid-string",
-        required = true
-    )
-    @NonNull
-    private String userId;
-
-    @Schema(
         description = "Latitude in decimal degrees",
         example = "40.7128",
         required = true
@@ -40,6 +32,7 @@ public class StartRoundRequest {
         example = "135",
         required = true
     )
+    @NotNull
     @DecimalMin("0.0") @DecimalMax("360.0")
     private double angle;
 
@@ -92,14 +85,6 @@ public class StartRoundRequest {
 
     public void setAngle(double angle) {
         this.angle = angle;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 
     public double getLatitude() {

@@ -34,7 +34,7 @@ public class GameRestControllerIntegrationTest {
     @BeforeEach
     void setup(){
         userId = "game-test-" + System.currentTimeMillis();
-        token = tokenProvider.generateToken(userId, "Player");
+        token = tokenProvider.generateToken(userId, "TestPlayer");
         gameSessionService.removeSession(userId);
     }
 

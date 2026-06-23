@@ -18,7 +18,6 @@ def error_response(code: str, message:str, retryable: bool = False, status: int 
         "retryable": retryable
     }), status
 
-
 # Load environment variables
 load_dotenv()
 

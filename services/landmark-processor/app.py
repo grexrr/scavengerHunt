@@ -1,9 +1,22 @@
-from flask import Flask, request, jsonify  
-from landmark_preprocessor import LandmarkPreprocessor 
+from flask import Flask, request, jsonify
+from landmark_preprocessor import LandmarkPreprocessor
 from landmark_meta_generator import LandmarkMetaGenerator
 from geopy.geocoders import Nominatim
 from pymongo import MongoClient
 from dotenv import load_dotenv
+
+import uuid
+
+from typing import Tuple
+from flask.wrappers import Response
+
+def error_response(code: str, message: str, retryable: bool = False, status: int = 500) -> Tuple[Response, int]:
+    return jsonify({
+        "code": code,
+        "message": message,
+        "correlationId": str(uuid.uuid4()),
+        "retryable": retryable
+    }), status
 
 import os
 
@@ -26,44 +39,45 @@ def resolve_city():
     lng = data.get("longitude")
 
     if lat is None or lng is None:
-        return jsonify({"status": "error", "message": "Missing latitude/longitude"}), 400
+        return error_response("MISSING_COORDINATES", "Missing latitude/longitude", status=400)
 
     geolocator = Nominatim(user_agent="scavenger-agent")
     try:
         location = geolocator.reverse(f"{lat}, {lng}", language='en')
         if not location:
-            return jsonify({"status": "error", "message": "Could not resolve location"}), 400
+            return error_response("RESOLVE_COORDINATES_ERROR", "Could not resolve location", status=400)
 
         city = location.raw.get("address", {}).get("city") \
             or location.raw.get("address", {}).get("town") \
             or location.raw.get("address", {}).get("village")
 
         if not city:
-            return jsonify({"status": "error", "message": "City not found in location data"}), 400
+            return error_response("CITY_NOT_FOUND", "City not found in location data", status=400)
 
         print(f"[ResolveCity] Resolved: {city}")
         return jsonify({"status": "ok", "city": city})
 
     except Exception as e:
         print(f"[ResolveCity] Error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return error_response("INTERNAL_ERROR", str(e), status=500)
 
 @app.route("/fetch-landmark", methods=["POST"])
 def fetch_landmark():
     data = request.get_json()
     lat = data.get("latitude")
-    lng = data.get("longitude") 
+    lng = data.get("longitude")
     if lat is None or lng is None:
-        return jsonify({"status": "error", "message": "Missing lat/lng"}), 400
+        return error_response("MISSING_COORDINATES", "Missing latitude/longitude", status=400)
+
 
     # use internal resolve_city() function instead of duplicating logic
     with app.test_request_context('/resolve-city', method='POST', json={"latitude": lat, "longitude": lng}):
-        resolve_response = resolve_city().get_json()
-    
-    if resolve_response["status"] != "ok":
-        return jsonify({"status": "error", "message": "Failed to resolve city"}), 400
-    
-    city = resolve_response["city"]
+        resolve_response, status_code = resolve_city()
+
+    if status_code != 200:
+        return error_response("RESOLVE_CITY_ERROR",  "Failed to resolve city", status=400)
+
+    city = resolve_response.get_json()["city"]
     print(f"[Landmark Processor] Resolved city: {city}")
 
     # check MongoDB
@@ -77,7 +91,7 @@ def fetch_landmark():
     # if existing_count > 20:
     #     print(f"[✓] Landmark data for {city} already initialized, skipping fetch.")
     #     return jsonify({"status": "ok", "city": city})
-    
+
     print(f"[!] Landmark data for {city} appears incomplete ({existing_count}), proceeding with fetch...")
 
     query = f"""
@@ -103,21 +117,21 @@ def fetch_landmark():
             # .removeDuplicates()
 
         return jsonify({"status": "ok", "city": city})
-    
+
     except Exception as e:
         print(f"[Landmark Processor] Landmark processing failed: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return error_response("INTERNAL_ERROR", str(e), status=500)
 
 @app.route("/generate-landmark-meta", methods=["POST"])
 def generate_landmark_meta():
-    
+
     data = request.get_json(force=True) or {}
     landmark_ids = data.get("landmarkIds") or []
     override = bool(data.get("force", False))
 
     if not landmark_ids or not isinstance(landmark_ids, list):
-        return jsonify({"status": "error", "message": "landmarkIds must be a non-empty list"}), 400
-    
+        return error_response("EMPTY_LANDMARK_LIST", "landmarkIds must be a non-empty list", status=400)
+
     client = MongoClient(MONGO_URL)
     db = client[DB_NAME]
 
@@ -128,7 +142,7 @@ def generate_landmark_meta():
         )
         existing_ids = {doc["landmarkId"] for doc in existing_ids}
         landmark_ids = [lmid for lmid in landmark_ids if lmid not in existing_ids]
-    
+
     if not landmark_ids:
         return jsonify({
             "status": "ok",
@@ -136,11 +150,11 @@ def generate_landmark_meta():
             "skipped": "all exist" if not override else 0,
             "failed": 0
         })
-    
+
     try:
-        generator = LandmarkMetaGenerator("openai") 
+        generator = LandmarkMetaGenerator("openai")
         generator.loadLandmarksFromDB(landmark_ids).fetchWiki().fetchOpenAI().storeToDB(collection_name="landmark_metadata", overwrite=False)
-        
+
         return jsonify({
             "status": "ok",
             "generated": len(generator.landmarks),
@@ -149,7 +163,7 @@ def generate_landmark_meta():
         })
     except Exception as e:
         print(f"[Meta Generator] Error: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return error_response("INTERNAL_ERROR", str(e), status=500)
 
 
 if __name__ == "__main__":
@@ -157,6 +171,5 @@ if __name__ == "__main__":
     host = os.getenv('FLASK_HOST', '0.0.0.0')  # 默认值
     port = int(os.getenv('FLASK_PORT', '5000'))  # 默认值
     debug = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'  # 默认值
-    
+
     app.run(host=host, port=port, debug=debug)
-    

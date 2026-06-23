@@ -29,6 +29,7 @@ import com.scavengerhunt.model.PersistedGameSession;
 import com.scavengerhunt.repository.AnswerTransactionRecordRepository;
 import com.scavengerhunt.repository.GameDataRepository;
 import com.scavengerhunt.service.GameSessionService;
+import com.scavengerhunt.service.JobCoordinator;
 import com.scavengerhunt.utils.GeoUtils;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,6 +57,9 @@ public class GameRestController {
 
     @Autowired
     private LandmarkProcessorClient landmarkProcessorClient;
+
+    @Autowired
+    private JobCoordinator jobCoordinator;
 
     // EloCalculator is created dynamically in GameSession, not as a Spring bean
     @Operation(
@@ -106,13 +110,32 @@ public class GameRestController {
         double lat = request.getLatitude();
         double lng = request.getLongitude();
         double angle = request.getAngle();
-        String city = gameDataRepo.initLandmarkDataFromPosition(lat, lng);
+        // String city = gameDataRepo.initLandmarkDataFromPosition(lat, lng);
 
-        // Still return landmarks for consistency
-        List<Landmark> landmarks = gameDataRepo.getLandmarkRepo().findByCity(city);
+        String city;
+        try{
+            city = landmarkProcessorClient.resolveCity(lat, lng);
+        } catch (NullPointerException e) {
+            return ResponseEntity.status(400).body(
+                Map.of("status", "error", "message", "Could not resolve city from coordinates")
+            );
+        }
+
+        List<Landmark> existing = gameDataRepo.findByCity(city);
+        if (existing.size() < 10) {
+            jobCoordinator.enqueueFetchLandmarks(city, lat, lng);
+            return ResponseEntity.accepted().body(
+                Map.of(
+                    "status", "PREPARING",
+                    "message", "Landmarks are being prepared for " + city + ". Please try again in a few seconds.",
+                    "city", city
+                )
+            );
+        }
+
         List<LandmarkDTO> frontendLandmarks = new ArrayList<>();
 
-        for (Landmark lm : landmarks) {
+        for (Landmark lm : existing) {
             // polygon
             List<List<Double>> coords = new ArrayList<>();
             Coordinate[] polygon = GeoUtils.convertToJtsPolygon(lm.getGeometry()).getCoordinates();

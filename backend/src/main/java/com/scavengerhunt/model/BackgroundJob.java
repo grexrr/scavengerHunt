@@ -29,7 +29,7 @@ public class BackgroundJob {
     private Instant startedAt;
     private Instant completedAt;
 
-    public static BackgroundJob fetBackgroundJob(String city, double lat, double lng) {
+    public static BackgroundJob fetchLandmarks(String city, double lat, double lng) {
         BackgroundJob job = new BackgroundJob();
         job.jobId = java.util.UUID.randomUUID().toString();
         job.type = "FETCH_LANDMARKS";
@@ -43,6 +43,14 @@ public class BackgroundJob {
 
     // --- Getters and Setters ---
 
+    public String getJobId() { return jobId; }
+    public void setJobId(String jobId) { this.jobId = jobId; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+    public Map<String, Object> getPayload() { return payload; }
+    public void setPayload(Map<String, Object> payload) { this.payload = payload; }
+    public Status getStatus() { return status; }
+    public void setStatus(Status status) { this.status = status; }
     public int getAttemptCount() { return attemptCount; }
     public void setAttemptCount(int attemptCount) { this.attemptCount = attemptCount; }
     public String getIdempotencyKey() { return idempotencyKey; }

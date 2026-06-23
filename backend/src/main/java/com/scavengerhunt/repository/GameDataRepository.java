@@ -108,6 +108,10 @@ public class GameDataRepository {
             .toList();
     }
 
+    public List<Landmark> findByCity(String city) {
+        return landmarkRepo.findByCity(city);
+    }
+
     public double getLandmarkRatingById(String landmarkId){
         Landmark landmark = findLandmarkById(landmarkId);
         Double rating = (landmark != null) ? landmark.getRating() : null;

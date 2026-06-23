@@ -126,7 +126,7 @@ def fetch_landmark():
 def generate_landmark_meta():
 
     data = request.get_json(force=True) or {}
-    landmark_ids = data.get("landmarkIds") or []
+    landmark_ids = data.get("landmark_ids") or []
     override = bool(data.get("force", False))
 
     if not landmark_ids or not isinstance(landmark_ids, list):

@@ -51,10 +51,10 @@ public class JobCoordinator {
         jobRepo.save(job);
 
         try {
-            if(job.getType() == "FETCH_LANDMARKS"){
+            if("FETCH_LANDMARKS".equals(job.getType())){
                 double lat = (double) job.getPayload().get("latitude");
                 double lng = (double) job.getPayload().get("longitude");
-                //landmarks ingestion service fetch for location
+                landmarkIngestionService.fetchForLocation(lat, lng);
             }
             job.setStatus(BackgroundJob.Status.DONE);
             job.setCompletedAt(Instant.now());

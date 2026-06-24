@@ -18,9 +18,11 @@ public class LandmarkProcessorClient {
     private final RestClient restClient;
 
     public LandmarkProcessorClient(@Value("${landmark.processor.url}") String baseUrl) {
-        this.restClient = RestClient.builder()
-            .baseUrl(baseUrl)
-            .build();
+        this.restClient = RestClient.builder().baseUrl(baseUrl).build();
+    }
+
+    LandmarkProcessorClient(RestClient restClient) {
+        this.restClient = restClient;
     }
 
     public String resolveCity(double lat, double lng) {

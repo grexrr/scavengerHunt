@@ -13,7 +13,7 @@ import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
 
 public class GeoUtils {
-    
+
     private static final double EARTH_RADIUS = 6371000; // meters
 
     /**
@@ -55,26 +55,26 @@ public class GeoUtils {
                 // System.out.println("[GeoUtils] Landmark not found for ID: " + lmid);
                 continue;
             }
-            
+
             // System.out.println("[GeoUtils] Checking landmark: " + lm.getName() + " (ID: " + lmid + ")");
             // System.out.println("[GeoUtils] Landmark geometry: " + (lm.getGeometry() != null ? "exists" : "null"));
-            
+
             if (lm.getGeometry() == null) {
                 // System.out.println("[GeoUtils] Skipping landmark with null geometry");
                 continue;
             }
-            
+
             try {
                 Polygon lmPolygon = convertToJtsPolygon(lm.getGeometry());
                 // System.out.println("[GeoUtils] Converted polygon for " + lm.getName() + ": " + lmPolygon.getNumPoints() + " points");
                 // System.out.println("[GeoUtils] Polygon bounds: " + lmPolygon.getEnvelopeInternal());
-                
+
                 // Calculate distance to landmark
-                double targetLat = lm.getCentroid().get("latitude");
-                double targetLng = lm.getCentroid().get("longitude");
+                double targetLat = lm.getLatitude();
+                double targetLng = lm.getLongitude();
                 double distance = distanceInMeters(playerLat, playerLng, targetLat, targetLng);
                 // System.out.println("[GeoUtils] Distance to " + lm.getName() + ": " + distance + "m");
-                
+
                 if (lmPolygon.intersects(playerCone)){
                     // System.out.println("[GeoUtils] Landmark intersects with player cone");
                     double angleToTarget = calculateTargetAngle(playerLat, playerLng, targetLat, targetLng);
@@ -86,7 +86,7 @@ public class GeoUtils {
                         minAngleDiff = angleDiff;
                         selectedLandmark = lm;
                         // System.out.println("[GeoUtils] New best landmark: " + lm.getName() + " with angle diff: " + angleDiff);
-                    }   
+                    }
                 } else {
                     // System.out.println("[GeoUtils] Landmark does not intersect with player cone (distance: " + distance + "m)");
                     // Add angle calculation for debugging
@@ -98,12 +98,12 @@ public class GeoUtils {
                 // System.out.println("[GeoUtils] Error processing landmark " + lm.getName() + ": " + e.getMessage());
             }
         }
-        
+
         // System.out.println("[GeoUtils] Final selected landmark: " + (selectedLandmark != null ? selectedLandmark.getName() : "null"));
         return selectedLandmark;
     }
 
-    /** 
+    /**
      * Helper Functions
      */
 

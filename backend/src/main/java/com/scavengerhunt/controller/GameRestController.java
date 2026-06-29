@@ -142,7 +142,7 @@ public class GameRestController {
             for (Coordinate coord : polygon) {
                 coords.add(Arrays.asList(coord.getY(), coord.getX()));  // [lat, lng]
             }
-            LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), lm.getCentroid(), coords);
+            LandmarkDTO dto = new LandmarkDTO(lm.getId(), lm.getName(), lm.getLatitude(), lm.getLongitude(), coords);
             frontendLandmarks.add(dto);
         }
 

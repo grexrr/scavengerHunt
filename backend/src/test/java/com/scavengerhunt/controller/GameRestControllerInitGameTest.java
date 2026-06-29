@@ -111,10 +111,13 @@ public class GameRestControllerInitGameTest {
         when(landmarkProcessorClient.resolveCity(anyDouble(), anyDouble())).thenReturn("Cork");
 
         for (int i = 0; i < 10; i++){
-            Landmark lm = new Landmark();
-            lm.setId("lm-" + i);
-            lm.setName("Landmark " + i);
-            lm.setCity("Cork");
+            Landmark lm = new Landmark(
+                "lm-" + i,
+                "Landmark " + i,
+                "Cork",
+                0.5,
+                0.5
+            );
 
             GeoJsonPolygon polygon = new GeoJsonPolygon(
                 new Point(0, 0),
@@ -123,7 +126,6 @@ public class GameRestControllerInitGameTest {
                 new Point(0, 0)
             );
             lm.setGeometry(polygon);
-            lm.setCentroid(Map.of("latitude", 0.5, "longitude", 0.5));
             landmarkRepo.save(lm);
         }
 
@@ -143,10 +145,13 @@ public class GameRestControllerInitGameTest {
         when(landmarkProcessorClient.resolveCity(anyDouble(), anyDouble())).thenReturn("Cork");
 
         for (int i = 0; i < 10; i++){
-            Landmark lm = new Landmark();
-            lm.setId("lm-" + i);
-            lm.setName("Landmark " + i);
-            lm.setCity("Cork");
+            Landmark lm = new Landmark(
+                "lm-" + i,
+                "Landmark " + i,
+                "Cork",
+                0.5,
+                0.5
+            );
 
             GeoJsonPolygon polygon = new GeoJsonPolygon(
                 new Point(0, 0),
@@ -155,7 +160,6 @@ public class GameRestControllerInitGameTest {
                 new Point(0, 0)
             );
             lm.setGeometry(polygon);
-            lm.setCentroid(Map.of("latitude", 0.5, "longitude", 0.5));
             landmarkRepo.save(lm);
         }
 

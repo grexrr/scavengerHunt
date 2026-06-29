@@ -1,11 +1,12 @@
 package com.scavengerhunt.model;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -19,8 +20,6 @@ public class Landmark {
 
     private String name;
     private String city;
-
-    private Map<String, Double> centroid = new HashMap<>();
     private GeoJsonPolygon geometry;
 
     private Double rating;
@@ -29,29 +28,30 @@ public class Landmark {
 
     private String riddle;
 
+    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    private GeoJsonPoint location;
+
     public Landmark() {
     }
 
-    public Landmark(String name, String city, Double latitude, Double longitude) {
+    public Landmark(String name, String city, Double lat, Double lng) {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("id and name cannot be null or empty");
         }
         this.name = name;
         this.city = city;
-        this.centroid.put("latitude", latitude);
-        this.centroid.put("longitude", longitude);
+        this.location = new GeoJsonPoint(lng, lat);
     }
 
     // for testing
-    public Landmark(String id, String name, String city, Double latitude, Double longitude) {
+    public Landmark(String id, String name, String city, Double lat, Double lng) {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("id and name cannot be null or empty");
         }
         this.id = id;
         this.name = name;
         this.city = city;
-        this.centroid.put("latitude", latitude);
-        this.centroid.put("longitude", longitude);
+        this.location = new GeoJsonPoint(lng, lat);
     }
 
     // Getters and Setters
@@ -80,25 +80,16 @@ public class Landmark {
         this.city = city;
     }
 
-    public Map<String, Double> getCentroid() {
-        return centroid;
-    }
-
-    public void setCentroid(Map<String, Double> centroid) {
-        this.centroid = centroid;
-    }
-
-    public void setCentroid(Double lat, Double lng) {
-        this.centroid.put("latitude", lat);
-        this.centroid.put("longitude", lng);
-    }
-
     public Double getLatitude() {
-        return centroid.get("latitude");
+        return this.location != null ? location.getY() : null;
     }
 
     public Double getLongitude() {
-        return centroid.get("longitude");
+        return this.location != null ? location.getX() : null;
+    }
+
+    public void setLocation(double lat, double lng) {
+        this.location = new GeoJsonPoint(lng, lat);
     }
 
     public GeoJsonPolygon getGeometry() {

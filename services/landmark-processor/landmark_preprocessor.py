@@ -71,8 +71,10 @@ class LandmarkPreprocessor:
             centroid_lat = sum(pt["lat"] for pt in info["geometry"]) / len(info["geometry"])
             centroid_lon = sum(pt["lon"] for pt in info["geometry"]) / len(info["geometry"])
 
-            package["latitude"] = centroid_lat
-            package["longitude"] = centroid_lon
+            package["location"] = {
+                "type": "Point",
+                "coordinates": [centroid_lon, centroid_lat]
+            }
 
             # Keep all geometry points
             geometry_points = []
@@ -115,11 +117,9 @@ class LandmarkPreprocessor:
             doc = {
                 "name": name,
                 "city": self.city,
-                "latitude": data["latitude"],
-                "longitude": data["longitude"],
+                "location": data["location"],
                 "geometry": data["geometry"],
                 "tags": data.get("tags", {}),
-                "centroid": [data["latitude"], data["longitude"]],
                 "rating": 0.5,
             }
 

@@ -51,8 +51,10 @@ def test_process_raw_landmark_computes_centroid():
     p.processRawLandmark()
 
     result = p.processedLandmarks["Test Hall"]
-    assert abs(result["latitude"] - 51.895) < 0.001
-    assert abs(result["longitude"] - (-8.485)) < 0.001
+
+    assert result["location"]["type"] == "Point"
+    assert abs(result["location"]["coordinates"][0] - (-8.4845)) < 0.001  # longitude
+    assert abs(result["location"]["coordinates"][1] - 51.8945) < 0.001    # latitude
 
 
 def test_process_raw_landmark_includes_geometry():
@@ -85,8 +87,12 @@ def test_store_to_db_inserts_landmark(tmp_path):
 
     mock_collection.insert_one.assert_called_once()
     inserted_doc = mock_collection.insert_one.call_args[0][0]
-    assert inserted_doc["name"] == "Test Hall"
-    assert inserted_doc["city"] == "TestCity"
+    assert inserted_doc["location"]["type"] == "Point"
+    assert abs(inserted_doc["location"]["coordinates"][0] - (-8.4845)) < 0.001  # longitude
+    assert abs(inserted_doc["location"]["coordinates"][1] - 51.8945) < 0.001    # latitude
+    assert "centroid" not in inserted_doc
+    assert "latitude" not in inserted_doc
+    assert "longitude" not in inserted_doc
 
 
 def test_store_to_db_skips_existing_landmark():

@@ -23,6 +23,8 @@ import org.mockito.MockitoAnnotations;
 
 import com.scavengerhunt.model.BackgroundJob;
 import com.scavengerhunt.repository.BackgroundJobRepository;
+import com.scavengerhunt.service.JobCoordinator;
+import com.scavengerhunt.service.LandmarkIngestionService;
 
 public class JobCoordinatorTest {
 

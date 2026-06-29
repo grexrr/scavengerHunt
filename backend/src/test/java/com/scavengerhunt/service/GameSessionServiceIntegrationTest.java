@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import com.scavengerhunt.model.PersistedGameSession;
+import com.scavengerhunt.service.GameSessionService;
 
 @SpringBootTest
 public class GameSessionServiceIntegrationTest {

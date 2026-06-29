@@ -158,7 +158,7 @@ def generate_landmark_meta():
         return jsonify({
             "status": "ok",
             "generated": len(generator.landmarks),
-            "skipped": len(data.get("landmarkIds", [])) - len(generator.landmarks),
+            "skipped": len(data.get("landmark_ids", [])) - len(generator.landmarks),
             "failed": 0
         })
     except Exception as e:

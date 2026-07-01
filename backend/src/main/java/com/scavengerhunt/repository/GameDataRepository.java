@@ -3,7 +3,11 @@ package com.scavengerhunt.repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -110,6 +114,13 @@ public class GameDataRepository {
 
     public List<Landmark> findByCity(String city) {
         return landmarkRepo.findByCity(city);
+    }
+
+    public List<Landmark> findByLocationNear(GeoJsonPoint point, Distance radius){
+        return landmarkRepo.findByLocationNear(point, radius)
+            .getContent().stream()
+            .map(GeoResult::getContent)
+            .collect(Collectors.toList());
     }
 
     public double getLandmarkRatingById(String landmarkId){

@@ -2,6 +2,7 @@ package com.scavengerhunt.game;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 
 import com.scavengerhunt.client.LandmarkProcessorClient;
 import com.scavengerhunt.model.Landmark;
@@ -66,6 +69,9 @@ public class LandmarkManagerTest {
     @Test
     void getRoundLandmarksIdWithinRadius_50m_returnOne() {
         // at glucksman's front
+        when(mockGameDataRepo.findByLocationNear(any(GeoJsonPoint.class), any(Distance.class)))
+        .thenReturn(Arrays.asList(glucksman));
+
         testLandmarkManager.getRoundLandmarksIdWithinRadius(51.894442, -8.4902510, 50);
 
         List<Landmark> res = testLandmarkManager.getAllRouLandmark();
@@ -75,6 +81,9 @@ public class LandmarkManagerTest {
 
     @Test
     void getRoundLandmarksIdWithinRadius_500m_returnAll() {
+        when(mockGameDataRepo.findByLocationNear(any(GeoJsonPoint.class), any(Distance.class)))
+        .thenReturn(Arrays.asList(glucksman, quad, boole));
+
         // at glucksman's front
         testLandmarkManager.getRoundLandmarksIdWithinRadius(51.894442, -8.4902510, 500);
 
@@ -84,6 +93,9 @@ public class LandmarkManagerTest {
 
     @Test
     void getRoundLandmarksIdWithinRadius_10m_returnEmpty() {
+        when(mockGameDataRepo.findByLocationNear(any(GeoJsonPoint.class), any(Distance.class)))
+        .thenReturn(Arrays.asList());
+
         // ucc gate
         testLandmarkManager.getRoundLandmarksIdWithinRadius(51.894985, -8.489127500, 10);
         List<Landmark> res = testLandmarkManager.getAllRouLandmark();

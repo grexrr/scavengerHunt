@@ -17,7 +17,7 @@ class LandmarkMetaGenerator:
         self.api_key = os.getenv("OPENAI_API_KEY", "")
         self.mongo_url = os.getenv("MONGO_URL", "mongodb://localhost:27017")
         self.db_name = os.getenv("MONGO_DB", "scavengerhunt")
-        self.mode = mode  
+        self.mode = mode
         self.metaInfo = {}
         self.landmarks = []
 
@@ -38,13 +38,13 @@ class LandmarkMetaGenerator:
 
         docs = collection.find(query, {"_id": 1, "name": 1, "city": 1})
         self.landmarks = [(str(doc["_id"]), doc["name"], doc.get("city", "")) for doc in docs]
-        
+
         if landmark_ids:
             print(f"[✓] Loaded {len(self.landmarks)}/{len(landmark_ids)} requested landmarks from DB.")
         else:
             print(f"[✓] Loaded {len(self.landmarks)} landmarks from DB.")
         return self
-    
+
     def fetchWiki(self):
         for lm_id, lm, city in self.landmarks:
             if lm_id not in self.metaInfo:
@@ -54,13 +54,13 @@ class LandmarkMetaGenerator:
             try:
                 page = wikipedia.page(lm, auto_suggest=True)
                 print(f"[✓] Processing Wiki Page: {lm}")
-                
+
                 if "meta" not in self.metaInfo[lm_id]:
                     self.metaInfo[lm_id]["meta"] = {}
                 self.metaInfo[lm_id]["meta"]["url"] = page.url
                 self.metaInfo[lm_id]["meta"]["summary"] = page.summary
                 self.metaInfo[lm_id]["meta"]["images"] = [img for img in page.images if img.lower().endswith((".jpg", ".jpeg", ".png"))]
-                
+
                 ### APPLY AI INSPECTION
                 if self._aiInsepection(lm, city, page.summary) == True:
                     # if wiki is found, replace summary with detail
@@ -77,12 +77,12 @@ class LandmarkMetaGenerator:
                 print(f"[!] {lm} page not found.")
         return self
 
-    
+
     def fetchOpenAI(self):
         for lm_id in self.metaInfo:
             if "meta" not in self.metaInfo[lm_id]:
                 self.metaInfo[lm_id]["meta"] = {}
-                    
+
             lm_name = self.metaInfo[lm_id]["name"]
             lm_city = self.metaInfo[lm_id]["city"]
 
@@ -104,12 +104,12 @@ class LandmarkMetaGenerator:
     def _aiSummarizeLandmark(self, lm_name, lm_city, content=None, image_urls=None, retry_count=0):
         # generate something similiar to wikipedia?
         client = OpenAI(api_key=self.api_key)
-        
+
         if not content:
             content = "None"
 
         image_urls = image_urls[:5] if image_urls else []
-        
+
         prompt = f"""
         Provide structured information about a real-world landmark called "{lm_name}" located in "{lm_city}".
         Additional information: {content}
@@ -125,7 +125,7 @@ class LandmarkMetaGenerator:
         "architecture": [...],
         "significance": [...]
         }}
-        
+
 
         Do not include any explanation or commentary.
         Respond ONLY with this JSON format. Do NOT explain.
@@ -137,9 +137,9 @@ class LandmarkMetaGenerator:
                 model="gpt-4-turbo",
                 messages=[
                     # {"role": "system", "content": "You are a precise document verifier."},
-                    {"role": "user", 
-                     "content": 
-                     [{"type": "text", "text": prompt}] + 
+                    {"role": "user",
+                     "content":
+                     [{"type": "text", "text": prompt}] +
                      [{"type": "image_url", "image_url": { "url": url, "detail": "high" }} for url in image_urls]
                      }
                 ],
@@ -182,14 +182,14 @@ class LandmarkMetaGenerator:
                 print(f"[!] Retrying for {lm_name} (attempt {retry_count + 1})")
                 return self._aiSummarizeLandmark(lm_name, lm_city, content, image_urls, retry_count + 1)
             return {
-                "source": "openai", 
-                "confidence": False, 
+                "source": "openai",
+                "confidence": False,
                 "message": "Error during fallback."
             }
-    
+
     def _aiInsepection(self, lm_name, lm_city, content):
         client = OpenAI(api_key=self.api_key)
-        
+
         prompt = f"""
         You are verifying if a Wikipedia article is about a specific landmark.
         Target Landmark: "{lm_name}"
@@ -216,7 +216,7 @@ class LandmarkMetaGenerator:
 
         except Exception as e:
             print(f"[x] GPT error during verification for {lm_name}: {e}")
-            
+
 
     def saveToFile(self, filename="meta_output.json"):
         os.makedirs("outputfiles", exist_ok=True)
@@ -228,6 +228,7 @@ class LandmarkMetaGenerator:
         client = MongoClient(self.mongo_url)
         db = client[self.db_name]
         collection = db[collection_name]
+        collection.create_index("landmarkId", unique=True)
 
         inserted_count = 0
         skipped_count = 0
@@ -243,7 +244,7 @@ class LandmarkMetaGenerator:
 
             # 检查数据库中是否已存在该地标
             existing = collection.find_one({"landmarkId": lm_id})
-            
+
             if existing:
                 if overwrite:
                     # 如果设置了overwrite，更新现有记录

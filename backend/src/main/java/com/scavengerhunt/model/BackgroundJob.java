@@ -8,7 +8,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 
-@Document(collection = "background_job")
+@Document(collection = "background_jobs")
 public class BackgroundJob {
 
     public enum Status{ PENDING, IN_PROGRESS, DONE, FAILED}

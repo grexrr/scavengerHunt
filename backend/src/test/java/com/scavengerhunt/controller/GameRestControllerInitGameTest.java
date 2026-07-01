@@ -3,6 +3,7 @@ package com.scavengerhunt.controller;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,8 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Map;
 
-import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -90,7 +91,7 @@ public class GameRestControllerInitGameTest {
             .andExpect(jsonPath("$.status").value("PREPARING"))
             .andExpect(jsonPath("$.city").value("Cork"));
 
-        verify(jobCoordinator).enqueueFetchLandmarks("Cork",anyDouble(), anyDouble());
+        verify(jobCoordinator).enqueueFetchLandmarks(eq("Cork"),anyDouble(), anyDouble());
     }
 
     @Test
@@ -103,7 +104,7 @@ public class GameRestControllerInitGameTest {
                 .header("Authorization", "Bearer " + token))
             .andExpect(status().isAccepted());
 
-        verify(jobCoordinator).enqueueFetchLandmarks("Dublin", anyDouble(), anyDouble());
+        verify(jobCoordinator).enqueueFetchLandmarks(eq("Dublin"), anyDouble(), anyDouble());
     }
 
     @Test

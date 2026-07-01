@@ -110,12 +110,17 @@ public class GameRestController {
         double lat = request.getLatitude();
         double lng = request.getLongitude();
         double angle = request.getAngle();
-        // String city = gameDataRepo.initLandmarkDataFromPosition(lat, lng);
 
-        String city;
-        try{
-            city = landmarkProcessorClient.resolveCity(lat, lng);
-        } catch (NullPointerException e) {
+        String city = landmarkProcessorClient.resolveCity(lat, lng);
+        // try{
+        //     city = landmarkProcessorClient.resolveCity(lat, lng);
+        // } catch (NullPointerException e) {
+        //     return ResponseEntity.status(400).body(
+        //         Map.of("status", "error", "message", "Could not resolve city from coordinates")
+        //     );
+        // }
+
+        if (city == null) {
             return ResponseEntity.status(400).body(
                 Map.of("status", "error", "message", "Could not resolve city from coordinates")
             );

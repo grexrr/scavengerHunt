@@ -6,12 +6,14 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 import java.util.Optional;
 
-import org.junit.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import com.scavengerhunt.model.BackgroundJob;
 
+@SpringBootTest
 public class BackgroundJobRepositoryIntegrationTest {
 
     @Autowired private BackgroundJobRepository repo;
@@ -64,7 +66,7 @@ public class BackgroundJobRepositoryIntegrationTest {
     void findByIdempotencyKey_exists_returnsJob() {
         repo.save(BackgroundJob.fetchLandmarks("Cork", 51.89, -8.49));
 
-        Optional<BackgroundJob> res = repo.findByIdempotencyKey("fetch-landmark-cork");
+        Optional<BackgroundJob> res = repo.findByIdempotencyKey("fetch-landmarks-cork");
 
         assertTrue(res.isPresent());
         assertEquals("Cork", res.get().getPayload().get("city"));
@@ -72,7 +74,7 @@ public class BackgroundJobRepositoryIntegrationTest {
 
     @Test
     void findByIdempotencyKey_notExists_returnsEmpty() {
-        Optional<BackgroundJob> res = repo.findByIdempotencyKey("fetch-landmark-cork");
+        Optional<BackgroundJob> res = repo.findByIdempotencyKey("fetch-landmarks-cork");
         assertTrue(res.isEmpty());
     }
 

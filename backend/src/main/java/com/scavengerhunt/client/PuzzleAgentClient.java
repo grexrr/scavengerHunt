@@ -57,9 +57,9 @@ public class PuzzleAgentClient {
 
     public void resetSession(String sessionId) {
         restClient.post()
-        .uri("/reset-session")
-        .body(Map.of("session_id", sessionId))
-        .retrieve()
-        .toBodilessEntity();
+            .uri("/reset-session")
+            .body(Map.of("session_id", sessionId))
+            .retrieve()
+            .toBodilessEntity();
     }
 }

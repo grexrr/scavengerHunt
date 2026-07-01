@@ -3,6 +3,7 @@ package com.scavengerhunt.e2e;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -11,16 +12,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.data.geo.Point;
+import org.springframework.data.mongodb.core.geo.GeoJsonPolygon;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
+import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.PersistedGameSession;
+import com.scavengerhunt.repository.LandmarkRepository;
 import com.scavengerhunt.security.JwtTokenProvider;
 import com.scavengerhunt.service.GameSessionService;
+
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class FullGameFlowE2ETest {
@@ -30,6 +40,16 @@ public class FullGameFlowE2ETest {
     @Autowired JwtTokenProvider tokenProvider;
     @Autowired GameSessionService gameSessionService;
     @Autowired TestRestTemplate restTemplate;
+    @Autowired LandmarkRepository landmarkRepo;
+
+    private static MockWebServer landmarkProcessorServer;
+
+    @DynamicPropertySource
+    static void landmarkProcessorProperties(DynamicPropertyRegistry registry) throws IOException {
+        landmarkProcessorServer = new MockWebServer();
+        landmarkProcessorServer.start();
+        registry.add("landmark.processor.url", () -> landmarkProcessorServer.url("/").toString());
+    }
 
     private String userId;
     private String token;
@@ -87,6 +107,31 @@ public class FullGameFlowE2ETest {
 
     @Test
     void sessionLifecycle_initAndFinish() {
+        landmarkProcessorServer.enqueue(new MockResponse()
+        .setBody("""
+            {"status":"ok","city":"Cork"}
+            """)
+        .addHeader("Content-Type", "application/json"));
+
+        for (int i = 0; i < 10; i++){
+            Landmark lm = new Landmark(
+                "lm-" + i,
+                "Landmark " + i,
+                "Cork",
+                0.5,
+                0.5
+            );
+
+            GeoJsonPolygon polygon = new GeoJsonPolygon(
+                new Point(0, 0),
+                new Point(1, 0),
+                new Point(1, 1),
+                new Point(0, 0)
+            );
+            lm.setGeometry(polygon);
+            landmarkRepo.save(lm);
+        }
+
         ResponseEntity<?> r = restTemplate.exchange(
             base + "/api/game/init-game",
             HttpMethod.POST,

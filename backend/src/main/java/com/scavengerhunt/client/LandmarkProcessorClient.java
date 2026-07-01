@@ -11,6 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import com.scavengerhunt.client.dto.FetchLandmarkRequest;
+import com.scavengerhunt.client.dto.FetchLandmarkResponse;
 import com.scavengerhunt.model.Landmark;
 
 @Component
@@ -29,19 +31,14 @@ public class LandmarkProcessorClient {
 
     public String resolveCity(double lat, double lng) {
         try {
-            Map<String, Object> body = restClient.post()
+            FetchLandmarkResponse body = restClient.post()
                 .uri("/resolve-city")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of("latitude", lat, "longitude", lng))
+                .body(new FetchLandmarkRequest(lat, lng))
                 .retrieve()
-                .body(new ParameterizedTypeReference<Map<String, Object>>() {});
+                .body(FetchLandmarkResponse.class);
 
-            if (body != null && "ok".equals(body.get("status"))) {
-                Object city = body.get("city");
-                if (city instanceof String resolved && !resolved.isEmpty()) {
-                    return resolved;
-                }
-            }
+                if (body != null && "ok".equals(body.status()) && body.city() != null && !body.city().isEmpty()) { return body.city(); }
         } catch (Exception e) {
             System.err.println("[Landmark Processor] resolve-city call failed: " + e.getMessage());
         }

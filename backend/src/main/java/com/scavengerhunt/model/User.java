@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "users")
@@ -13,14 +14,19 @@ public class User {
     @Id
     private String userId;
 
+    @Indexed(unique = true)
     private String username;
-    private String password;
+
+    @Indexed(unique = true, sparse = true)
     private String email = null;
+
+    private String password;
+
 
     private String preferredLanguage = "english";
     private String preferredStyle = "medieval";
 
-    private List<Integer> solvedLandmarkIds = new ArrayList<>();
+    private List<String> solvedLandmarkIds = new ArrayList<>();
 
     private Boolean admin = false;
 
@@ -74,8 +80,8 @@ public class User {
     public String getPreferredStyle() { return preferredStyle; }
     public void setPreferredStyle(String preferredStyle) { this.preferredStyle = preferredStyle; }
 
-    public List<Integer> getSolvedLandmarkIds() { return solvedLandmarkIds; }
-    public void setSolvedLandmarkIds(List<Integer> ids) { this.solvedLandmarkIds = ids; }
+    public List<String> getSolvedLandmarkIds() { return solvedLandmarkIds; }
+    public void setSolvedLandmarkIds(List<String> ids) { this.solvedLandmarkIds = ids; }
 
     public Boolean getAdmin() { return admin; }
     public void setAdmin(Boolean admin) { this.admin = admin; }
@@ -95,12 +101,3 @@ public class User {
     public LocalDateTime getLastGameAt() { return lastGameAt; }
     public void setLastGameAt(LocalDateTime lastGameAt) { this.lastGameAt = lastGameAt; }
 }
-
-
-// curl -X POST http://localhost:8443/api/auth/login \
-//   -H "Content-Type: application/json" \
-//   -d '{
-//     "username": "Bob",
-//     "password": "12345"
-//   }'
-

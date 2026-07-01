@@ -58,11 +58,6 @@ public class LandmarkManagerTest {
                 boole.getId()
             )
         );
-
-        when(mockGameDataRepo.findLandmarkById(glucksman.getId())).thenReturn(glucksman);
-        when(mockGameDataRepo.findLandmarkById(quad.getId())).thenReturn(quad);
-        when(mockGameDataRepo.findLandmarkById(boole.getId())).thenReturn(boole);
-
         testLandmarkManager = new LandmarkManager(mockGameDataRepo, mockLandmarkProcessorClient, "Cork");
     }
 

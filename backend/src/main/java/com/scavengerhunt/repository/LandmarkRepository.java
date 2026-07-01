@@ -7,6 +7,7 @@ import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResults;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Near;
 import org.springframework.data.mongodb.repository.Query;
 
 import com.scavengerhunt.model.Landmark;
@@ -24,5 +25,5 @@ public interface LandmarkRepository extends MongoRepository<Landmark, String> {
     @Query(value = "{'_id': ?0}", fields = "{'_id': 1, 'geometry.coordinates': 1}")
     Map<String, List<List<Double>>> getCoordinatesById(String id);
 
-    GeoResults<Landmark> findByLocationNear(GeoJsonPoint point, Distance distance);
+    GeoResults<Landmark> findByLocationNear(@Near GeoJsonPoint point, Distance distance);
 }

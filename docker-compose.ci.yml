@@ -1,28 +1,39 @@
 # CI override — removes fixed names/ports that would conflict with dev stack
 # Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up
+networks:
+  ci-net:
+
 services:
   spring-backend:
+    networks:
+      - ci-net
     container_name: ci-spring-backend
     ports: !override
       - "8080"
     environment:
       JWT_SECRET: "ci-test-secret-not-for-production"
       SPRING_PROFILES_ACTIVE: "ci"
-      SPRING_DATA_MONGODB_URI: "mongodb://ci-mongo:27017/scavengerhunt"  # 'mongo' (service name) collides with the dev stack's mongo-scavenger alias on the shared network — use the unique container_name instead
+      SPRING_DATA_MONGODB_URI: "mongodb://ci-mongo:27017/scavengerhunt"
 
   landmark-processor:
+    networks:
+        - ci-net
     container_name: ci-landmark-processor
     ports: !override []
     environment:
       MONGO_URL: "mongodb://ci-mongo:27017"
 
   puzzle-agent:
+    networks:
+      - ci-net
     container_name: ci-puzzle-agent
     ports: !override []
     environment:
       MONGO_URL: "mongodb://ci-mongo:27017"
 
   mongo:
+    networks:
+      - ci-net
     container_name: ci-mongo
     ports: !override []         # never expose mongo host port in CI
     volumes:

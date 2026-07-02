@@ -1,5 +1,6 @@
 import requests
 import json
+import logging
 import os
 import re
 import wikipedia
@@ -11,6 +12,8 @@ from dotenv import load_dotenv
 from bson import ObjectId
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class LandmarkMetaGenerator:
     def __init__(self, mode="openai"):
@@ -33,16 +36,16 @@ class LandmarkMetaGenerator:
                 try:
                     object_ids.append(ObjectId(lid))
                 except Exception:
-                    print(f"[!] Invalid ObjectId format skipped: {lid}")
+                    logger.warning("Invalid ObjectId format skipped: %s", lid)
             query = {"_id": {"$in": object_ids}}
 
         docs = collection.find(query, {"_id": 1, "name": 1, "city": 1})
         self.landmarks = [(str(doc["_id"]), doc["name"], doc.get("city", "")) for doc in docs]
 
         if landmark_ids:
-            print(f"[✓] Loaded {len(self.landmarks)}/{len(landmark_ids)} requested landmarks from DB.")
+            logger.info("Loaded %d/%d requested landmarks from DB.", len(self.landmarks), len(landmark_ids))
         else:
-            print(f"[✓] Loaded {len(self.landmarks)} landmarks from DB.")
+            logger.info("Loaded %d landmarks from DB.", len(self.landmarks))
         return self
 
     def fetchWiki(self):
@@ -53,7 +56,7 @@ class LandmarkMetaGenerator:
                     self.metaInfo[lm_id]["city"] = city
             try:
                 page = wikipedia.page(lm, auto_suggest=True)
-                print(f"[✓] Processing Wiki Page: {lm}")
+                logger.debug("Processing Wiki page: %s", lm)
 
                 if "meta" not in self.metaInfo[lm_id]:
                     self.metaInfo[lm_id]["meta"] = {}
@@ -71,10 +74,10 @@ class LandmarkMetaGenerator:
                     self.metaInfo[lm_id].pop("meta")
 
             except wikipedia.exceptions.DisambiguationError as e:
-                print(f"[!] {lm} disambiguation: {e.options[:3]}")
+                logger.warning("%s disambiguation: %s", lm, e.options[:3])
 
             except wikipedia.exceptions.PageError:
-                print(f"[!] {lm} page not found.")
+                logger.warning("%s page not found.", lm)
         return self
 
 
@@ -94,7 +97,7 @@ class LandmarkMetaGenerator:
 
             desc = self.metaInfo[lm_id]["meta"].get("description")
             if desc is None or desc == {}:
-                print(f"[!] Description for {lm_name} is not found! Initializing Description.")
+                logger.debug("Description for %s not found, generating via AI.", lm_name)
                 result = self._aiSummarizeLandmark(lm_name, lm_city, content, image_urls)
                 self.metaInfo[lm_id]["meta"]["description"] = result.get("metadata", {})
 
@@ -151,7 +154,7 @@ class LandmarkMetaGenerator:
             text = re.sub(r"```(?:json)?", "", text).replace("```", "").strip()
 
             if "not recognized" in text.lower():
-                print(f"[x] GPT did not recognize: {lm_name}")
+                logger.warning("GPT did not recognize: %s", lm_name)
                 return {
                 "source": "openai",
                 "confidence": False,
@@ -165,10 +168,10 @@ class LandmarkMetaGenerator:
                     "metadata": metadata
                 }
             except json.JSONDecodeError:
-                print(f"[x] GPT output for {lm_name} could not be parsed as JSON:\n{text}")
+                logger.warning("GPT output for %s could not be parsed as JSON: %s", lm_name, text)
                 # 重试逻辑
                 if retry_count < 1:
-                    print(f"[!] Retrying for {lm_name} (attempt {retry_count + 1})")
+                    logger.warning("Retrying for %s (attempt %d)", lm_name, retry_count + 1)
                     return self._aiSummarizeLandmark(lm_name, lm_city, content, image_urls, retry_count + 1)
                 return {
                     "source": "openai",
@@ -176,10 +179,10 @@ class LandmarkMetaGenerator:
                     "message": "Malformed JSON returned by GPT."
                 }
         except Exception as e:
-            print(f"[x] Fallback GPT error for {lm_name}: {e}")
+            logger.error("Fallback GPT error for %s: %s", lm_name, e)
             # 重试逻辑
             if retry_count < 1:
-                print(f"[!] Retrying for {lm_name} (attempt {retry_count + 1})")
+                logger.warning("Retrying for %s (attempt %d)", lm_name, retry_count + 1)
                 return self._aiSummarizeLandmark(lm_name, lm_city, content, image_urls, retry_count + 1)
             return {
                 "source": "openai",
@@ -215,7 +218,7 @@ class LandmarkMetaGenerator:
             return reply.startswith("true")
 
         except Exception as e:
-            print(f"[x] GPT error during verification for {lm_name}: {e}")
+            logger.error("GPT error during verification for %s: %s", lm_name, e)
 
 
     def saveToFile(self, filename="meta_output.json"):
@@ -253,21 +256,19 @@ class LandmarkMetaGenerator:
                         {"$set": entry}
                     )
                     updated_count += 1
-                    print(f"[↻] Updated: {info['name']}")
+                    logger.debug("Updated: %s", info['name'])
                 else:
                     # 如果已存在且不覆盖，跳过
                     skipped_count += 1
-                    print(f"[→] Skipped (already exists): {info['name']}")
+                    logger.debug("Skipped (already exists): %s", info['name'])
             else:
                 # 不存在则插入新记录
                 collection.insert_one(entry)
                 inserted_count += 1
-                print(f"[✓] Inserted: {info['name']}")
+                logger.debug("Inserted: %s", info['name'])
 
-        print(f"\n[Summary] Collection: {collection_name}")
-        print(f"  - Inserted: {inserted_count}")
-        print(f"  - Skipped: {skipped_count}")
-        print(f"  - Updated: {updated_count}")
+        logger.info("Collection %s: inserted=%d, skipped=%d, updated=%d",
+            collection_name, inserted_count, skipped_count, updated_count)
 
 
 if __name__ == "__main__":

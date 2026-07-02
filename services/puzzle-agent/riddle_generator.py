@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 from openai import OpenAI
@@ -6,6 +7,8 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class RiddleGenerator:
     def __init__(self, model=None, mongo_url=None) -> None:
@@ -48,7 +51,7 @@ class RiddleGenerator:
         if not history and not architecture and not significance:
             landmark_name = self.meta.get("name", "landmark")
             city_name = self.meta.get("city", "city")
-            print(f"[PuzzleAgent] Warning: No description data for {landmark_name} in {city_name}. Using basic info as fallback.")
+            logger.warning("No description data for %s in %s. Using basic info as fallback.", landmark_name, city_name)
             # Still proceed with generation using name and city info
 
         history_str = "history: " + ", ".join(history) if history else ""
@@ -91,7 +94,7 @@ class RiddleGenerator:
                 self.riddle = result.text
             else:
                 self.riddle = str(result)  # fallback to string conversion
-            print(f"[PuzzleAgent]: {self.riddle}")
+            logger.debug("Generated riddle (local): %s", self.riddle)
             return self
         elif self.mode == "chatgpt":
             # chatGPT
@@ -105,7 +108,7 @@ class RiddleGenerator:
                 max_tokens=500
             )
             self.riddle = response.choices[0].message.content.strip()
-            print(f"[PuzzleAgent]: {self.riddle}")
+            logger.debug("Generated riddle (chatgpt): %s", self.riddle)
             return self
         else:
             raise ValueError(f"Unsupported mode: {self.mode}. Please choose either 'local' or 'chatgpt'.")
@@ -120,8 +123,8 @@ class RiddleGenerator:
         try:
             difficulty = float(difficulty)
         except (ValueError, TypeError):
-            difficulty = 50.0  
-            print("[PuzzleAgent]: Invalid difficulty input, defaulting to 50.0")
+            difficulty = 50.0
+            logger.warning("Invalid difficulty input, defaulting to 50.0")
         
         if difficulty < 33.3:
             diff_prompt = "Write a simple and clear riddle suitable for beginners or young audiences (around 10 years old)"

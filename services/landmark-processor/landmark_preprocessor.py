@@ -1,12 +1,15 @@
 import requests
 from pymongo import MongoClient, GEOSPHERE
 import json
+import logging
 import os
 
 from landmark_meta_generator import LandmarkMetaGenerator
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 class LandmarkPreprocessor:
 
@@ -29,7 +32,7 @@ class LandmarkPreprocessor:
             },
             timeout=180,
         )
-        print(res.status_code)
+        logger.debug("Overpass API response status: %d", res.status_code)
         res.raise_for_status()
         self.rawData = res.text
         return self
@@ -54,7 +57,7 @@ class LandmarkPreprocessor:
                         res[landmark] = entry
                         break
                 else:
-                    print(f"[Warn] {landmark} Not Found!")
+                    logger.warning("%s not found in Overpass response!", landmark)
 
         self.rawLandmarks = res
         return self
@@ -111,7 +114,7 @@ class LandmarkPreprocessor:
             })
             if existing and not overwrite:
                 skipped += 1
-                print(f"[→] Skipped (exists): {name}")
+                logger.debug("Skipped (exists): %s", name)
                 continue
 
             doc = {
@@ -125,13 +128,13 @@ class LandmarkPreprocessor:
 
             if existing and overwrite:
                 collection.replace_one({"_id": existing["_id"]}, doc)
-                print(f"[✓] Replaced: {name}")
+                logger.debug("Replaced: %s", name)
             else:
                 collection.insert_one(doc)
-                print(f"[✓] Inserted: {name}")
+                logger.debug("Inserted: %s", name)
 
             inserted += 1
-        print(f"[Summary] landmarks/{self.city}: inserted={inserted}, skipped={skipped}")
+        logger.info("landmarks/%s: inserted=%d, skipped=%d", self.city, inserted, skipped)
         client.close()
         return self
 
@@ -146,7 +149,7 @@ class LandmarkPreprocessor:
         with open(path, 'w', encoding='utf-8') as f:  # 添加 encoding='utf-8'
             json.dump(self.processedLandmarks, f, indent=2, ensure_ascii=False)  # 添加 ensure_ascii=False
 
-        print(f"Processed landmarks saved to {path}")
+        logger.info("Processed landmarks saved to %s", path)
         return self
 
     def saveRawOSMAsFile(self, filename="raw.json"):
@@ -159,7 +162,7 @@ class LandmarkPreprocessor:
         with open(path, 'w') as f:
             f.write(self.rawData)
 
-        print(f"[✓] Raw OSM data saved to {path}")
+        logger.info("Raw OSM data saved to %s", path)
         return self
 
 

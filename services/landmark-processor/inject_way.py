@@ -6,10 +6,14 @@
 from landmark_preprocessor import LandmarkPreprocessor
 from pymongo import MongoClient, GEOSPHERE
 from dotenv import load_dotenv
+import logging
 import os
 from landmark_meta_generator import LandmarkMetaGenerator
 
 load_dotenv()
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 # 配置
 WAY_ID = 182676960
@@ -24,7 +28,7 @@ way({WAY_ID});
 out geom;
 """
 
-print(f"[*] 查询 way {WAY_ID}...")
+logger.info("Querying way %s...", WAY_ID)
 
 # 使用你的 LandmarkPreprocessor 类处理
 processor = LandmarkPreprocessor(query, city=CITY)
@@ -76,24 +80,24 @@ if processor.processedLandmarks:
         # 检查是否已存在
         existing = collection.find_one({"name": name, "city": CITY})
         if existing:
-            print(f"[→] 已存在: {name} (城市: {CITY})")
+            logger.debug("Already exists: %s (city: %s)", name, CITY)
             inserted_ids.append(str(existing["_id"]))  # 保存已存在的地标 ID
         else:
             result = collection.insert_one(entry)
             inserted_ids.append(str(result.inserted_id))  # 保存新插入的地标 ID
-            print(f"[✓] 已插入: {name} (城市: {CITY})")
-    
+            logger.debug("Inserted: %s (city: %s)", name, CITY)
+
     client.close()  # 现在可以安全关闭了
-    
+
     # 如果需要生成 metadata，使用 LandmarkMetaGenerator
     if inserted_ids:
-        print("\n[*] 生成 metadata...")
+        logger.info("Generating metadata...")
         generator = LandmarkMetaGenerator()
         generator.loadLandmarksFromDB(inserted_ids)
         generator.fetchWiki().fetchOpenAI()
         generator.storeToDB(collection_name="landmark_metadata", overwrite=False)
-        print("[✓] Metadata 生成完成!")
-    
-    print("\n[✓] 完成!")
+        logger.info("Metadata generation complete!")
+
+    logger.info("Done!")
 else:
-    print("[✗] 没有处理后的地标数据")
+    logger.warning("No processed landmark data.")

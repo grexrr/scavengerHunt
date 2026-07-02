@@ -5,10 +5,14 @@ from geopy.geocoders import Nominatim
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
+import logging
 import uuid
 
 from typing import Tuple
 from flask.wrappers import Response
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 def error_response(code: str, message: str, retryable: bool = False, status: int = 500) -> Tuple[Response, int]:
     return jsonify({
@@ -54,11 +58,11 @@ def resolve_city():
         if not city:
             return error_response("CITY_NOT_FOUND", "City not found in location data", status=400)
 
-        print(f"[ResolveCity] Resolved: {city}")
+        logger.info("Resolved city: %s", city)
         return jsonify({"status": "ok", "city": city})
 
     except Exception as e:
-        print(f"[ResolveCity] Error: {e}")
+        logger.error("resolve-city failed: %s", e)
         return error_response("INTERNAL_ERROR", str(e), status=500)
 
 @app.route("/fetch-landmark", methods=["POST"])
@@ -78,7 +82,6 @@ def fetch_landmark():
         return error_response("RESOLVE_CITY_ERROR",  "Failed to resolve city", status=400)
 
     city = resolve_response.get_json()["city"]
-    print(f"[Landmark Processor] Resolved city: {city}")
 
     # check MongoDB
     client = MongoClient(MONGO_URL)
@@ -86,13 +89,12 @@ def fetch_landmark():
     collection = db["landmarks"]
 
     existing_count = collection.count_documents({"city": city})
-    print(f"[Landmark Processor] Found {existing_count} landmarks for city {city} in DB")
 
     # if existing_count > 20:
     #     print(f"[✓] Landmark data for {city} already initialized, skipping fetch.")
     #     return jsonify({"status": "ok", "city": city})
 
-    print(f"[!] Landmark data for {city} appears incomplete ({existing_count}), proceeding with fetch...")
+    logger.info("Landmark data for %s appears incomplete (%d), proceeding with fetch...", city, existing_count)
 
     query = f"""
     [out:json];
@@ -119,7 +121,7 @@ def fetch_landmark():
         return jsonify({"status": "ok", "city": city})
 
     except Exception as e:
-        print(f"[Landmark Processor] Landmark processing failed: {e}")
+        logger.error("Landmark processing failed: %s", e)
         return error_response("INTERNAL_ERROR", str(e), status=500)
 
 @app.route("/generate-landmark-meta", methods=["POST"])
@@ -162,7 +164,7 @@ def generate_landmark_meta():
             "failed": 0
         })
     except Exception as e:
-        print(f"[Meta Generator] Error: {e}")
+        logger.error("Meta generation failed: %s", e)
         return error_response("INTERNAL_ERROR", str(e), status=500)
 
 

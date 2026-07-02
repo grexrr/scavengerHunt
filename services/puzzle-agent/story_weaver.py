@@ -1,5 +1,8 @@
+import logging
 import uuid
 from riddle_generator import RiddleGenerator
+
+logger = logging.getLogger(__name__)
 
 class StoryWeaver:
     def __init__(self) -> None:
@@ -40,8 +43,7 @@ class StoryWeaver:
     def serve_riddle(self, language, style, difficulty, landmark_id, session_id=None):
 
         state = self.sessions[session_id]
-        print("serve_riddle: session_id=", session_id)
-        print("state=", self.sessions.get(session_id))
+        logger.debug("serve_riddle session_id=%s slot_index=%s", session_id, state["slot_index"])
 
         slot_index = state["slot_index"]
         if slot_index >= len(state["puzzle_pool"]):

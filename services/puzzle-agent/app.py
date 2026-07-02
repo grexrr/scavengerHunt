@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 # from riddle_generator import RiddleGenerator
 from datetime import datetime
 from story_weaver import StoryWeaver
+import logging
 import os
 from dotenv import load_dotenv
 
@@ -9,6 +10,9 @@ import uuid
 
 from typing import Tuple
 from flask.wrappers import Response
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
 def error_response(code: str, message:str, retryable: bool = False, status: int = 500) -> Tuple[Response, int]:
     return jsonify({
@@ -37,7 +41,7 @@ def generate_riddle():
     puzzle_pool = data.get("puzzle_pool", [])  # backend not sent yet
 
     if not session_id:
-        print("No session_id")
+        logger.warning("generate-riddle request missing session_id")
         return error_response("MISSING_SESSION_ID", "missing session id", status=400)
 
     if not landmark_id:

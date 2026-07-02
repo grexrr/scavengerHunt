@@ -59,7 +59,7 @@ def resolve_city():
             return error_response("CITY_NOT_FOUND", "City not found in location data", status=400)
 
         logger.info("Resolved city: %s", city)
-        return jsonify({"status": "ok", "city": city})
+        return jsonify({"status": "ok", "city": city}), 200
 
     except Exception as e:
         logger.error("resolve-city failed: %s", e)

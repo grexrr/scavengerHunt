@@ -13,7 +13,7 @@ SLEEP_SECONDS=5
 wait_for_health() {
     local url=$1
     local name=$2
-    local retries = 0
+    local retries=0
 
     echo "Waiting for $name at $url ..."
     until curl -sf "$url" > /dev/null 2>&1; do

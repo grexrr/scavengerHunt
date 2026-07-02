@@ -2,6 +2,7 @@
 Flask==3.1.1
 pymongo==4.13.2
 python-dotenv==1.1.1
+pytest==9.1.1
 openai==1.97.1
 lmstudio==1.4.1
 
@@ -27,3 +28,4 @@ pydantic==2.11.7
 pydantic_core==2.33.2
 annotated-types==0.7.0
 typing_extensions==4.14.1
+

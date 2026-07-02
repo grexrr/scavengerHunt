@@ -1,28 +1,32 @@
 # CI override — removes fixed names/ports that would conflict with dev stack
 # Usage: docker compose -f docker-compose.yml -f docker-compose.ci.yml up
-
 services:
   spring-backend:
     container_name: ci-spring-backend
-    ports:
+    ports: !override
       - "8080"
     environment:
       JWT_SECRET: "ci-test-secret-not-for-production"
       SPRING_PROFILES_ACTIVE: "ci"
+      SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/scavengerhunt"  # 'mongo' = service name, stable regardless of container_name
 
   landmark-processor:
     container_name: ci-landmark-processor
-    ports: []
+    ports: !override []
+    environment:
+      MONGO_URL: "mongodb://mongo:27017"
 
   puzzle-agent:
     container_name: ci-puzzle-agent
-    ports: []
+    ports: !override []
+    environment:
+      MONGO_URL: "mongodb://mongo:27017"
 
   mongo:
     container_name: ci-mongo
-    ports: []                   # never expose mongo host port in CI
+    ports: !override []         # never expose mongo host port in CI
     volumes:
       - ci-mongo-data:/data/db  # use a separate volume, not the dev volume
 
 volumes:
-  ci-mongo-data:                # temporary CI volume — cleaned up after each build
+  ci-mongo-data:

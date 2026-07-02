@@ -8,6 +8,33 @@ LANDMARK_POLL_SECONDS=10
 USERNAME="ci-e2e-$(date +%s)"
 PASSWORD="CiE2e123!"
 
+echo "Seeding landmark data for Cork (bypasses the live Overpass call, which is blocked by Docker's network path in this local CI setup — see Task 6.9 findings in the roadmap)..."
+docker exec ci-mongo mongosh scavengerhunt --quiet --eval '
+db.landmarks.deleteMany({ city: "Cork" });
+const baseLandmarks = [
+  { name: "Glucksman Gallery", lat: 51.894741757894735, lng: -8.490317963157894 },
+  { name: "The Quad", lat: 51.89372202222222, lng: -8.492224097916667 },
+  { name: "Boole Library", lat: 51.89285984, lng: -8.491245088 }
+];
+const seeded = [];
+for (let i = 0; i < 25; i++) {
+  const b = baseLandmarks[i % baseLandmarks.length];
+  const lng = b.lng + (i * 0.00005);
+  const lat = b.lat + (i * 0.00005);
+  const d = 0.0001; // small square footprint around the point, real landmarks always have a boundary polygon from Overpass
+  seeded.push({
+    name: i < 3 ? b.name : `${b.name} (seed ${i})`,
+    city: "Cork",
+    location: { type: "Point", coordinates: [lng, lat] },
+    geometry: { type: "Polygon", coordinates: [[
+      [lng - d, lat - d], [lng + d, lat - d], [lng + d, lat + d], [lng - d, lat + d], [lng - d, lat - d]
+    ]] }
+  });
+}
+db.landmarks.insertMany(seeded);
+print(`Seeded ${seeded.length} landmarks for Cork.`);
+'
+
 echo "Registering $USERNAME ..."
 curl -sf -X POST "$BACKEND_URL/api/auth/register" \
     -H "Content-Type: application/json" \

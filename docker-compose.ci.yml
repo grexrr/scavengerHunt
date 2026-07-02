@@ -22,6 +22,7 @@ services:
     ports: !override []
     environment:
       MONGO_URL: "mongodb://ci-mongo:27017"
+      SKIP_LIVE_LANDMARK_FETCH: "true"  # Overpass is unreachable from Docker in this local CI setup — see Task 6.9
 
   puzzle-agent:
     networks:

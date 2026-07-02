@@ -83,18 +83,20 @@ def fetch_landmark():
 
     city = resolve_response.get_json()["city"]
 
+    # CI-only escape hatch: the real Overpass call is unreachable from inside Docker
+    # in local CI (see Task 6.9 findings in the roadmap). Never set outside CI —
+    # production/dev should always fetch live, regardless of how much data already exists.
+    if os.getenv("SKIP_LIVE_LANDMARK_FETCH", "false").lower() == "true":
+        logger.info("SKIP_LIVE_LANDMARK_FETCH is set — skipping live Overpass fetch for %s.", city)
+        return jsonify({"status": "ok", "city": city}), 200
+
     # check MongoDB
     client = MongoClient(MONGO_URL)
     db = client[DB_NAME]
     collection = db["landmarks"]
 
     existing_count = collection.count_documents({"city": city})
-
-    # if existing_count > 20:
-    #     print(f"[✓] Landmark data for {city} already initialized, skipping fetch.")
-    #     return jsonify({"status": "ok", "city": city})
-
-    logger.info("Landmark data for %s appears incomplete (%d), proceeding with fetch...", city, existing_count)
+    logger.info("Landmark data for %s has %d existing entries, proceeding with fetch...", city, existing_count)
 
     query = f"""
     [out:json];

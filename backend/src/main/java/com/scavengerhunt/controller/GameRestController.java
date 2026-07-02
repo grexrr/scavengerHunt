@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.locationtech.jts.geom.Coordinate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +44,8 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/game")
 @Tag(name="GameController", description="Game Controller APIs")
 public class GameRestController {
+
+    private static final Logger log = LoggerFactory.getLogger(GameRestController.class);
 
     @Autowired
     private GameSessionService gameSessionService;
@@ -81,6 +85,7 @@ public class GameRestController {
         // session Game Session Management
         PersistedGameSession session = gameSessionService.findByUserId(userId).orElse(null);
         if (session == null) {
+            log.debug("No session for player {} on update-position", userId);
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body("[Backend][updatePlayerPosition] No Session for player: " + userId);
         } else {
@@ -104,8 +109,7 @@ public class GameRestController {
     @PostMapping("/init-game")
     public ResponseEntity<?> initGame(@Valid @RequestBody PlayerPositionRequest request) {
         String userId = currentUserId();
-        System.out.println("[InitGame] Request from user: " + userId);
-        // System.out.println("[InitGame] city: " + request.getCity());
+        log.debug("init-game request from user {}", userId);
 
         double lat = request.getLatitude();
         double lng = request.getLongitude();
@@ -158,7 +162,7 @@ public class GameRestController {
         PersistedGameSession session = gameSessionService.findByUserId(userId).orElse(null);
 
         if (session == null || session.isFinished()) {
-            System.out.println("[Backend][InitGame] Creating new session for user: " + userId);
+            log.info("Creating new game session for user {}", userId);
             session = gameSessionService.createSession(userId, city);
         }
 
@@ -189,7 +193,7 @@ public class GameRestController {
 
         // Check if game is already finished to prevent starting new round on finished session
         if (session.isFinished()) {
-            System.out.println("[Backend][startNewRound] Cannot start round - game already finished for user: " + userId);
+            log.debug("Cannot start round, game already finished for user {}", userId);
             return ResponseEntity.status(400).body("[Backend][startNewRound] Game already finished. Please initialize a new game.");
         }
 

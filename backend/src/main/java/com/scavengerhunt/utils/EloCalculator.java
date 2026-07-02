@@ -2,11 +2,16 @@ package com.scavengerhunt.utils;
 
 import java.time.LocalDateTime;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.User;
 import com.scavengerhunt.repository.GameDataRepository;
 
 public class EloCalculator {
+
+    private static final Logger log = LoggerFactory.getLogger(EloCalculator.class);
 
     private User user;
     private GameDataRepository gameDataRepo;
@@ -48,17 +53,11 @@ public class EloCalculator {
         if (Double.isNaN(userNewRating)) userNewRating = 0.5;
         if (Double.isNaN(landmarkNewRating)) landmarkNewRating = 0.5;
     
-        // // ======= Logs =======
-        // System.out.println("====== [EloCalc] Rating Update ======");
-        // System.out.println("[EloCalc] Target Landmark: " + landmark.getName() + " (ID: " + landmark.getId() + ")");
-        // System.out.println("[EloCalc] User ID: " + user.getUserId());
-        // System.out.println("[EloCalc] Time used: " + riddleSeconds + " seconds");
-        // System.out.println("[EloCalc] Answer correct? " + isCorrect);
-        // System.out.printf("[EloCalc] Current User Rating: %.4f → %.4f (K=%.5f)\n", userRating, userNewRating, userK);
-        // System.out.printf("[EloCalc] Current Landmark Rating: %.4f → %.4f (K=%.5f)\n", landmarkRating, landmarkNewRating, landmarkK);
-        // System.out.printf("[EloCalc] Delta: %.4f, hshs: %.4f, expected: %.4f\n", delta, hshs, expectation);
-        // System.out.println("==================================");
-    
+        log.debug("Rating update for landmark {} (correct={}, {}s): user {}->{} (K={}), landmark {}->{} (K={}), delta={}, hshs={}, expected={}",
+            landmark.getId(), isCorrect, riddleSeconds,
+            userRating, userNewRating, userK,
+            landmarkRating, landmarkNewRating, landmarkK,
+            delta, hshs, expectation);
 
         gameDataRepo.updateUserRating(this.user.getUserId(), userNewRating);
         gameDataRepo.updateLandmarkRating(landmark.getId(), landmarkNewRating);

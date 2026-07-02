@@ -2,12 +2,17 @@ package com.scavengerhunt.game;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.scavengerhunt.client.PuzzleAgentClient;
 import com.scavengerhunt.client.dto.GenerateRiddleRequest;
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.repository.GameDataRepository;
 
 public class PuzzleManager {
+
+    private static final Logger log = LoggerFactory.getLogger(PuzzleManager.class);
 
     private final GameDataRepository gameDataRepo;
     private final PuzzleAgentClient puzzleAgentClient;
@@ -53,7 +58,7 @@ public class PuzzleManager {
         try {
             return puzzleAgentClient.generateRiddle(req);
         } catch (Exception e) {
-            System.out.println("[PuzzleManager] Python backend not available: " + e.getMessage());
+            log.warn("Puzzle-agent backend unavailable, falling back to default riddle: {}", e.getMessage());
             return "Default Riddle";
         }
     }

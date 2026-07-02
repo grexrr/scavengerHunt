@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -33,6 +35,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Authentication", description = "User authentication and registration APIs")
 public class AuthController {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
     @Autowired
     private GameSessionService gameSessionService;
 
@@ -58,6 +62,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, Object>> register(@RequestBody UserIdentityRequest request){
         if (userRepo.findByUsername(request.getUsername()).isPresent()) {
+
+            log.debug("Username {} already exists!", request.getUsername());
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Username already exists.");
             return ResponseEntity.status(409).body(errorResponse);
@@ -65,6 +72,9 @@ public class AuthController {
 
         String userEmail = request.getEmail();
         if (userEmail != null && userRepo.findByEmail(userEmail).isPresent()) {
+
+            log.debug("Email {} already exists!", request.getEmail());
+
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("error", "Email already exists.");
             return ResponseEntity.status(409).body(errorResponse);
@@ -96,15 +106,18 @@ public class AuthController {
                 LocalDateTime createdAt = LocalDateTime.parse(request.getCreatedAt());
                 newUser.setCreatedAt(createdAt);
             } catch (Exception e) {
-                // 如果解析失败，使用当前时间
+
+                log.debug("LocalDateTime parse failed for user: {}", request.getUsername());
+
                 newUser.setCreatedAt(LocalDateTime.now());
             }
         } else {
-            // 如果没有提供，使用当前时间
             newUser.setCreatedAt(LocalDateTime.now());
         }
 
         userRepo.save(newUser);
+
+        log.info("Registered new user {}", newUser.getUsername());
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Registration successful");
@@ -133,29 +146,43 @@ public class AuthController {
         Optional<User> user;
 
         if (username != null && !username.trim().isEmpty()) {
+
+            log.info("{} log in with username", username);
+
             user = userRepo.findByUsername(username);
         } else if (email != null && !email.trim().isEmpty()) {
+
+            log.info("{} log in with email", email);
+
             user = userRepo.findByEmail(email);
         } else {
+
+            log.debug("Username or email not provided");
+
             return ResponseEntity.status(400).body(
                 Map.of("error", "[Backend] Username or email is required.")
             );
         }
 
         return user
-        .filter(u -> passwordEncoder.matches(request.getPassword(), u.getPassword()))
-        .map(u -> {
-            String role = u.getAdmin() ? "ADMIN" : "PLAYER";
-            String token = tokenProvider.generateToken(u.getUserId(), role);
+            .filter(u -> passwordEncoder.matches(request.getPassword(), u.getPassword()))
+            .map(u -> {
+                String role = u.getAdmin() ? "ADMIN" : "PLAYER";
+                String token = tokenProvider.generateToken(u.getUserId(), role);
 
-            Map<String, Object> userInfo = new HashMap<>();
-            userInfo.put("token", token);
-            userInfo.put("userId", u.getUserId());
-            userInfo.put("username", u.getUsername());
-            userInfo.put("role", role);
-            return ResponseEntity.ok(userInfo);
-        })
-        .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error", "[Backend] Invalid username or password.")));
+                Map<String, Object> userInfo = new HashMap<>();
+                userInfo.put("token", token);
+                userInfo.put("userId", u.getUserId());
+                userInfo.put("username", u.getUsername());
+                userInfo.put("role", role);
+                return ResponseEntity.ok(userInfo);
+            })
+            .orElseGet(
+                () -> {
+                    log.info("Failed login attempt for {}", username != null ? username : email);
+                    return ResponseEntity.status(404).body(Map.of("error", "[Backend] Invalid username or password."));
+                }
+            );
     }
 
     @Operation(
@@ -177,8 +204,10 @@ public class AuthController {
         }
 
         if (gameSessionService.hasSession(userId)) {
+
+            log.debug("{} logout, session cleared", userId);
+
             gameSessionService.removeSession(userId);
-            System.out.println("[Backend]User "+ userId +" logout, session cleared.");
         }
 
         Map<String, Object> response = new HashMap<>();
@@ -270,6 +299,8 @@ public class AuthController {
                 }
 
                 userRepo.save(user);
+
+                log.debug("Profile updated for {}", userId);
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "Profile updated successfully");

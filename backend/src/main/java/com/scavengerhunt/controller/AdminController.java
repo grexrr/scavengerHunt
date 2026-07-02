@@ -2,6 +2,8 @@ package com.scavengerhunt.controller;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,10 +18,12 @@ import com.scavengerhunt.repository.UserRepository;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
-    
+
+    private static final Logger log = LoggerFactory.getLogger(AdminController.class);
+
     private final LandmarkRepository landmarkRepository;
     private final UserRepository userRepository;
-    
+
     public AdminController(LandmarkRepository landmarkRepository, UserRepository userRepository){
         this.landmarkRepository = landmarkRepository;
         this.userRepository = userRepository;
@@ -34,6 +38,7 @@ public class AdminController {
         );
 
         landmarkRepository.saveAll(landmarks);
+        log.info("Inserted {} seed landmarks", landmarks.size());
         return ResponseEntity.ok("[Admin] Landmarks inserted.");
     }
 
@@ -43,18 +48,21 @@ public class AdminController {
             new User("Bob", "12345", true)
         );
         userRepository.saveAll(users);
+        log.info("Inserted {} seed users", users.size());
         return ResponseEntity.ok("[Admin] Users inserted.");
     }
 
     @DeleteMapping("/clear-landmarks")
     public ResponseEntity<String> clearLandmarks() {
         landmarkRepository.deleteAll();
+        log.info("Cleared all landmarks");
         return ResponseEntity.ok("[Admin] All landmarks cleared.");
     }
 
     @DeleteMapping("/clear-users")
     public ResponseEntity<String> clearUsers() {
         userRepository.deleteAll();
+        log.info("Cleared all users");
         return ResponseEntity.ok("[Admin] All users cleared.");
     }
 }

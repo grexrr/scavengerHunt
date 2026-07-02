@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.geo.Distance;
 import org.springframework.data.geo.GeoResult;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
@@ -20,6 +22,8 @@ import com.scavengerhunt.model.User;
 
 @Repository
 public class GameDataRepository {
+    private static final Logger log = LoggerFactory.getLogger(GameDataRepository.class);
+
     // 静态配置读取
     private static final String LANDMARK_PROCESSOR_URL =
         System.getProperty("landmark.processor.url", "http://landmark-processor:5000");
@@ -54,40 +58,38 @@ public class GameDataRepository {
                 Object cityRaw = resolveResp.getBody().get("city");
                 if (cityRaw instanceof String resolvedCity && !resolvedCity.isEmpty()) {
                     city = resolvedCity;
-                    System.out.println("[Landmark Processor] Resolved city: " + city);
+                    log.debug("Resolved city: {}", city);
                 }
             }
         } catch (Exception e) {
-            System.err.println("[Landmark Processor] resolve-city call failed: " + e.getMessage());
+            log.warn("resolve-city call to landmark-processor failed: {}", e.getMessage());
         }
 
         // Step 2: fallback if resolution failed
         if (city == null || city.equals("UnknownCity")) {
-            System.err.println("[GameDataRepo] Could not resolve city. Skipping fetch, using 'UnknownCity'.");
+            log.warn("Could not resolve city for ({}, {}). Falling back to 'Cork'.", lat, lng);
             city = "Cork";
         }
 
         // Step 3: try database first
         List<Landmark> landmarks = landmarkRepo.findByCity(city);
         if (landmarks.size() >= 10) {
-            System.out.println("[Landmark Processor] Using cached landmarks for city: " + city + " (" + landmarks.size() + ")");
+            log.debug("Using cached landmarks for city: {} ({})", city, landmarks.size());
             return city;
         }
 
         // Step 4: fetch if needed
         try {
-            System.out.println("[Landmark Processor] Landmark data insufficient (" + landmarks.size() + "), triggering fetch...");
+            log.debug("Landmark data insufficient for {} ({}), triggering fetch...", city, landmarks.size());
             Map<String, String> cityPayload = Map.of("latitude", String.valueOf(lat), "longitude", String.valueOf(lng));
             HttpEntity<Map<String, String>> fetchEntity = new HttpEntity<>(cityPayload, headers);
             ResponseEntity<Map> fetchResp = restTemplate.postForEntity(fetchLandmarkUrl, fetchEntity, Map.class);
 
-            if (fetchResp.getStatusCode().is2xxSuccessful()) {
-                System.out.println("[Landmark Processor] Fetch succeeded from Flask.");
-            } else {
-                System.err.println("[Landmark Processor] Fetch returned non-200: " + fetchResp.getStatusCode());
+            if (!fetchResp.getStatusCode().is2xxSuccessful()) {
+                log.warn("Landmark fetch returned non-200: {}", fetchResp.getStatusCode());
             }
         } catch (Exception e) {
-            System.err.println("[Landmark Processor] Fetch from Flask failed: " + e.getMessage());
+            log.warn("Landmark fetch from landmark-processor failed: {}", e.getMessage());
         }
 
         return city;
@@ -106,7 +108,6 @@ public class GameDataRepository {
     }
 
     public List<String> loadLandmarkIdByCity(String city) {
-        System.out.println("[GameDataRepository] Querying for city: '" + city + "'");
         return landmarkRepo.findByCity(city).stream()
             .map(Landmark::getId)
             .toList();
@@ -137,7 +138,7 @@ public class GameDataRepository {
             }
             landmark.setRating(rating);
             landmarkRepo.save(landmark);
-            System.out.println("[✓] Landmark rating updated: " + rating);
+            log.debug("Landmark {} rating updated: {}", landmarkId, rating);
         }
     }
 
@@ -174,7 +175,7 @@ public class GameDataRepository {
             }
             user.setRating(rating);
             userRepo.save(user);
-            System.out.println("[✓] User rating updated: " + rating);
+            log.debug("User {} rating updated: {}", userId, rating);
         }
     }
 

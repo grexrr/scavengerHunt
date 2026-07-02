@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -17,6 +19,8 @@ import com.scavengerhunt.model.Landmark;
 
 @Component
 public class LandmarkProcessorClient {
+
+    private static final Logger log = LoggerFactory.getLogger(LandmarkProcessorClient.class);
 
     private final RestClient restClient;
 
@@ -40,7 +44,8 @@ public class LandmarkProcessorClient {
 
                 if (body != null && "ok".equals(body.status()) && body.city() != null && !body.city().isEmpty()) { return body.city(); }
         } catch (Exception e) {
-            System.err.println("[Landmark Processor] resolve-city call failed: " + e.getMessage());
+            log.debug("resolve-city call failed: {}", e.getMessage());
+
         }
         return null;
     }
@@ -73,12 +78,12 @@ public class LandmarkProcessorClient {
                 Object generated = body.get("generated");
                 Object skipped = body.get("skipped");
                 Object failed = body.get("failed");
-                System.out.println(String.format(
-                    "[Landmark Processor] batch size=%d -> generated=%s, skipped=%s, failed=%s",
-                    landmarkIds.size(), generated, skipped, failed));
+                log.debug("Batch size={} -> generated={}, skipped={}, failed={}",
+                    landmarkIds.size(), generated, skipped, failed);
+
             }
         } catch (Exception e) {
-            System.out.println("[Landmark Processor] batch error: " + e.getMessage());
+            log.debug("Batch error: {}", e.getMessage());
         }
     }
 }

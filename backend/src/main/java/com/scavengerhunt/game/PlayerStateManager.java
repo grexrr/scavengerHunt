@@ -2,6 +2,9 @@ package com.scavengerhunt.game;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.scavengerhunt.model.Landmark;
 import com.scavengerhunt.model.Player;
 import com.scavengerhunt.repository.GameDataRepository;
@@ -11,6 +14,8 @@ import com.scavengerhunt.utils.GeoUtils;
  * Manages the state of a player in the scavenger hunt game.
  */
 public class PlayerStateManager {
+    private static final Logger log = LoggerFactory.getLogger(PlayerStateManager.class);
+
     // private Landmark currentTarget;
     private Player player;
     private LandmarkManager landmarkManager;
@@ -42,18 +47,13 @@ public class PlayerStateManager {
 
     public void updateDetectedLandmark(){
         List<String> candidateIds = landmarkManager.getAllLocalLandmarkIds();
-        System.out.println("[PlayerStateManager] Detecting landmark from " + candidateIds.size() + " local landmarks");
-        System.out.println("[PlayerStateManager] Player position: " + getPlayer().getLatitude() + ", " + getPlayer().getLongitude() + " @ " + getPlayer().getAngle());
 
         // Use GeoUtils.detectedLandmark method to update detected landmark
         this.detectedLandmark = null;
         this.detectedLandmark = GeoUtils.detectedLandmark(candidateIds, this.player, gameDataRepository);
 
-        if (this.detectedLandmark != null) {
-            System.out.println("[PlayerStateManager] Detected landmark: " + this.detectedLandmark.getName());
-        } else {
-            System.out.println("[PlayerStateManager] No landmark detected");
-        }
+        log.debug("Detected landmark from {} candidates: {}", candidateIds.size(),
+            this.detectedLandmark != null ? this.detectedLandmark.getId() : "none");
     }
 
     public void resetGame(){

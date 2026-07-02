@@ -2,9 +2,14 @@
 
 set -euo pipefail
 
-BACKEND_URL="${BACKEND_URL:-http://spring-backend:8080}"
-LANDMARK_URL="${LANDMARK_URL:-http://landmark-processor:5000}"
-PUZZLE_URL="${PUZZLE_URL:-http://puzzle-agent:5000}"
+# Use container_name, not the bare Compose service name — the dev stack
+# (docker-compose.yml) shares this network and uses the same service names
+# (spring-backend, landmark-processor, puzzle-agent, mongo), so those bare
+# names are ambiguous whenever CI runs alongside dev. container_name is
+# globally unique, so it's the only reliable way to address the CI-only container.
+BACKEND_URL="${BACKEND_URL:-http://ci-spring-backend:8080}"
+LANDMARK_URL="${LANDMARK_URL:-http://ci-landmark-processor:5000}"
+PUZZLE_URL="${PUZZLE_URL:-http://ci-puzzle-agent:5000}"
 
 
 MAX_RETRIES=30

@@ -8,19 +8,19 @@ services:
     environment:
       JWT_SECRET: "ci-test-secret-not-for-production"
       SPRING_PROFILES_ACTIVE: "ci"
-      SPRING_DATA_MONGODB_URI: "mongodb://mongo:27017/scavengerhunt"  # 'mongo' = service name, stable regardless of container_name
+      SPRING_DATA_MONGODB_URI: "mongodb://ci-mongo:27017/scavengerhunt"  # 'mongo' (service name) collides with the dev stack's mongo-scavenger alias on the shared network — use the unique container_name instead
 
   landmark-processor:
     container_name: ci-landmark-processor
     ports: !override []
     environment:
-      MONGO_URL: "mongodb://mongo:27017"
+      MONGO_URL: "mongodb://ci-mongo:27017"
 
   puzzle-agent:
     container_name: ci-puzzle-agent
     ports: !override []
     environment:
-      MONGO_URL: "mongodb://mongo:27017"
+      MONGO_URL: "mongodb://ci-mongo:27017"
 
   mongo:
     container_name: ci-mongo

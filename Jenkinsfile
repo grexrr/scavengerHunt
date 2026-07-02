@@ -75,6 +75,12 @@ pipeline {
                 sh 'bash scripts/ci-smoke-test.sh'
             }
         }
+
+        stage('Real E2E Game Flow') {
+            steps {
+                sh 'bash scripts/ci-e2e-game-flow-test.sh'
+            }
+        }
     }
 
     post {

@@ -13,10 +13,11 @@ SLEEP_SECONDS=5
 wait_for_health() {
     local url=$1
     local name=$2
+    local method=${3:-GET}
     local retries=0
 
     echo "Waiting for $name at $url ..."
-    until curl -sf "$url" > /dev/null 2>&1; do
+    until curl -sf -X "$method" "$url" > /dev/null 2>&1; do
         retries=$((retries + 1))
         if [ $retries -ge $MAX_RETRIES ]; then
             echo "Error: $name did not become healthy after $((MAX_RETRIES * SLEEP_SECONDS))s"
@@ -29,7 +30,8 @@ wait_for_health() {
 
 wait_for_health "$BACKEND_URL/actuator/health" "Spring Backend"
 wait_for_health "$LANDMARK_URL/health" "Landmark Processor"
-wait_for_health "$PUZZLE_URL/health" "Puzzle Agent"
+# puzzle-agent's /health route is registered as POST-only (see services/puzzle-agent/app.py) — GET returns 405.
+wait_for_health "$PUZZLE_URL/health" "Puzzle Agent" POST
 
 # Basic API smoke test -register + login
 echo "Testing auth endpoints..."
